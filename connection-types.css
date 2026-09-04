@@ -1,0 +1,23 @@
+.edge.data { stroke: #776bc5; }
+.edge.control {
+  stroke: #bd8a52;
+  stroke-dasharray: 6 6;
+}
+.edge.control.running { animation-duration: .55s; }
+.node-port.control {
+  top: 38%;
+  background: #bd8a52;
+  box-shadow: 0 0 0 1px color-mix(in srgb,#bd8a52 45%,var(--line));
+}
+.node-port.data {
+  top: 70%;
+  background: #776bc5;
+  box-shadow: 0 0 0 1px color-mix(in srgb,#776bc5 45%,var(--line));
+}
+.node-port.control:hover,.node-port.control.pending { box-shadow: 0 0 0 4px #bd8a5222; }
+.node-port.data:hover,.node-port.data.pending { box-shadow: 0 0 0 4px #776bc522; }
+.data-line-dot { background: #776bc5; }
+.control-line-dot { background: #bd8a52; }
+@media (max-width: 980px) {
+  .canvas-legend span:nth-child(n+3) { display: none; }
+}

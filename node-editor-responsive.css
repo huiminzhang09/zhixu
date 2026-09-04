@@ -1,0 +1,9 @@
+.mobile-palette { display: none; }
+@media (max-width: 760px) {
+  .canvas-toolbar .mobile-palette {
+    display: block;
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .canvas-toolbar::before { display: none; }
+}

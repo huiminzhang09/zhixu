@@ -1,0 +1,83 @@
+/* 展开显示图标与文字；收起仅保留自适应图标。 */
+@media (min-width: 881px) {
+  :root { --sidebar: 168px; }
+
+  .brand { padding-inline: 6px; }
+  .nav-item .icon { flex: none; text-align: center; }
+
+  body.collapsed { --sidebar: 68px; }
+  body.collapsed .sidebar { padding-left: 7px; padding-right: 7px; }
+  body.collapsed .brand { justify-content: center; padding: 0; }
+  body.collapsed .brand b,
+  body.collapsed .side-bottom .user-meta { display: none; }
+
+  body.collapsed nav { gap: 6px; }
+  body.collapsed .nav-item {
+    height: 46px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+    border-radius: 13px;
+    line-height: 1;
+  }
+  body.collapsed .nav-item span:not(.icon),
+  body.collapsed .nav-item span.nav-label-full,
+  body.collapsed .nav-item span.nav-label-short { display: none; }
+  body.collapsed .nav-item .icon {
+    width: auto;
+    font-size: clamp(18px, calc(var(--sidebar) * .3), 22px);
+    line-height: 22px;
+  }
+  body.collapsed .nav-item:not(.active) { color: var(--muted); background: transparent; }
+  body.collapsed .nav-item:not(.active):hover { background: var(--surface-2); color: var(--text); }
+  body.collapsed .nav-item.create.active {
+    height: 46px;
+    color: #fff;
+    background: linear-gradient(145deg, #6331d2 0%, #8a36b6 52%, #c34f86 100%);
+    box-shadow: 0 8px 20px rgba(111, 49, 204, .24);
+  }
+  body.collapsed .side-bottom { left: 7px; right: 7px; }
+  body.collapsed .side-bottom button { justify-content: center; padding: 0; }
+  body.collapsed .side-bottom span.user-avatar { display: grid; }
+}
+
+.nav-label-short { display: none; }
+
+.side-bottom { bottom: 18px; }
+.side-bottom .side-user {
+  height: 54px;
+  padding: 6px;
+  gap: 9px;
+  color: var(--text);
+}
+.user-avatar {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 750;
+  background: linear-gradient(145deg, #ff9b5c, #7159ff);
+  box-shadow: 0 5px 14px rgba(84, 54, 191, .24);
+}
+.user-avatar i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  top: 0;
+  right: 0;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: #12c57b;
+}
+.user-meta {
+  min-width: 0;
+  text-align: left;
+}
+.user-meta b,
+.user-meta small { display: block; overflow: hidden; text-overflow: ellipsis; }
+.user-meta b { font-size: 12px; }
+.user-meta small { margin-top: 3px; color: var(--muted); font-size: 9px; }
