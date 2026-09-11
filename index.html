@@ -7,13 +7,15 @@
   <title>Orchestra — 音乐灵感社区</title>
   <link rel="icon" type="image/png" sizes="64x64" href="./assets/orchestra-logo.png?v=1" />
   <link rel="preconnect" href="https://images.unsplash.com" />
-  <link rel="stylesheet" href="./styles.css?v=4" />
+  <link rel="stylesheet" href="./styles.css?v=5" />
   <link rel="stylesheet" href="./sidebar-states.css?v=7" />
   <link rel="stylesheet" href="./projects.css?v=12" />
-  <link rel="stylesheet" href="./business.css?v=6" />
-  <link rel="stylesheet" href="./project-create.css?v=7" />
-  <link rel="stylesheet" href="./project-detail.css?v=2" />
-  <link rel="stylesheet" href="./workflows.css?v=2" />
+  <link rel="stylesheet" href="./business.css?v=7" />
+  <link rel="stylesheet" href="./project-create.css?v=13" />
+  <link rel="stylesheet" href="./project-detail.css?v=18" />
+  <link rel="stylesheet" href="./task-center.css?v=30" />
+  <link rel="stylesheet" href="./workflows.css?v=12" />
+  <link rel="stylesheet" href="./playlist-import.css?v=1" />
   <link rel="stylesheet" href="./profile-center.css?v=13" />
   <link rel="stylesheet" href="./node-editor.css?v=3" />
   <link rel="stylesheet" href="./node-editor-responsive.css?v=1" />
@@ -92,6 +94,33 @@
     </section>
     </div>
 
+    <section class="page-view task-page" id="taskPage" aria-label="待办任务">
+      <nav class="task-tabs" aria-label="任务状态筛选">
+        <div role="tablist">
+          <button class="active" type="button" role="tab" aria-selected="true" data-task-status="active">进行中 <span id="taskActiveTabCount">0</span></button>
+          <button type="button" role="tab" aria-selected="false" data-task-status="finished">已完成 <span id="taskFinishedTabCount">0</span></button>
+          <button type="button" role="tab" aria-selected="false" data-task-status="all">全部任务</button>
+        </div>
+      </nav>
+
+      <div class="task-workspace">
+        <section class="task-list-shell" aria-labelledby="taskListTitle">
+          <div class="task-list-toolbar">
+            <div><b id="taskListTitle">进行中任务</b><span id="taskResultCount">0 条</span></div>
+            <div class="task-list-filters">
+              <label class="task-search"><span aria-hidden="true">⌕</span><input id="taskSearch" type="search" placeholder="搜索作品、项目或节点" aria-label="搜索任务" /></label>
+            </div>
+          </div>
+          <div class="task-list" id="taskList" aria-label="生产任务列表"></div>
+          <div class="task-empty" id="taskEmpty" hidden><span aria-hidden="true">✓</span><h3>当前没有匹配任务</h3><p>可修改搜索关键词或切换任务状态查看。</p></div>
+        </section>
+
+        <aside class="task-detail-shell" id="taskDetailPanel" aria-live="polite">
+          <div class="task-detail-empty"><span aria-hidden="true">▤</span><h2>选择一条任务</h2><p>右侧将根据工作流节点类型展示对应的任务处理页面。</p></div>
+        </aside>
+      </div>
+    </section>
+
     <section class="page-view projects-page" id="projectsPage" aria-labelledby="projectsTitle">
       <header class="projects-heading">
         <div class="project-heading-title">
@@ -145,11 +174,11 @@
           <button class="project-detail-back" id="backProjectDetails" type="button" aria-label="返回项目列表">‹</button>
           <div><span class="eyebrow">PROJECT DETAIL</span><h1 id="projectDetailTitle">项目详情</h1><p id="projectDetailDescription">查看项目生产计划、作品和成员产能。</p></div>
         </div>
-        <div class="project-detail-state"><span id="projectDetailRisk"><i></i> 正常推进</span><div><b id="projectDetailProgress">0%</b><small>项目进度</small></div></div>
+        <div class="project-detail-state"><span id="projectDetailRisk"><i></i> 正常推进</span></div>
       </header>
 
       <div class="project-detail-summary" aria-label="项目汇总信息">
-        <article><span class="detail-summary-icon violet" aria-hidden="true">▤</span><div><small>生产批次</small><strong id="projectDetailPlanCount">0</strong></div></article>
+        <article><span class="detail-summary-icon violet" aria-hidden="true">▤</span><div><small>生产计划</small><strong id="projectDetailPlanCount">0</strong></div></article>
         <article><span class="detail-summary-icon blue" aria-hidden="true">♫</span><div><small>阶段作品</small><strong id="projectDetailWorkCount">0</strong></div></article>
         <article><span class="detail-summary-icon green" aria-hidden="true">♙</span><div><small>参与成员</small><strong id="projectDetailMemberCount">0</strong></div></article>
         <article><span class="detail-summary-icon orange" aria-hidden="true">◷</span><div><small>最近更新</small><strong id="projectDetailUpdated">-</strong></div></article>
@@ -159,25 +188,33 @@
         <div role="tablist">
           <button class="active" id="projectPlanTab" type="button" role="tab" aria-selected="true" aria-controls="projectPlanPanel" data-project-detail-tab="plan">生产计划</button>
           <button id="projectWorksTab" type="button" role="tab" aria-selected="false" aria-controls="projectWorksPanel" data-project-detail-tab="works">作品</button>
-          <button id="projectEfficiencyTab" type="button" role="tab" aria-selected="false" aria-controls="projectEfficiencyPanel" data-project-detail-tab="efficiency">人效管理</button>
         </div>
       </nav>
 
       <div class="project-detail-panels">
         <section class="project-detail-panel active" id="projectPlanPanel" role="tabpanel" aria-labelledby="projectPlanTab" data-project-detail-panel="plan">
-          <header class="detail-section-heading"><div><span>PRODUCTION PLAN</span><h2>计划信息</h2><p>按批次管理生产数量、负责人、工作流和交付时间。</p></div><button class="detail-primary-button" id="addProjectBatch" type="button">＋ 新增计划</button></header>
-          <div class="project-plan-table-wrap" id="projectPlanTableWrap"><div class="project-plan-table" id="projectPlanList" role="table" aria-label="生产计划批次"></div></div>
-          <div class="project-detail-empty" id="projectPlanEmpty" hidden><span>▤</span><h3>暂无生产计划</h3><p>点击“新增计划”建立第一条生产计划。</p></div>
+          <div class="project-panel-actions"><button class="detail-primary-button" id="addProjectBatch" type="button">＋ 新增生产计划</button></div>
+          <div class="project-plan-table-wrap" id="projectPlanTableWrap"><div class="project-plan-table" id="projectPlanList" role="table" aria-label="生产计划列表"></div></div>
+          <div class="project-detail-empty" id="projectPlanEmpty" hidden><span>▤</span><h3>暂无生产计划</h3><p>点击“新增生产计划”建立第一条生产计划。</p></div>
         </section>
 
         <section class="project-detail-panel" id="projectWorksPanel" role="tabpanel" aria-labelledby="projectWorksTab" data-project-detail-panel="works" hidden>
-          <header class="detail-section-heading"><div><span>PROJECT WORKS</span><h2>作品</h2><p>集中查看各生产批次形成的阶段作品与交付状态。</p></div></header>
-          <div class="project-works-grid" id="projectWorksGrid"></div>
-          <div class="project-detail-empty" id="projectWorksEmpty" hidden><span>♫</span><h3>暂无阶段作品</h3><p>批次开始生产后，作品会在这里持续沉淀。</p></div>
+          <div class="project-works-toolbar">
+            <label class="project-works-filter"><span>生产计划快捷筛选</span><select id="projectWorksPlanFilter" aria-label="生产计划快捷筛选"><option value="all">全部生产计划</option></select></label>
+            <div class="project-works-toolbar-meta">
+              <label class="project-works-mobile-select"><input id="projectWorksSelectAllMobile" type="checkbox" /><span>全选当前作品</span></label>
+              <span class="project-works-count" id="projectWorksResultCount">0 个作品</span>
+            </div>
+          </div>
+          <div class="project-works-bulkbar" id="projectWorksBulkbar" role="status" aria-live="polite" hidden>
+            <div><strong id="projectWorksSelectedCount">已选择 0 个作品</strong><small>可按工作流节点统一分配负责人</small></div>
+            <div><button class="project-works-clear" id="clearProjectWorksSelection" type="button">取消选择</button><button class="project-works-assign" id="assignProjectWorks" type="button">按节点分配人员</button></div>
+          </div>
+          <div class="project-works-table-wrap" id="projectWorksTableWrap"><div class="project-works-table" id="projectWorksGrid" role="table" aria-label="作品列表"></div></div>
+          <div class="project-detail-empty" id="projectWorksEmpty" hidden><span>♫</span><h3 id="projectWorksEmptyTitle">暂无作品</h3><p id="projectWorksEmptyDescription">生产开始后，作品会在这里持续沉淀。</p></div>
         </section>
 
-        <section class="project-detail-panel" id="projectEfficiencyPanel" role="tabpanel" aria-labelledby="projectEfficiencyTab" data-project-detail-panel="efficiency" hidden>
-          <header class="detail-section-heading"><div><span>TEAM EFFICIENCY</span><h2>人效管理</h2><p>查看成员承担批次、计划产量与当前完成情况。</p></div></header>
+        <section class="project-detail-panel" id="projectEfficiencyPanel" aria-label="人效管理" data-project-detail-panel="efficiency" hidden>
           <div class="project-efficiency-list" id="projectEfficiencyList"></div>
         </section>
       </div>
@@ -202,45 +239,31 @@
       <header class="project-create-header">
         <div class="project-create-heading">
           <button class="project-create-back" id="backProjectList" type="button" aria-label="返回项目管理">‹</button>
-          <div><span class="eyebrow">PROJECT SETUP</span><h1 id="projectCreateTitle">新增项目</h1><p>填写项目与生产信息、选择已发布工作流并整理客户需求。</p></div>
+          <div><span class="eyebrow">PROJECT SETUP</span><h1 id="projectCreateTitle">新增项目</h1><p>填写项目与生产计划信息、选择已发布工作流并补充协作备注。</p></div>
         </div>
         <span class="project-create-status"><i></i> 新项目</span>
       </header>
 
       <form class="project-create-form" id="projectCreateForm" novalidate>
         <section class="project-form-card project-info-card" aria-labelledby="projectInfoTitle">
-          <header class="project-form-card-heading"><div><small>01</small><div><h2 id="projectInfoTitle">项目信息</h2><p>填写客户、订单与业务协作信息。</p></div></div><span><i></i> 必填信息</span></header>
+          <header class="project-form-card-heading"><div><small>01</small><div><h2 id="projectInfoTitle">项目信息</h2><p>填写客户、项目与业务协作信息。</p></div></div><span><i></i> 必填信息</span></header>
           <div class="project-form-grid">
             <label class="project-field project-field-wide"><span>客户名称 <em>*</em></span><div class="order-select-row"><select id="projectCustomer" name="customer" required><option value="">请选择客户</option><option value="aurora-media">极光传媒</option><option value="north-island-studio">北岛工作室</option><option value="city-culture">城市文化中心</option></select><button class="add-order-button" id="addProjectCustomerButton" type="button">＋ 新增客户</button></div></label>
-            <label class="project-field"><span>订单名称 <em>*</em></span><input id="projectOrderName" name="orderName" type="text" maxlength="50" autocomplete="off" placeholder="请输入订单内容" required /></label>
+            <label class="project-field"><span>项目名称 <em>*</em></span><input id="projectName" name="projectName" type="text" maxlength="50" autocomplete="off" placeholder="请输入项目名称" required /></label>
             <label class="project-field"><span>负责人 <em>*</em></span><select id="projectOwner" name="owner" required><option value="">请选择负责人</option><option value="zhang-san">张三</option><option value="lin-chen">Lin Chen</option><option value="ming-xu">Ming Xu</option></select></label>
-            <label class="project-field"><span>订单生产类型 <em>*</em></span><select id="projectOrderProductionType" name="orderProductionType" required><option value="">请选择生产类型</option><option>全案</option><option>DJ</option><option>Beat</option><option>Hit</option><option>Test</option><option>Demo</option></select></label>
-            <label class="project-field"><span>订单性质 <em>*</em></span><select id="projectOrderNature" name="orderNature" required><option value="">请选择</option><option>买断</option><option>分成</option><option>独家</option><option>分成-独家</option><option>非独家</option><option>共同开发</option><option>仅需要配合/接收</option><option>申请提取</option></select></label>
-            <label class="project-field"><span>生产周期 <em>*</em></span><select id="projectOrderCycle" name="orderCycle" required><option value="">请选择</option><option>3 个工作日</option><option>5 个工作日</option><option>7 个工作日</option><option>10 个工作日</option><option>15 个工作日</option><option>30 天</option><option>按项目约定</option></select></label>
             <div class="project-field project-field-wide"><span>参考资料</span><label class="project-order-upload" id="projectOrderReferenceDrop" for="projectOrderReference" tabindex="0"><input id="projectOrderReference" type="file" multiple accept=".pdf,.doc,.docx,.txt,.md,.mp3,.wav,audio/mpeg,audio/wav" hidden /><i aria-hidden="true">↥</i><b>选择文件</b><small>最多上传 6 个，最大 60M；支持文档、音频等资料，音频可为 mp3、wav</small><span class="order-file-list" id="projectOrderFileList" aria-live="polite"></span></label></div>
-            <label class="project-field project-field-wide"><span>备注</span><textarea id="projectOrderNotes" name="orderNotes" rows="4" maxlength="1000" placeholder="填写订单相关备注">-</textarea></label>
+            <div class="project-rich-field project-rich-wide"><label for="projectOrderNotes">项目备注</label><div class="rich-editor"><div class="rich-toolbar" aria-label="项目备注格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input compact" id="projectOrderNotes" role="textbox" aria-label="项目备注" aria-multiline="true" contenteditable="true" data-placeholder="填写项目背景、协作说明或其他备注…"></div></div></div>
           </div>
         </section>
 
         <section class="project-form-card" aria-labelledby="projectBasicTitle">
-          <header class="project-form-card-heading"><div><small>02</small><div><h2 id="projectBasicTitle">生产信息</h2><p>设置批次、生产数量、制作方式、工作流和交付周期。</p></div></div><span><i></i> 必填信息</span></header>
+          <header class="project-form-card-heading"><div><small>02</small><div><h2 id="projectBasicTitle">生产计划信息</h2><p>设置生产计划名称、生产数量、工作流和交付日期。</p></div></div><span><i></i> 必填信息</span></header>
           <div class="project-form-grid">
-            <label class="project-field"><span>生产名称 <em>*</em><small id="batchNameCount">0 / 50</small></span><input id="projectBatchName" name="productionName" type="text" maxlength="50" autocomplete="off" placeholder="输入生产名称" required /></label>
+            <label class="project-field"><span>生产计划名称 <em>*</em><small id="batchNameCount">0 / 50</small></span><input id="projectBatchName" name="productionName" type="text" maxlength="50" autocomplete="off" placeholder="输入生产计划名称" required /></label>
             <label class="project-field"><span>生产数量 <em>*</em></span><input id="projectQuantity" name="quantity" type="number" min="1" step="1" value="50" inputmode="numeric" required /></label>
-            <label class="project-field"><span>生产类型 <em>*</em></span><select id="projectProductionType" name="productionType"><option>DJ</option><option>Beat</option><option>Hit</option><option>Test</option><option selected>全案</option><option>Demo</option></select></label>
-            <label class="project-field"><span>制作方式 <em>*</em></span><select id="projectProductionMethod" name="productionMethod"><option selected>标准制作</option><option>加急制作</option><option>协同制作</option></select></label>
             <label class="project-field"><span>工作流 <em>*</em><small>仅显示已发布</small></span><select id="projectWorkflow" name="workflow" required><option value="">请选择已发布工作流</option></select></label>
-            <label class="project-field"><span>预计交付周期</span><input id="projectDeliveryCycle" name="deliveryCycle" type="text" maxlength="50" placeholder="例如：7 个工作日" /></label>
-          </div>
-        </section>
-
-        <section class="project-form-card project-demand-card" aria-labelledby="projectDemandTitle">
-          <header class="project-form-card-heading"><div><small>03</small><div><h2 id="projectDemandTitle">需求说明</h2><p>使用富文本补充生产背景、客户标准和自动化要求。</p></div></div><span>支持格式化文本</span></header>
-          <div class="project-rich-grid">
-            <div class="project-rich-field project-rich-wide"><label for="projectProductionRequirement">生产需求</label><div class="rich-editor"><div class="rich-toolbar" aria-label="生产需求格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input" id="projectProductionRequirement" role="textbox" aria-label="生产需求" aria-multiline="true" contenteditable="true" data-placeholder="填写生产目标、风格、数量拆分或验收标准…"></div></div></div>
-            <div class="project-rich-field"><label for="projectCustomerRequirement">客户需求</label><div class="rich-editor"><div class="rich-toolbar" aria-label="客户需求格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input" id="projectCustomerRequirement" role="textbox" aria-label="客户需求" aria-multiline="true" contenteditable="true" data-placeholder="填写客户的业务目标和交付要求…"></div></div></div>
-            <div class="project-rich-field"><label for="projectCustomerAutomation">客户定制化自动化</label><div class="rich-editor"><div class="rich-toolbar" aria-label="客户定制化自动化格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input" id="projectCustomerAutomation" role="textbox" aria-label="客户定制化自动化" aria-multiline="true" contenteditable="true" data-placeholder="填写客户专属流程、触发规则或接口说明…"></div></div></div>
-            <div class="project-rich-field project-rich-wide"><label for="projectNotes">备注</label><div class="rich-editor"><div class="rich-toolbar" aria-label="备注格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input compact" id="projectNotes" role="textbox" aria-label="备注" aria-multiline="true" contenteditable="true" data-placeholder="填写其他协作备注…"></div></div></div>
+            <label class="project-field"><span>交付日期</span><input id="projectDeliveryDate" name="deliveryDate" type="date" /></label>
+            <div class="project-rich-field project-rich-wide"><label for="projectProductionPlanNotes">生产计划备注</label><div class="rich-editor"><div class="rich-toolbar" aria-label="生产计划备注格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input compact" id="projectProductionPlanNotes" role="textbox" aria-label="生产计划备注" aria-multiline="true" contenteditable="true" data-placeholder="填写生产目标、交付要求或协作说明…"></div></div></div>
           </div>
         </section>
 
@@ -248,28 +271,37 @@
       </form>
     </section>
 
+    <section class="page-view assets-page" id="assetsPage" aria-label="团队资产">
+      <div class="asset-tabs" role="tablist" aria-label="资产分类">
+        <button id="assetFinishedTab" role="tab" aria-selected="true" aria-controls="assetFinishedPanel" tabindex="0">成品库</button>
+        <button id="assetSingersTab" role="tab" aria-selected="false" aria-controls="assetSingersPanel" tabindex="-1">歌手管理</button>
+      </div>
+      <div id="assetFinishedPanel" class="asset-panel finished-library-panel" role="tabpanel" aria-labelledby="assetFinishedTab"><div class="finished-library-caption"><span id="finishedWorkCount">共 0 个成品</span><small>团队内所有已完成制作的成品</small></div><div class="finished-table-scroll"><table class="finished-table"><thead><tr><th>名称</th><th>歌词</th><th>音频</th><th>歌手</th><th>状态</th><th>创建时间</th><th>完成时间</th></tr></thead><tbody id="finishedWorkRows"><tr><td colspan="7" class="finished-empty">暂无成品信息</td></tr></tbody></table></div></div>
+      <div id="assetReferencesPanel" class="asset-panel" aria-label="对标曲库" hidden></div>
+      <div id="assetSingersPanel" class="asset-panel" role="tabpanel" aria-labelledby="assetSingersTab" hidden><h2>暂无歌手信息</h2><p>集中维护团队歌手资料、音色及擅长风格。</p></div>
+    </section>
     <section class="page-view workflows-page" id="workflowsPage" aria-labelledby="workflowsTitle">
       <header class="workflows-heading">
         <div>
           <span class="eyebrow">WORKFLOWS</span>
-          <h1 id="workflowsTitle">工作流</h1>
-          <p>管理、查看、编辑并复用创作过程中的工作流。</p>
+          <h1 id="workflowsTitle">创作集合</h1>
+          <p>管理、查看、编辑并复用不同的创作流程。</p>
         </div>
-        <button class="new-workflow" id="newWorkflow">＋ 新建工作流</button>
+        <button class="new-workflow" id="newWorkflow">＋ 新建创作流程</button>
       </header>
 
-      <section class="workflow-list-shell" aria-label="工作流列表">
+      <section class="workflow-list-shell" aria-label="创作流程列表">
         <div class="workflow-toolbar">
-          <label class="workflow-search"><span>⌕</span><input id="workflowSearch" type="search" placeholder="搜索工作流名称" aria-label="搜索工作流名称" /></label>
-          <span class="workflow-total" id="workflowCount">3 个工作流</span>
+          <label class="workflow-search"><span>⌕</span><input id="workflowSearch" type="search" placeholder="搜索创作流程名称" aria-label="搜索创作流程名称" /></label>
+          <span class="workflow-total" id="workflowCount">3 个创作流程</span>
         </div>
-        <div class="workflow-table" role="table" aria-label="创作工作流">
+        <div class="workflow-table" role="table" aria-label="创作流程">
           <div class="workflow-table-head" role="row">
-            <span role="columnheader">工作流名称</span><span role="columnheader">创建人</span><span role="columnheader">草稿状态</span><span role="columnheader">发布状态</span><span role="columnheader">版本 / 更新时间</span><span role="columnheader">操作</span>
+            <span role="columnheader">创作流程名称</span><span role="columnheader">创建人</span><span role="columnheader">草稿状态</span><span role="columnheader">发布状态</span><span role="columnheader">版本 / 更新时间</span><span role="columnheader">操作</span>
           </div>
           <div class="workflow-list" id="workflowList" role="rowgroup"></div>
         </div>
-        <div class="workflow-empty" id="workflowEmpty"><span>⌕</span><h3>没有找到匹配工作流</h3><p>换一个关键词试试吧</p></div>
+        <div class="workflow-empty" id="workflowEmpty"><span>⌕</span><h3>没有找到匹配的创作流程</h3><p>换一个关键词试试吧</p></div>
       </section>
     </section>
 
@@ -553,22 +585,27 @@
 
         <section class="customer-form-section" aria-labelledby="customerBusinessTitle">
           <h3 id="customerBusinessTitle">客户业务属性</h3>
-          <label class="customer-full-field"><span>客户业务线 <em>*</em></span><input id="newCustomerBusinessLine" type="text" maxlength="100" autocomplete="off" placeholder="例如：短视频音乐授权、直播背景音乐" /></label>
-          <fieldset class="customer-check-field">
-            <legend>制作需求 <em>*</em></legend>
-            <div class="customer-check-grid">
-              <label class="customer-check-option"><input type="checkbox" name="customerDemand" value="DJ" /><span>DJ</span></label>
-              <label class="customer-check-option"><input type="checkbox" name="customerDemand" value="伴奏" /><span>伴奏</span></label>
-              <label class="customer-check-option"><input type="checkbox" name="customerDemand" value="抢热度" /><span>抢热度</span></label>
-              <label class="customer-check-option"><input type="checkbox" name="customerDemand" value="翻译" /><span>翻译</span></label>
-              <label class="customer-check-option"><input type="checkbox" name="customerDemand" value="人声" /><span>人声</span></label>
-              <label class="customer-check-option"><input type="checkbox" name="customerDemand" value="分发端口" /><span>分发端口</span></label>
-              <label class="customer-check-option"><input type="checkbox" name="customerDemand" value="销售渠道" /><span>销售渠道</span></label>
-              <label class="customer-check-option"><input type="checkbox" name="customerDemand" value="混音" /><span>混音</span></label>
-              <label class="customer-check-option"><input type="checkbox" name="customerDemand" value="全案" /><span>全案</span></label>
-              <label class="customer-check-option"><input type="checkbox" name="customerDemand" value="其他" /><span>其他</span></label>
+          <div class="customer-business-grid">
+            <label><span>客户业务线 <em>*</em></span><input id="newCustomerBusinessLine" type="text" maxlength="100" autocomplete="off" placeholder="例如：短视频音乐授权、直播背景音乐" /></label>
+            <div class="customer-demand-field" id="customerDemandField" role="group" aria-labelledby="customerDemandLabel">
+              <span class="customer-demand-label" id="customerDemandLabel">制作需求 <em>*</em></span>
+              <div class="customer-demand-multiselect" id="customerDemandSelect">
+                <button class="customer-demand-trigger" id="customerDemandTrigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="customerDemandMenu"><span id="customerDemandSummary">请选择制作需求</span><i aria-hidden="true">⌄</i></button>
+                <div class="customer-demand-menu" id="customerDemandMenu" role="listbox" aria-label="制作需求" aria-multiselectable="true" hidden>
+                  <label class="customer-demand-option" role="option" aria-selected="false"><input type="checkbox" name="customerDemand" value="DJ" /><span>DJ</span></label>
+                  <label class="customer-demand-option" role="option" aria-selected="false"><input type="checkbox" name="customerDemand" value="伴奏" /><span>伴奏</span></label>
+                  <label class="customer-demand-option" role="option" aria-selected="false"><input type="checkbox" name="customerDemand" value="抢热度" /><span>抢热度</span></label>
+                  <label class="customer-demand-option" role="option" aria-selected="false"><input type="checkbox" name="customerDemand" value="翻译" /><span>翻译</span></label>
+                  <label class="customer-demand-option" role="option" aria-selected="false"><input type="checkbox" name="customerDemand" value="人声" /><span>人声</span></label>
+                  <label class="customer-demand-option" role="option" aria-selected="false"><input type="checkbox" name="customerDemand" value="分发端口" /><span>分发端口</span></label>
+                  <label class="customer-demand-option" role="option" aria-selected="false"><input type="checkbox" name="customerDemand" value="销售渠道" /><span>销售渠道</span></label>
+                  <label class="customer-demand-option" role="option" aria-selected="false"><input type="checkbox" name="customerDemand" value="混音" /><span>混音</span></label>
+                  <label class="customer-demand-option" role="option" aria-selected="false"><input type="checkbox" name="customerDemand" value="全案" /><span>全案</span></label>
+                  <label class="customer-demand-option" role="option" aria-selected="false"><input type="checkbox" name="customerDemand" value="其他" /><span>其他</span></label>
+                </div>
+              </div>
             </div>
-          </fieldset>
+          </div>
         </section>
 
         <section class="customer-form-section" aria-labelledby="customerProgressTitle">
@@ -578,8 +615,13 @@
             <label><span>推进状态 <em>*</em></span><select id="newCustomerProgressStatus" required><option value="">请选择推进状态</option><option>商务推进</option><option>合同签署</option><option>确定意向</option><option>持续合作</option><option>初步接触</option><option>制作进行</option><option>内部决策</option><option>前置合作待后置推进</option><option>长期合作中</option></select></label>
             <label><span>推进优先级 <em>*</em></span><select id="newCustomerPriority" required><option>P1</option><option selected>P2</option><option>P3</option></select></label>
           </div>
-          <label class="customer-full-field"><span>进展备注</span><textarea id="newCustomerProgressNotes" rows="3" maxlength="1000" placeholder="例如：已发送合作方案，待客户反馈"></textarea></label>
-          <label class="customer-full-field"><span>沟通记录</span><textarea id="newCustomerCommunication" rows="3" maxlength="1000" placeholder="可粘贴企微 / 飞书 / 会议纪要链接"></textarea></label>
+          <div class="project-rich-field customer-full-field customer-notes-field">
+            <div class="customer-rich-heading"><span>备注</span><small id="newCustomerNotesCount" aria-live="polite">0 / 1000</small></div>
+            <div class="rich-editor">
+              <div class="rich-toolbar" aria-label="客户备注格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div>
+              <div class="rich-input compact" id="newCustomerNotes" role="textbox" aria-label="备注" aria-describedby="newCustomerNotesCount" aria-multiline="true" contenteditable="true" data-placeholder="填写客户推进、沟通情况或相关链接…"></div>
+            </div>
+          </div>
         </section>
       </div>
       <footer><button class="project-cancel-button" id="cancelNewCustomer" type="button">取消</button><button class="project-submit-button" id="saveCustomerButton" type="submit">确认新增</button></footer>
@@ -588,20 +630,38 @@
 
   <div class="order-dialog-backdrop project-batch-backdrop" id="projectBatchDialog" hidden>
     <form class="order-dialog project-batch-dialog" id="projectBatchForm" role="dialog" aria-modal="true" aria-labelledby="projectBatchTitle" novalidate>
-      <header><div><small>PRODUCTION PLAN</small><h2 id="projectBatchTitle">新增计划</h2><p>为当前项目配置生产计划与交付安排。</p></div><button id="closeProjectBatch" type="button" aria-label="关闭新增计划">×</button></header>
+      <header><div><small>PRODUCTION PLAN</small><h2 id="projectBatchTitle">新增生产计划</h2><p>为当前项目配置生产计划与交付安排。</p></div><button id="closeProjectBatch" type="button" aria-label="关闭新增生产计划">×</button></header>
       <div class="order-dialog-body project-batch-body">
         <div class="batch-form-grid">
           <label><span>计划名称 <em>*</em><small id="newBatchNameCount">0 / 50</small></span><input id="newBatchName" type="text" maxlength="50" autocomplete="off" placeholder="请输入计划名称" required /></label>
           <label><span>生产数量 <em>*</em></span><input id="projectBatchQuantity" type="number" min="1" max="10000" step="1" value="50" required /></label>
-          <label><span>负责人 <em>*</em></span><select id="projectBatchOwner" required><option value="">请选择负责人</option><option>张三</option><option>Lin Chen</option><option>Ming Xu</option><option>Huimin Zhang</option></select></label>
           <label><span>工作流 <em>*</em></span><select id="projectBatchWorkflow" required><option value="">请选择已发布工作流</option></select></label>
-          <label><span>计划开始日期 <em>*</em></span><input id="projectBatchStart" type="date" required /></label>
-          <label><span>预计交付日期 <em>*</em></span><input id="projectBatchDelivery" type="date" required /></label>
-          <label><span>优先级</span><select id="projectBatchPriority"><option selected>普通</option><option>高</option><option>紧急</option></select></label>
-          <label class="batch-field-wide"><span>备注</span><textarea id="projectBatchNotes" rows="3" maxlength="500" placeholder="补充生产要求、验收标准或协作说明"></textarea></label>
+          <label><span>交付日期 <em>*</em></span><input id="projectBatchDelivery" type="date" required /></label>
+          <div class="project-rich-field batch-field-wide"><label for="projectBatchNotes">备注</label><div class="rich-editor"><div class="rich-toolbar" aria-label="生产计划备注格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input compact" id="projectBatchNotes" role="textbox" aria-label="备注" aria-multiline="true" contenteditable="true" data-placeholder="补充生产要求、验收标准或协作说明…"></div></div></div>
         </div>
       </div>
-      <footer><button class="project-cancel-button" id="cancelProjectBatch" type="button">取消</button><button class="project-submit-button" type="submit">确认新增计划</button></footer>
+      <footer><button class="project-cancel-button" id="cancelProjectBatch" type="button">取消</button><button class="project-submit-button" type="submit">确认新增生产计划</button></footer>
+    </form>
+  </div>
+
+  <div class="order-dialog-backdrop project-work-assignment-backdrop" id="projectWorkAssignmentDialog" hidden>
+    <form class="order-dialog project-work-assignment-dialog" id="projectWorkAssignmentForm" role="dialog" aria-modal="true" aria-labelledby="projectWorkAssignmentTitle" aria-describedby="projectWorkAssignmentDescription" novalidate>
+      <header><div><small>WORK ASSIGNMENT</small><h2 id="projectWorkAssignmentTitle">按节点分配人员</h2><p id="projectWorkAssignmentDescription">为选中的作品配置工作流节点负责人。</p></div><button id="closeProjectWorkAssignment" type="button" aria-label="关闭人员分配">×</button></header>
+      <div class="order-dialog-body project-work-assignment-body">
+        <section class="project-work-assignment-summary" aria-label="已选作品">
+          <span aria-hidden="true">✓</span>
+          <div><b id="projectWorkAssignmentCount">已选择 0 个作品</b><small id="projectWorkAssignmentWorkflow">请选择需要分配的作品</small><div id="projectWorkAssignmentNames"></div></div>
+        </section>
+        <section class="project-work-node-assignment" aria-labelledby="projectWorkNodeAssignmentHeading">
+          <div class="project-work-node-assignment-heading">
+            <div><h3 id="projectWorkNodeAssignmentHeading">工作流节点分配</h3><p id="projectWorkAssignmentNodeHint">节点来源于生产计划绑定的已发布工作流版本。</p></div>
+            <span id="projectWorkAssignmentProgress" aria-live="polite">0 / 0 已分配</span>
+          </div>
+          <label class="project-work-assign-all"><span>全部节点统一分配</span><select id="projectWorkAssignmentAllMember"><option value="">分别设置负责人</option></select></label>
+          <div class="project-work-node-list" id="projectWorkAssignmentNodeList" role="list" aria-label="当前工作流的节点与负责人"></div>
+        </section>
+      </div>
+      <footer><button class="project-cancel-button" id="cancelProjectWorkAssignment" type="button">取消</button><button class="project-submit-button" type="submit">确认分配</button></footer>
     </form>
   </div>
 
@@ -612,7 +672,10 @@
     <div class="player-actions"><button aria-label="音量">♬</button><button aria-label="收藏">♡</button><button aria-label="评论">▢</button><button aria-label="更多">⋮</button></div>
   </footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="./script.js?v=40"></script>
-  <script src="./workflow-editor.js?v=9"></script>
+  <script src="./script.js?v=107"></script>
+  <script src="./reference-library.js?v=2"></script>
+  <script src="./playlist-import.js?v=1"></script>
+  <script src="./finished-library.js?v=6"></script>
+  <script src="./workflow-editor.js?v=12"></script>
 </body>
 </html>

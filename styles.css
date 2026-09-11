@@ -5,5 +5,6 @@
 @media(min-width:881px){:root{--sidebar:168px}body.collapsed{--sidebar:68px}}
 @media(max-width:380px){.music-grid{grid-template-columns:1fr 1fr}.hello{width:100%}.hero h1{font-size:18px}.record{flex-basis:88px}.record-art{width:62px;height:62px}}
 .toast.error{background:#d94f5f;color:#fff;box-shadow:0 9px 26px rgba(217,79,95,.24)}
+#toast.toast{z-index:2147483647!important}
 .records{scroll-behavior:smooth;scroll-snap-type:x proximity;scrollbar-width:none;overscroll-behavior-inline:contain}.records::-webkit-scrollbar{display:none}.record{scroll-snap-align:start;transition:background .22s,box-shadow .22s,transform .22s}.records:focus-visible{outline:2px solid rgba(255,255,255,.72);outline-offset:5px;border-radius:14px}.records:focus-visible .record.active{transform:translateY(-2px)}
 @media(prefers-reduced-motion:reduce){.records{scroll-behavior:auto}.record{transition:none}}

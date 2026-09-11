@@ -20,6 +20,32 @@
     sampleSong: { title: '基于采样生成歌曲', subtitle: '歌曲节点', symbol: '采', color: '#36a68c', category: 'song' },
     playlistSong: { title: '基于歌单生成歌曲', subtitle: '歌曲节点', symbol: '单', color: '#8a5dd8', category: 'song' }
   };
+  const builtInPublishedSnapshots = {
+    'midnight-melody': [{ version: 'V2.1', name: '午夜旋律', publishedAt: Date.parse('2026-09-01T14:25:00+08:00'), nodes: [
+      { id: 'midnight-write-lyrics', type: 'writeLyrics', x: 100, y: 100 },
+      { id: 'midnight-ai-song', type: 'aiSong', x: 460, y: 100 },
+      { id: 'midnight-sample-song', type: 'sampleSong', x: 820, y: 100 }
+    ], edges: [
+      { id: 'midnight-control-1', edgeType: 'control', from: 'midnight-write-lyrics', to: 'midnight-ai-song' },
+      { id: 'midnight-control-2', edgeType: 'control', from: 'midnight-ai-song', to: 'midnight-sample-song' }
+    ] }],
+    'reference-lab': [{ version: 'V1.0', name: '参考歌实验室', publishedAt: Date.parse('2026-08-24T12:25:00+08:00'), nodes: [
+      { id: 'reference-text-input', type: 'textInput', x: 100, y: 100 },
+      { id: 'reference-lyrics', type: 'refLyrics', x: 460, y: 100 },
+      { id: 'reference-ai-song', type: 'aiSong', x: 820, y: 100 },
+      { id: 'reference-song', type: 'refSong', x: 1180, y: 100 }
+    ], edges: [
+      { id: 'reference-control-1', edgeType: 'control', from: 'reference-text-input', to: 'reference-lyrics' },
+      { id: 'reference-control-2', edgeType: 'control', from: 'reference-lyrics', to: 'reference-ai-song' },
+      { id: 'reference-control-3', edgeType: 'control', from: 'reference-ai-song', to: 'reference-song' }
+    ] }],
+    'reference-production': [{ version: 'V1.0', name: '参考词曲完整流程', publishedAt: Date.parse('2026-09-08T09:30:00+08:00'), nodes: [
+      { id: 'complete-reference-lyrics', type: 'refLyrics', title: '基于参考生成歌词', x: 100, y: 100 },
+      { id: 'complete-reference-song', type: 'refSong', title: '基于参考曲生成歌曲', x: 460, y: 100 }
+    ], edges: [
+      { id: 'complete-reference-control-1', edgeType: 'control', from: 'complete-reference-lyrics', to: 'complete-reference-song' }
+    ] }]
+  };
   const defaultState = () => ({ schemaVersion: 9, name: '未命名音乐工作流', scale: .86, pan: { x: 110, y: 90 }, updatedAt: Date.now(), nodes: [], edges: [] });
   const parse = (raw, fallback) => { try { return raw ? JSON.parse(raw) : fallback; } catch { return fallback; } };
   let state = parse(localStorage.getItem(activeDraftKey), null) || defaultState();
@@ -275,7 +301,17 @@
     if (sourceDraft) localStorage.setItem(storageKey(BASE_DRAFT_KEY, targetId), JSON.stringify({ ...deep(sourceDraft), name, updatedAt: Date.now() }));
     localStorage.removeItem(storageKey(BASE_VERSIONS_KEY, targetId));
   }
-  window.orchestraWorkflowCanvas = { open: loadWorkflow, copy: copyWorkflow };
+  function publishedSnapshotNodes(snapshot) {
+    const executable=(snapshot.nodes||[]).filter(node=>!String(node.type||'').endsWith('Menu'));
+    const nodeMap=new Map(executable.map(node=>[node.id,node])),indegree=new Map(executable.map(node=>[node.id,0])),outgoing=new Map(executable.map(node=>[node.id,[]]));
+    (snapshot.edges||[]).filter(edge=>edge.edgeType==='control'&&nodeMap.has(edge.from)&&nodeMap.has(edge.to)).forEach(edge=>{indegree.set(edge.to,indegree.get(edge.to)+1);outgoing.get(edge.from).push(edge.to)});
+    const positionSort=(a,b)=>(Number(a.y)||0)-(Number(b.y)||0)||(Number(a.x)||0)-(Number(b.x)||0),queue=executable.filter(node=>indegree.get(node.id)===0).sort(positionSort),ordered=[];
+    while(queue.length){const node=queue.shift();ordered.push(node);outgoing.get(node.id).forEach(id=>{indegree.set(id,indegree.get(id)-1);if(indegree.get(id)===0){queue.push(nodeMap.get(id));queue.sort(positionSort)}})}
+    executable.filter(node=>!ordered.includes(node)).sort(positionSort).forEach(node=>ordered.push(node));
+    return ordered.map(node=>({id:node.id,type:node.type,title:node.title||defs[node.type]?.title||'未命名节点',subtitle:defs[node.type]?.subtitle||'工作流节点',category:defs[node.type]?.category||'song'}));
+  }
+  function getPublishedSnapshot(workflowId,version){const stored=parse(localStorage.getItem(storageKey(BASE_VERSIONS_KEY,workflowId)),[]),storedExact=stored.find(item=>item.version===version),builtInExact=(builtInPublishedSnapshots[workflowId]||[]).find(item=>item.version===version),snapshot=storedExact?.nodes?.length?storedExact:(builtInExact||storedExact);if(!snapshot)return null;return {workflowId,version:snapshot.version,name:snapshot.name||'',publishedAt:snapshot.publishedAt||0,nodes:publishedSnapshotNodes(snapshot)}}
+  window.orchestraWorkflowCanvas = { open: loadWorkflow, copy: copyWorkflow, getPublishedSnapshot };
 
   nodeLayer.addEventListener('click', event => {
     const element = event.target.closest('.flow-node'); if (!element) return; const id = element.dataset.id;
