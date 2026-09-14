@@ -27,5 +27,4 @@ document.querySelector('#finishedWorkRows').addEventListener('click',event=>{
 });
 new MutationObserver(()=>{renderFinishedLibrary();if(!document.querySelector('#assetsPage.active'))document.querySelectorAll('#assetFinishedPanel audio').forEach(audio=>audio.pause())}).observe(document.querySelector('#assetsPage'),{attributes:true,attributeFilter:['class']});
 document.querySelectorAll('.workspace-option').forEach(button=>button.addEventListener('click',renderFinishedLibrary));
-document.querySelector('#assetSingersTab').addEventListener('click',()=>document.querySelectorAll('#assetFinishedPanel audio').forEach(audio=>audio.pause()));
 renderFinishedLibrary();

@@ -9,11 +9,11 @@
   <link rel="preconnect" href="https://images.unsplash.com" />
   <link rel="stylesheet" href="./styles.css?v=5" />
   <link rel="stylesheet" href="./sidebar-states.css?v=7" />
-  <link rel="stylesheet" href="./projects.css?v=12" />
+  <link rel="stylesheet" href="./projects.css?v=13" />
   <link rel="stylesheet" href="./business.css?v=7" />
   <link rel="stylesheet" href="./project-create.css?v=13" />
-  <link rel="stylesheet" href="./project-detail.css?v=18" />
-  <link rel="stylesheet" href="./task-center.css?v=30" />
+  <link rel="stylesheet" href="./project-detail.css?v=20" />
+  <link rel="stylesheet" href="./task-center.css?v=31" />
   <link rel="stylesheet" href="./workflows.css?v=12" />
   <link rel="stylesheet" href="./playlist-import.css?v=1" />
   <link rel="stylesheet" href="./profile-center.css?v=13" />
@@ -165,6 +165,13 @@
         </div>
         <div class="project-grid" id="projectGrid"></div>
         <div class="project-empty" id="projectEmpty"><span>⌕</span><h3>没有找到匹配项目</h3><p>换一个关键词试试吧</p></div>
+        <nav class="project-pagination" aria-label="项目分页">
+          <span id="projectPageSummary" aria-live="polite"></span>
+          <div class="project-pagination-controls">
+            <label>每页 <select id="projectPageSize" aria-label="每页项目数量"><option value="6">6</option><option value="12">12</option><option value="24">24</option></select> 个</label>
+            <div id="projectPageButtons" class="project-page-buttons"></div>
+          </div>
+        </nav>
       </div>
     </section>
 
@@ -172,8 +179,9 @@
       <header class="project-detail-header">
         <div class="project-detail-heading">
           <button class="project-detail-back" id="backProjectDetails" type="button" aria-label="返回项目列表">‹</button>
-          <div><span class="eyebrow">PROJECT DETAIL</span><h1 id="projectDetailTitle">项目详情</h1><p id="projectDetailDescription">查看项目生产计划、作品和成员产能。</p></div>
+          <div class="project-detail-title"><span class="eyebrow">PROJECT DETAIL</span><h1 id="projectDetailTitle">项目详情</h1><p id="projectDetailDescription">查看项目生产计划、作品和成员产能。</p></div>
         </div>
+        <div class="project-detail-context" aria-label="项目参考资料与备注"><div><strong>参考资料</strong><ul id="projectDetailReferences" class="project-detail-references"></ul></div><div><strong>项目备注</strong><div id="projectDetailNotes" class="project-detail-notes"></div></div></div>
         <div class="project-detail-state"><span id="projectDetailRisk"><i></i> 正常推进</span></div>
       </header>
 
@@ -256,7 +264,7 @@
           </div>
         </section>
 
-        <section class="project-form-card" aria-labelledby="projectBasicTitle">
+        <section class="project-form-card" id="projectInitialPlanFields" aria-labelledby="projectBasicTitle">
           <header class="project-form-card-heading"><div><small>02</small><div><h2 id="projectBasicTitle">生产计划信息</h2><p>设置生产计划名称、生产数量、工作流和交付日期。</p></div></div><span><i></i> 必填信息</span></header>
           <div class="project-form-grid">
             <label class="project-field"><span>生产计划名称 <em>*</em><small id="batchNameCount">0 / 50</small></span><input id="projectBatchName" name="productionName" type="text" maxlength="50" autocomplete="off" placeholder="输入生产计划名称" required /></label>
@@ -274,11 +282,9 @@
     <section class="page-view assets-page" id="assetsPage" aria-label="团队资产">
       <div class="asset-tabs" role="tablist" aria-label="资产分类">
         <button id="assetFinishedTab" role="tab" aria-selected="true" aria-controls="assetFinishedPanel" tabindex="0">成品库</button>
-        <button id="assetSingersTab" role="tab" aria-selected="false" aria-controls="assetSingersPanel" tabindex="-1">歌手管理</button>
       </div>
       <div id="assetFinishedPanel" class="asset-panel finished-library-panel" role="tabpanel" aria-labelledby="assetFinishedTab"><div class="finished-library-caption"><span id="finishedWorkCount">共 0 个成品</span><small>团队内所有已完成制作的成品</small></div><div class="finished-table-scroll"><table class="finished-table"><thead><tr><th>名称</th><th>歌词</th><th>音频</th><th>歌手</th><th>状态</th><th>创建时间</th><th>完成时间</th></tr></thead><tbody id="finishedWorkRows"><tr><td colspan="7" class="finished-empty">暂无成品信息</td></tr></tbody></table></div></div>
       <div id="assetReferencesPanel" class="asset-panel" aria-label="对标曲库" hidden></div>
-      <div id="assetSingersPanel" class="asset-panel" role="tabpanel" aria-labelledby="assetSingersTab" hidden><h2>暂无歌手信息</h2><p>集中维护团队歌手资料、音色及擅长风格。</p></div>
     </section>
     <section class="page-view workflows-page" id="workflowsPage" aria-labelledby="workflowsTitle">
       <header class="workflows-heading">
@@ -672,10 +678,10 @@
     <div class="player-actions"><button aria-label="音量">♬</button><button aria-label="收藏">♡</button><button aria-label="评论">▢</button><button aria-label="更多">⋮</button></div>
   </footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="./script.js?v=107"></script>
+  <script src="./script.js?v=112"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
-  <script src="./finished-library.js?v=6"></script>
+  <script src="./finished-library.js?v=7"></script>
   <script src="./workflow-editor.js?v=12"></script>
 </body>
 </html>

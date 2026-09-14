@@ -29,20 +29,14 @@ body.task-mode main, body:has(#assetsPage.active) main {
 .task-search:focus-within { border-color: #8058e7; box-shadow: 0 0 0 3px #8058e711; }
 .task-search input { min-width: 0; width: 100%; border: 0; outline: 0; color: var(--text); background: transparent; font: inherit; font-size: 9px; }
 .task-list { margin-top: 10px; display: grid; gap: 8px; }
-.task-item-wrap { position: relative; min-width: 0; }
-.task-item-wrap.is-editable .task-item-body { padding-right: 30px; }
-.task-rename-button { position: absolute; right: 10px; top: 78px; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 6px; background: var(--surface); color: var(--muted); cursor: pointer; }
-.task-rename-button[hidden] { display: none; }
-.task-rename-button:hover { color: #906aed; background: var(--surface-2); }
-.task-rename-button:focus-visible,.task-name-editor button:focus-visible { outline: 2px solid #906aed; outline-offset: 2px; }
-.task-name-editor { padding: 12px; margin-top: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: 13px; }
-.task-name-editor label { display: grid; gap: 8px; }
-.task-name-editor input { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--text); font: inherit; }
-.task-name-editor input:focus { outline: 1px solid #906aed; border-color: #906aed; }
-.task-name-editor input[aria-invalid="true"] { border-color: #e45970; }
-.task-name-editor > div { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
-.task-name-editor button { padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); color: var(--text); font: inherit; cursor: pointer; }
-.task-name-editor button[type="submit"] { background: #8058e7; border-color: #8058e7; color: white; }
+.task-item .task-item-title > b { display: flex; align-items: baseline; gap: 4px; }
+.task-inline-name { min-width: 0; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-inline-name[contenteditable] { cursor: text; outline: none; }
+.task-inline-name[contenteditable]:hover { color: #906aed; }
+.task-inline-name[contenteditable]:focus { color: var(--text); text-overflow: clip; box-shadow: inset 0 -1px #906aed; }
+.task-inline-name[aria-invalid="true"] { box-shadow: inset 0 -1px #e45970; }
+.task-inline-name[contenteditable]:empty::before { content: '输入名称'; color: var(--muted); }
+.task-item-title > b > em { flex-shrink: 0; }
 .task-item { width: 100%; min-height: 118px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; color: var(--text); background: var(--bg); font: inherit; text-align: left; cursor: pointer; transition: border-color .18s,background .18s,transform .18s,box-shadow .18s; }
 .task-item:hover { border-color: color-mix(in srgb,#8058e7 44%,var(--line)); transform: translateY(-1px); }
 .task-item.active { border-color: color-mix(in srgb,#8058e7 65%,var(--line)); background: color-mix(in srgb,#8058e7 6%,var(--bg)); box-shadow: inset 3px 0 #8058e7; }
