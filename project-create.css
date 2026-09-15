@@ -176,3 +176,12 @@ body.project-create-mode .player { transform: translateY(110%); opacity: 0; poin
 @media (prefers-reduced-motion: reduce) {
   .project-create-page,.order-dialog { animation: none; }
 }
+.project-plan-group { margin-top: 16px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.project-plan-group-heading { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.project-plan-group-heading h3 { margin: 0; color: var(--text); font-size: 14px; font-weight: 650; }
+.project-plan-group-heading button { border: 0; padding: 6px 10px; border-radius: 6px; background: transparent; color: #d16a72; font: inherit; cursor: pointer; }
+.project-plan-group-heading button:disabled { visibility: hidden; }
+.project-add-plan-group { width: 100%; margin-top: 16px; padding: 12px 16px; border: 1px dashed #8058e7; border-radius: 10px; background: color-mix(in srgb,#8058e7 6%,var(--surface)); color: #906aed; font: inherit; font-weight: 600; cursor: pointer; }
+.project-add-plan-group:hover:not(:disabled) { background: color-mix(in srgb,#8058e7 12%,var(--surface)); }
+.project-add-plan-group:disabled { opacity: .5; cursor: not-allowed; }
+.project-add-plan-group:focus-visible,.project-plan-group-heading button:focus-visible { outline: 2px solid #906aed; outline-offset: 2px; }
