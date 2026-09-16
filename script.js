@@ -114,8 +114,16 @@ const projectWorkAssignmentNodeHint=document.querySelector('#projectWorkAssignme
 const projectWorkAssignmentProgress=document.querySelector('#projectWorkAssignmentProgress');
 let selectedProjectId=projectData[0].id;
 let currentProjectFilter='all';
-let currentProjectPage=1;
-let projectPageSize=6;
+const PROJECT_LOAD_BATCH_SIZE=6;
+let projectVisibleCount=PROJECT_LOAD_BATCH_SIZE;
+let projectMatchingItems=[];
+let projectLoadFrame=null;
+const projectLoadStatus=document.createElement('div');
+projectLoadStatus.className='project-load-status';
+projectLoadStatus.setAttribute('role','status');
+projectLoadStatus.setAttribute('aria-live','polite');
+document.querySelector('#projectsPage .project-pagination')?.remove();
+projectGrid.after(projectLoadStatus);
 let currentProjectWorksPlan='all';
 let selectedProjectWorkIds=new Set();
 let activeProjectWorkAssignment=null;
@@ -183,20 +191,41 @@ function renderProjectReferenceInfo(project){
   notesElement.title=notesElement.textContent;
   document.querySelector('#projectDetailReferences').title=references.map(reference=>typeof reference==='string'?reference:reference.name).join('、')||'暂无参考资料';
 }
-function renderProjectDetail(){const project=projectData.find(item=>item.id===selectedProjectId);if(!project)return;document.querySelector('#projectDetailTitle').textContent=project.title;document.querySelector('#projectDetailDescription').textContent=project.desc;renderProjectReferenceInfo(project);const risk=document.querySelector('#projectDetailRisk');risk.classList.toggle('risk',project.risk);risk.innerHTML=`<i></i> ${project.risk?'存在延期风险':'正常推进'}`;document.querySelector('#projectDetailPlanCount').textContent=project.batches.length;document.querySelector('#projectDetailWorkCount').textContent=projectWorkCount(project);document.querySelector('#projectDetailMemberCount').textContent=projectMemberCount(project);document.querySelector('#projectDetailUpdated').textContent=project.date;renderProjectPlans(project);renderProjectWorks(project);renderProjectEfficiency(project)}
+function renderProjectDetail(){const project=projectData.find(item=>item.id===selectedProjectId);if(!project)return;document.querySelector('#projectDetailTitle').textContent=project.title;document.querySelector('#projectDetailDescription').textContent=project.desc;renderProjectReferenceInfo(project);document.querySelector('#projectDetailRisk')?.remove();document.querySelector('#projectDetailPlanCount').textContent=project.batches.length;document.querySelector('#projectDetailWorkCount').textContent=projectWorkCount(project);document.querySelector('#projectDetailMemberCount').textContent=projectMemberCount(project);document.querySelector('#projectDetailUpdated').textContent=project.date;renderProjectPlans(project);renderProjectWorks(project);renderProjectEfficiency(project)}
 function setProjectDetailTab(tabName,focus=false){projectDetailTabs.forEach(tab=>{const active=tab.dataset.projectDetailTab===tabName;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;if(active&&focus)tab.focus({preventScroll:true})});projectDetailPanels.forEach(panel=>{const active=panel.dataset.projectDetailPanel===tabName;panel.classList.toggle('active',active);panel.hidden=!active})}
 function openProjectDetail(projectId){if(!projectData.some(project=>project.id===projectId)){showToast('未找到该项目信息','error');return}selectedProjectId=projectId;currentProjectWorksPlan='all';selectedProjectWorkIds.clear();renderProjectDetail();setProjectDetailTab('plan');switchPage('project-detail',document.querySelector('.nav-item[data-page="projects"]'))}
 function projectCard(project){const bars=[42,72,24,84,55,34,68,46,78,31,61,48];return `<article class="project-card" data-project-open="${escapeHtml(project.id)}" aria-label="项目 ${escapeHtml(project.title)}"><div class="project-cover" style="background:${project.color}"><div class="wave">${bars.map(h=>`<i style="--h:${h}%"></i>`).join('')}</div></div><div class="project-card-body"><div class="project-card-title"><h3><button type="button" class="project-title-open" title="${escapeHtml(project.title)}">${escapeHtml(project.title)}</button></h3><button class="project-more" type="button" aria-label="${escapeHtml(project.title)}的操作" aria-haspopup="menu" aria-expanded="false" aria-controls="project-menu-${escapeHtml(project.id)}">•••</button></div><p title="${escapeHtml(project.desc)}">${escapeHtml(project.desc)}</p></div><div class="project-card-menu" id="project-menu-${escapeHtml(project.id)}" role="menu" aria-label="项目操作" hidden><button type="button" role="menuitem" data-project-action="add-plan">新增生产计划</button><button type="button" role="menuitem" data-project-action="edit">编辑</button></div></article>`}
 function closeProjectCardMenus(restoreFocus=false){projectGrid.querySelectorAll('.project-card.menu-open').forEach(card=>{card.classList.remove('menu-open');card.querySelector('.project-card-menu').hidden=true;const trigger=card.querySelector('.project-more');trigger.setAttribute('aria-expanded','false');if(restoreFocus)trigger.focus({preventScroll:true})})}
-function renderProjectPagination(total){
-  const pages=Math.max(1,Math.ceil(total/projectPageSize)),start=(currentProjectPage-1)*projectPageSize;
-  document.querySelector('#projectPageSummary').textContent=total?`共 ${total} 个项目，显示 ${start+1}–${Math.min(start+projectPageSize,total)} 个`:'共 0 个项目';
-  const button=(page,label,disabled=false)=>`<button type="button" data-project-page="${page}" ${disabled?'disabled':''} ${label===String(currentProjectPage)?'aria-current="page"':''} aria-label="${/^\d+$/.test(label)?`第 ${label} 页`:label}">${label}</button>`;
-  const visible=Array.from({length:pages},(_,i)=>i+1).filter(page=>page===1||page===pages||Math.abs(page-currentProjectPage)<=2);
-  document.querySelector('#projectPageButtons').innerHTML=button(currentProjectPage-1,'上一页',currentProjectPage===1)+visible.map((page,index)=>`${index&&page-visible[index-1]>1?'<span aria-hidden="true">…</span>':''}${button(page,String(page),!total)}`).join('')+button(currentProjectPage+1,'下一页',currentProjectPage===pages);
+function updateProjectLoadStatus(){
+  const total=projectMatchingItems.length;
+  projectLoadStatus.hidden=!total;
+  projectLoadStatus.textContent=projectVisibleCount<total?`已加载 ${projectVisibleCount} / ${total} 个项目，向下滚动加载更多`:`已加载全部 ${total} 个项目`;
 }
-function renderProjects(){const keyword=document.querySelector('#projectSearch').value.trim().toLowerCase();let items=projectData.filter(project=>currentProjectFilter==='all'||project.scope===currentProjectFilter);items=items.filter(project=>(project.title+project.desc+project.type).toLowerCase().includes(keyword));const sort=document.querySelector('#projectSort').value;if(sort==='name')items.sort((a,b)=>a.title.localeCompare(b.title,'zh-CN'));if(sort==='progress')items.sort((a,b)=>b.progress-a.progress);currentProjectPage=Math.max(1,Math.min(currentProjectPage,Math.ceil(items.length/projectPageSize)||1));projectGrid.innerHTML=items.slice((currentProjectPage-1)*projectPageSize,currentProjectPage*projectPageSize).map(projectCard).join('');renderProjectPagination(items.length);projectGrid.style.display=items.length?'grid':'none';projectEmpty.style.display=items.length?'none':'block';document.querySelector('#projectFilterTitle').textContent=projectFilterLabels[currentProjectFilter];document.querySelector('#projectResultCount').textContent=`${items.length} 个项目`;document.querySelector('#projectEmpty p').textContent=keyword?'换一个关键词试试吧':'当前分类暂无项目';document.querySelector('#projectTotal').textContent=projectData.length;document.querySelector('#projectActiveCount').textContent=projectData.filter(project=>project.progress<100).length;document.querySelector('#projectRiskCount').textContent=projectData.filter(project=>project.risk).length;document.querySelector('#projectCompleteCount').textContent=projectData.filter(project=>project.progress===100).length}
-function setProjectFilter(filter){if(!projectFilterLabels[filter])return;currentProjectPage=1;currentProjectFilter=filter;projectFilterTabs.forEach(tab=>{const active=tab.dataset.projectFilter===filter;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active))});renderProjects()}
+function projectLoadIsNearViewport(){
+  return !projectLoadStatus.hidden&&projectLoadStatus.getClientRects().length>0&&projectLoadStatus.getBoundingClientRect().top<=window.innerHeight+180;
+}
+function requestMoreProjects(){
+  if(projectLoadFrame!==null||projectVisibleCount>=projectMatchingItems.length||!projectLoadIsNearViewport())return;
+  projectLoadStatus.textContent='正在加载更多项目…';
+  projectLoadFrame=requestAnimationFrame(()=>{
+    projectLoadFrame=null;
+    if(!projectLoadIsNearViewport()){updateProjectLoadStatus();return}
+    const nextCount=Math.min(projectVisibleCount+PROJECT_LOAD_BATCH_SIZE,projectMatchingItems.length);
+    projectGrid.insertAdjacentHTML('beforeend',projectMatchingItems.slice(projectVisibleCount,nextCount).map(projectCard).join(''));
+    projectVisibleCount=nextCount;
+    updateProjectLoadStatus();
+    requestMoreProjects();
+  });
+}
+function resetProjectLoading(){projectVisibleCount=PROJECT_LOAD_BATCH_SIZE;renderProjects()}
+if('IntersectionObserver' in window){
+  const projectLoadObserver=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting))requestMoreProjects()},{rootMargin:'180px 0px'});
+  projectLoadObserver.observe(projectLoadStatus);
+}
+window.addEventListener('scroll',requestMoreProjects,{passive:true,capture:true});
+window.addEventListener('resize',requestMoreProjects,{passive:true});
+function renderProjects(){const keyword=document.querySelector('#projectSearch').value.trim().toLowerCase();let items=projectData.filter(project=>currentProjectFilter==='all'||project.scope===currentProjectFilter);items=items.filter(project=>(project.title+project.desc+project.type).toLowerCase().includes(keyword));const sort=document.querySelector('#projectSort').value;if(sort==='name')items.sort((a,b)=>a.title.localeCompare(b.title,'zh-CN'));if(sort==='progress')items.sort((a,b)=>b.progress-a.progress);if(projectLoadFrame!==null){cancelAnimationFrame(projectLoadFrame);projectLoadFrame=null}projectMatchingItems=items;projectVisibleCount=Math.min(Math.max(PROJECT_LOAD_BATCH_SIZE,projectVisibleCount),items.length);projectGrid.innerHTML=items.slice(0,projectVisibleCount).map(projectCard).join('');updateProjectLoadStatus();projectGrid.style.display=items.length?'grid':'none';projectEmpty.style.display=items.length?'none':'block';document.querySelector('#projectFilterTitle').textContent=projectFilterLabels[currentProjectFilter];document.querySelector('#projectResultCount').textContent=`${items.length} 个项目`;document.querySelector('#projectEmpty p').textContent=keyword?'换一个关键词试试吧':'当前分类暂无项目';document.querySelector('#projectTotal').textContent=projectData.length;document.querySelector('#projectActiveCount').textContent=projectData.filter(project=>project.progress<100).length;document.querySelector('#projectRiskCount').textContent=projectData.filter(project=>project.risk).length;document.querySelector('#projectCompleteCount').textContent=projectData.filter(project=>project.progress===100).length;requestMoreProjects()}
+function setProjectFilter(filter){if(!projectFilterLabels[filter])return;projectVisibleCount=PROJECT_LOAD_BATCH_SIZE;currentProjectFilter=filter;projectFilterTabs.forEach(tab=>{const active=tab.dataset.projectFilter===filter;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active))});renderProjects()}
 renderProjects();
 
 const taskCenterStorageKey='orchestra-production-tasks-v7';
@@ -1083,7 +1112,7 @@ document.querySelector('#mobileMenu').onclick=()=>document.querySelector('#sideb
 let canvasReturnPage='projects';
 function getCanvasReturnPage(){return canvasReturnPage}
 function setProfileIsolation(active){document.querySelectorAll('body > .sidebar,body > .topbar,body > .player,.page-view:not(#profilePage)').forEach(element=>{if(active)element.setAttribute('inert','');else element.removeAttribute('inert')})}
-function switchPage(page,item){const pages={assets:'#assetsPage',home:'#homePage',tasks:'#taskPage',projects:'#projectsPage','project-detail':'#projectDetailPage',business:'#businessPage','project-create':'#projectCreatePage',workflows:'#workflowsPage',canvas:'#canvasPage',profile:'#profilePage'};const currentPage=document.querySelector('.page-view.active')?.id;if(page==='canvas'&&currentPage!=='profilePage'){canvasReturnPage=currentPage==='workflowsPage'?'workflows':'projects';document.querySelector('#canvasBreadcrumb').textContent=canvasReturnPage==='workflows'?'创作集合 / 节点编排':'项目管理 / 节点编排'}document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));const projectChild=['business','project-create','project-detail'].includes(page);const navItem=item||document.querySelector(`.nav-item[data-page="${page}"]`)||(projectChild?document.querySelector('.nav-item[data-page="projects"]'):null);navItem?.classList.add('active');document.querySelectorAll('.page-view').forEach(x=>x.classList.remove('active'));document.querySelector(pages[page]||pages.home).classList.add('active');document.body.classList.toggle('task-mode',page==='tasks');document.body.classList.toggle('project-mode',page==='projects');document.body.classList.toggle('project-detail-mode',page==='project-detail');document.body.classList.toggle('business-mode',page==='business');document.body.classList.toggle('project-create-mode',page==='project-create');document.body.classList.toggle('workflow-mode',page==='workflows');document.body.classList.toggle('canvas-mode',page==='canvas');document.body.classList.toggle('profile-mode',page==='profile');setProfileIsolation(page==='profile');document.querySelector('#avatarButton').classList.toggle('active',page==='profile');document.querySelector('#sidebar').classList.remove('open');if(page==='tasks')renderTaskCenter();window.scrollTo(0,0)}
+function switchPage(page,item){const pages={assets:'#assetsPage',home:'#homePage',tasks:'#taskPage',projects:'#projectsPage','project-detail':'#projectDetailPage',business:'#businessPage','project-create':'#projectCreatePage',workflows:'#workflowsPage',canvas:'#canvasPage',profile:'#profilePage'};const currentPage=document.querySelector('.page-view.active')?.id;if(page==='canvas'&&currentPage!=='profilePage'){canvasReturnPage=currentPage==='workflowsPage'?'workflows':'projects';document.querySelector('#canvasBreadcrumb').textContent=canvasReturnPage==='workflows'?'创作集合 / 节点编排':'项目管理 / 节点编排'}document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));const projectChild=['business','project-create','project-detail'].includes(page);const navItem=item||document.querySelector(`.nav-item[data-page="${page}"]`)||(projectChild?document.querySelector('.nav-item[data-page="projects"]'):null);navItem?.classList.add('active');document.querySelectorAll('.page-view').forEach(x=>x.classList.remove('active'));document.querySelector(pages[page]||pages.home).classList.add('active');document.body.classList.toggle('task-mode',page==='tasks');document.body.classList.toggle('project-mode',page==='projects');document.body.classList.toggle('project-detail-mode',page==='project-detail');document.body.classList.toggle('business-mode',page==='business');document.body.classList.toggle('project-create-mode',page==='project-create');document.body.classList.toggle('workflow-mode',page==='workflows');document.body.classList.toggle('canvas-mode',page==='canvas');document.body.classList.toggle('profile-mode',page==='profile');setProfileIsolation(page==='profile');document.querySelector('#avatarButton').classList.toggle('active',page==='profile');document.querySelector('#sidebar').classList.remove('open');if(page==='tasks')renderTaskCenter();window.scrollTo(0,0);if(page==='projects')requestMoreProjects()}
 function openPrimaryCanvas(item){window.orchestraWorkflowCanvas?.open({id:'primary',name:'未命名音乐工作流'});switchPage('canvas',item)}
 const assetTabs=Array.from(document.querySelectorAll('.asset-tabs [role="tab"]'));
 function selectAssetTab(selected){
@@ -1098,10 +1127,8 @@ assetTabs.forEach((tab,index)=>{
   });
 });
 nav.addEventListener('click',e=>{const item=e.target.closest('.nav-item[data-page]');if(!item)return;if(item.dataset.page==='canvas')openPrimaryCanvas(item);else switchPage(item.dataset.page,item)});
-document.querySelector('#projectSearch').addEventListener('input',()=>{currentProjectPage=1;renderProjects()});
-document.querySelector('#projectSort').addEventListener('change',()=>{currentProjectPage=1;renderProjects()});
-document.querySelector('#projectPageSize').addEventListener('change',event=>{projectPageSize=Number(event.target.value);currentProjectPage=1;renderProjects()});
-document.querySelector('#projectPageButtons').addEventListener('click',event=>{const button=event.target.closest('[data-project-page]');if(!button||button.disabled)return;currentProjectPage=Number(button.dataset.projectPage);renderProjects();document.querySelector(`#projectPageButtons [aria-current="page"]`)?.focus({preventScroll:true})});
+document.querySelector('#projectSearch').addEventListener('input',resetProjectLoading);
+document.querySelector('#projectSort').addEventListener('change',resetProjectLoading);
 projectFilterTabs.forEach(tab=>tab.addEventListener('click',()=>setProjectFilter(tab.dataset.projectFilter)));
 projectGrid.addEventListener('click',event=>{
   const card=event.target.closest('[data-project-open]');if(!card)return;
