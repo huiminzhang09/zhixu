@@ -1,15 +1,4 @@
 .business-page { animation: businessPageIn .3s ease both; }
-.customer-disable-dialog { width: min(420px,calc(100vw - 40px)); padding: 24px; border: 1px solid var(--line); border-radius: 16px; color: var(--text); background: var(--surface); }
-.customer-disable-dialog::backdrop { background: #0008; }
-.customer-disable-dialog h2 { margin: 0 0 16px; font-size: 18px; }
-.customer-disable-dialog p { color: var(--muted); font-size: 14px; line-height: 1.7; }
-.customer-disable-dialog form { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
-.customer-disable-dialog button { padding: 9px 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--text); font: inherit; cursor: pointer; }
-.customer-disable-dialog .confirm-disable { background: #b83e52; color: #fff; border-color: transparent; }
-.business-tools { flex-wrap: wrap; }
-.business-back-button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: 0 0 16px; padding: 0; border: 1px solid #8460da; border-radius: 12px; background: #381b92; color: #fff; cursor: pointer; transition: background .15s ease; }
-.business-back-button:hover { background: #4824ae; }
-.business-back-button:focus-visible { outline: 2px solid #906aed; outline-offset: 3px; }
 @keyframes businessPageIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
 
 .business-heading { min-height: 126px; padding: 25px 29px; position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 21px; color: var(--text); background: linear-gradient(120deg,color-mix(in srgb,#7148df 9%,var(--surface)),color-mix(in srgb,#c84f86 5%,var(--surface)) 60%,var(--surface)); box-shadow: var(--shadow); display: flex; align-items: center; justify-content: space-between; gap: 20px; }
@@ -56,7 +45,6 @@
 html[data-theme="dark"] .business-tags span { color: #aa8cfa; }
 .customer-priority,.customer-availability { width: max-content; padding: 5px 8px; border-radius: 99px; display: inline-flex; align-items: center; font-size: 10px; font-weight: 680; }
 .customer-priority.p1 { color: #d44e64; background: #d44e6414; }
-.customer-priority.p0 { color: #d44e64; background: #d44e6424; font-weight: 700; }
 .customer-priority.p2 { color: #d98a35; background: #d98a3514; }
 .customer-priority.p3 { color: #3f8ed0; background: #3f8ed014; }
 .customer-availability.enabled { color: #319b74; background: #319b7414; }
