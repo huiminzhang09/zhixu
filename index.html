@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="./projects.css?v=15" />
   <link rel="stylesheet" href="./business.css?v=13" />
   <link rel="stylesheet" href="./project-create.css?v=17" />
-  <link rel="stylesheet" href="./project-detail.css?v=20" />
+  <link rel="stylesheet" href="./project-detail.css?v=21" />
   <link rel="stylesheet" href="./task-center.css?v=33" />
   <link rel="stylesheet" href="./workflows.css?v=12" />
   <link rel="stylesheet" href="./playlist-import.css?v=1" />
@@ -640,7 +640,7 @@
           <label><span>计划名称 <em>*</em><small id="newBatchNameCount">0 / 50</small></span><input id="newBatchName" type="text" maxlength="50" autocomplete="off" placeholder="请输入计划名称" required /></label>
           <label><span>生产数量 <em>*</em></span><input id="projectBatchQuantity" type="number" min="1" max="10000" step="1" value="50" required /></label>
           <label><span>工作流 <em>*</em></span><select id="projectBatchWorkflow" required><option value="">请选择已发布工作流</option></select></label>
-          <label><span>交付日期 <em>*</em></span><input id="projectBatchDelivery" type="date" required /></label>
+          <label><span>交付日期</span><input id="projectBatchDelivery" type="date" /></label>
           <div class="project-rich-field batch-field-wide"><label for="projectBatchNotes">备注</label><div class="rich-editor"><div class="rich-toolbar" aria-label="生产计划备注格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input compact" id="projectBatchNotes" role="textbox" aria-label="备注" aria-multiline="true" contenteditable="true" data-placeholder="补充生产要求、验收标准或协作说明…"></div></div></div>
         </div>
       </div>
@@ -676,7 +676,7 @@
     <div class="player-actions"><button aria-label="音量">♬</button><button aria-label="收藏">♡</button><button aria-label="评论">▢</button><button aria-label="更多">⋮</button></div>
   </footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="./script.js?v=127"></script>
+  <script src="./script.js?v=131"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
   <script src="./finished-library.js?v=7"></script>
