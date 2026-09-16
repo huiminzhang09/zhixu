@@ -17,7 +17,7 @@ body.task-mode main, body:has(#assetsPage.active) main {
 .task-tabs button span { margin-left: 5px; padding: 3px 6px; border-radius: 99px; color: inherit; background: color-mix(in srgb,currentColor 9%,transparent); font-size: 8px; }
 .task-tabs button:focus-visible { border-radius: 7px; outline: 2px solid #8058e7; outline-offset: -4px; }
 
-.task-workspace { min-height: 580px; margin-top: 15px; display: grid; grid-template-columns: minmax(300px,360px) minmax(0,1fr); gap: 14px; align-items: stretch; }
+.task-workspace { min-height: 580px; margin-top: 15px; display: grid; grid-template-columns: minmax(280px,340px) minmax(0,1fr); gap: 14px; align-items: stretch; }
 .task-list-shell,.task-detail-shell { min-width: 0; border: 1px solid var(--line); border-radius: 17px; background: var(--surface); }
 .task-list-shell { padding: 16px; }
 .task-list-toolbar { padding-bottom: 13px; border-bottom: 1px solid var(--line); display: grid; gap: 12px; }
@@ -402,7 +402,7 @@ body.task-mode .task-detail-actions button { min-height: 42px; font-size: 12px; 
 body.task-mode .player { transform: translateY(110%); opacity: 0; pointer-events: none; }
 
 @media (max-width: 1160px) {
-  .task-workspace { grid-template-columns: minmax(290px,330px) minmax(0,1fr); }
+  .task-workspace { grid-template-columns: minmax(270px,310px) minmax(0,1fr); }
   .task-flow-path { overflow-x: auto; grid-template-columns: repeat(var(--task-node-count),110px); padding-bottom: 3px; }
   .task-node-spec { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .task-candidate-grid { grid-template-columns: 1fr; }

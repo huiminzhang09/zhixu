@@ -136,16 +136,20 @@ function richTextPlainText(value){const template=document.createElement('templat
 function sanitizeRichText(value){const template=document.createElement('template');template.innerHTML=String(value||'');const allowed=new Set(['B','STRONG','I','EM','U','P','DIV','BR','UL','OL','LI']);Array.from(template.content.querySelectorAll('*')).forEach(node=>{if(!allowed.has(node.tagName)){node.replaceWith(...node.childNodes);return}Array.from(node.attributes).forEach(attribute=>node.removeAttribute(attribute.name))});return template.innerHTML.trim()}
 function projectPlanNotesText(value){return richTextPlainText(value)||'—'}
 const projectPlanStatusMeta={
-  '待生产':{className:'pending',description:'批次已创建，但还没有进入生产流程'},
-  '生产中':{className:'active',description:'批次内至少有一条流水处于进行中'},
-  '待交付':{className:'awaiting',description:'批次内流水都已生产完成，等待交付确认'},
-  '部分交付':{className:'partial',description:'批次下已有部分流水交付，但仍有流水未交付'},
-  '已终止':{className:'stopped',description:'批次下所有流水均已终止'},
-  '已交付':{className:'delivered',description:'批次内所有应交付流水均已完成交付'}
+  '生产中':{className:'active',description:'生产计划尚未全部完成生产'},
+  '已完成':{className:'delivered',description:'生产计划下的所有作品均已完成'}
 };
-function projectPlanProductionStatus(batch){const quantity=Math.max(0,Number(batch.quantity)||0),completed=Math.max(0,Number(batch.completed)||0),delivered=Math.max(0,Number(batch.delivered)||0),terminated=Math.max(0,Number(batch.terminated)||0),explicit=batch.productionStatus||batch.status;if(explicit==='已终止'||(quantity>0&&terminated>=quantity))return '已终止';if(explicit==='已交付'||(quantity>0&&delivered>=quantity))return '已交付';if(delivered>0&&delivered<quantity)return '部分交付';if(quantity>0&&completed>=quantity)return '待交付';if(Number(batch.inProgress)>0||['生产中','进行中','需关注'].includes(explicit)||completed>0||Number(batch.progress)>0)return '生产中';return '待生产'}
+function syncProjectPlanProductionProgress(project){
+  for(const batch of project.batches||[]){
+    const works=(project.works||[]).filter(work=>String(work.planId)===String(batch.id));
+    batch.completed=works.filter(work=>['已完成','已交付'].includes(work.status)).length;
+    batch.productionStatus=works.length>0&&batch.completed===works.length?'已完成':'生产中';
+    batch.status=batch.productionStatus;
+  }
+}
+function projectPlanProductionStatus(batch){return batch.productionStatus==='已完成'?'已完成':'生产中'}
 function projectPlanRow(batch){const notes=projectPlanNotesText(batch.notes),workflowName=batch.workflowName||'—',workflowVersion=batch.workflowVersion?` · ${batch.workflowVersion}`:'',quantity=Number(batch.quantity),rawCompleted=Number(batch.completed),completed=Number.isFinite(rawCompleted)?Math.max(0,Math.min(Number.isFinite(quantity)?quantity:rawCompleted,Math.floor(rawCompleted))):0,status=projectPlanProductionStatus(batch),statusMeta=projectPlanStatusMeta[status];return `<div class="project-plan-row" role="row"><div class="project-plan-cell primary" role="cell" data-label="计划名称"><b>${escapeHtml(batch.name||'—')}</b></div><div class="project-plan-cell" role="cell" data-label="生产数量">${escapeHtml(batch.quantity??'—')}</div><div class="project-plan-cell project-plan-completed" role="cell" data-label="生产完成数量">${escapeHtml(completed)}</div><div class="project-plan-cell" role="cell" data-label="生产进度"><span class="project-plan-status ${statusMeta.className}" title="${escapeHtml(statusMeta.description)}">${escapeHtml(status)}</span></div><div class="project-plan-cell" role="cell" data-label="工作流">${escapeHtml(workflowName)}${escapeHtml(workflowVersion)}</div><div class="project-plan-cell" role="cell" data-label="交付日期">${formatProjectDate(batch.delivery)}</div><div class="project-plan-cell project-plan-notes" role="cell" data-label="备注" title="${escapeHtml(notes)}">${escapeHtml(notes)}</div><div class="project-plan-cell project-plan-actions" role="cell" data-label="操作"><button type="button" data-plan-works="${escapeHtml(batch.id)}">查看作品</button></div></div>`}
-function renderProjectPlans(project){const batches=project.batches||[];projectPlanList.innerHTML=`<div class="project-plan-row head" role="row"><span role="columnheader">计划名称</span><span role="columnheader">生产数量</span><span role="columnheader">生产完成数量</span><span role="columnheader">生产进度</span><span role="columnheader">工作流</span><span role="columnheader">交付日期</span><span role="columnheader">备注</span><span role="columnheader">操作</span></div>${batches.map(projectPlanRow).join('')}`;projectPlanTableWrap.hidden=!batches.length;projectPlanEmpty.hidden=Boolean(batches.length)}
+function renderProjectPlans(project){syncProjectPlanProductionProgress(project);const batches=project.batches||[];projectPlanList.innerHTML=`<div class="project-plan-row head" role="row"><span role="columnheader">计划名称</span><span role="columnheader">生产数量</span><span role="columnheader">生产完成数量</span><span role="columnheader">生产进度</span><span role="columnheader">工作流</span><span role="columnheader">交付日期</span><span role="columnheader">备注</span><span role="columnheader">操作</span></div>${batches.map(projectPlanRow).join('')}`;projectPlanTableWrap.hidden=!batches.length;projectPlanEmpty.hidden=Boolean(batches.length)}
 function projectWorkDisplayName(work,index){return String(work.name||'').trim()||`未命名-${work.serial?String(work.serial).slice(-4):String(index+1).padStart(4,'0')}`}
 function projectWorkStatusLabel(status){return status==='已终止'?'已终止':['已完成','已交付'].includes(status)?'已完成':'制作中'}
 function projectWorkStatusClass(status){return {已完成:'completed',已终止:'terminated',制作中:'making'}[projectWorkStatusLabel(status)]}
@@ -381,7 +385,7 @@ function loadProductionTasks(){
   projectData.forEach(project=>ensureAssignedProductionTasks(project,(project.works||[]).filter(work=>Object.keys(work.nodeAssignments||{}).length&&!removedWorks.has(taskWorkKey(project.id,work.id)))));
   persistProductionTasks();
 }
-function ensureAssignedProductionTasks(project,works){
+function ensureAssignedProductionTasks(project,works,allowUnassigned=false){
   let created=0;
   works.forEach(work=>{
     const context=resolveTaskWorkflowContext(project,work);
@@ -393,12 +397,19 @@ function ensureAssignedProductionTasks(project,works){
     if(!active){
       if(['已完成','已终止','已交付'].includes(work.status))return;
       const nodeIndex=0,node=context.snapshot.nodes[nodeIndex];
-      if(!taskAssigneeForNode(context,node).id)return;
+      if(!allowUnassigned&&!taskAssigneeForNode(context,node).id)return;
       active=createProductionTask(context,node,nodeIndex,'in_progress');
       active.assignmentCreated=true;active.updatedLabel='刚刚';productionTasks.push(active);created++;
     }
     work.status='制作中';work.stage=active.nodeTitle;work.updated=new Date().toISOString();
   });
+  return created;
+}
+function startProductionPlanTasks(project,works){
+  const created=ensureAssignedProductionTasks(project,works,true);
+  syncProjectPlanProductionProgress(project);
+  if(!persistProductionTasks())showToast('待办任务已生成，但保存失败，请重试','error');
+  if(created<works.length&&!works.every(work=>productionTasks.some(task=>task.projectId===project.id&&String(task.workId)===String(work.id))))showToast('部分作品未生成任务，请检查已发布工作流的节点配置','error');
   return created;
 }
 function persistProductionTasks(){try{localStorage.setItem(taskCenterStorageKey,JSON.stringify(productionTasks));return true}catch{return false}}
@@ -412,7 +423,7 @@ function filteredProductionTasks(){
 }
 function productionTaskRow(task){
   const status=taskStatusMeta[task.status],category=taskCategoryMeta[task.nodeCategory]||taskCategoryMeta.song,active=task.id===selectedTaskId;
-  return `<div class="task-item${active?' active':''}${task.featured?' featured':''}" role="group" tabindex="0" data-task-id="${escapeHtml(task.id)}" aria-label="打开任务：${escapeHtml(task.workName)}" aria-current="${active?'true':'false'}"><span class="task-item-head"><i class="task-node-icon ${escapeHtml(task.nodeCategory)}" aria-hidden="true">${category.symbol}</i><span class="task-item-title"><b><span class="task-inline-name" data-task-inline-name="${escapeHtml(task.id)}" title="${escapeHtml(task.workName)}"${task.status==='in_progress'?' contenteditable="plaintext-only" role="textbox" aria-label="任务名称（直接编辑，Enter 保存，Esc 取消）" aria-multiline="false" tabindex="0" spellcheck="false"':''}>${escapeHtml(task.workName)}</span>${task.featured?'<em>完整流程</em>':''}</b><small>${escapeHtml(task.nodeTitle)} · 第 ${task.nodeIndex+1}/${task.nodeCount} 节点</small></span><span class="task-status ${status.className}">${status.label}</span></span><span class="task-item-body"><span><b>${escapeHtml(task.projectName)}</b><small>${escapeHtml(task.planName)} · ${escapeHtml(task.workflowName)} ${escapeHtml(task.workflowVersion)}</small></span></span></div>`;
+  return `<div class="task-item${active?' active':''}${task.featured?' featured':''}" role="group" tabindex="0" data-task-id="${escapeHtml(task.id)}" aria-label="打开任务：${escapeHtml(task.workName)}" aria-current="${active?'true':'false'}"><span class="task-item-head"><i class="task-node-icon ${escapeHtml(task.nodeCategory)}" aria-hidden="true">${category.symbol}</i><span class="task-item-title"><b><span class="task-inline-name" data-task-inline-name="${escapeHtml(task.id)}" title="${escapeHtml(task.workName)}"${task.status==='in_progress'?' contenteditable="plaintext-only" role="textbox" aria-label="任务名称（直接编辑，Enter 保存，Esc 取消）" aria-multiline="false" tabindex="0" spellcheck="false"':''}>${escapeHtml(task.workName)}</span></b><small>${escapeHtml(task.nodeTitle)} · 第 ${task.nodeIndex+1}/${task.nodeCount} 节点</small></span><span class="task-status ${status.className}">${status.label}</span></span><span class="task-item-body"><span><b>${escapeHtml(task.projectName)}</b><small>${escapeHtml(task.planName)} · ${escapeHtml(task.workflowName)} ${escapeHtml(task.workflowVersion)}</small></span></span></div>`;
 }
 function taskContextByTask(task){
   const project=projectData.find(item=>item.id===task.projectId),work=project?.works?.find(item=>String(item.id)===String(task.workId));
@@ -475,11 +486,9 @@ function toggleTaskSongPreview(button){
 }
 function renderReferenceLyricsWorkspace(task){
   const locked=task.status!=='in_progress',disabled=locked?'disabled':'',generated=task.generationStage==='generated'||Boolean(task.candidates?.length),status=taskStatusMeta[task.status];
-  const selectedPreset=task.formValues?.preset||'no-theory';
-  const presetButton=(value,label)=>`<button class="ref-preset${selectedPreset===value?' active':''}" type="button" data-ref-preset="${value}" aria-pressed="${selectedPreset===value}">${label}</button>`;
   const result=generated?taskCandidateCards(task,'lyrics'):`<div class="ref-output-empty"><i>▧</i><b>暂无生成结果</b><small>完成左侧配置后，点击“开始运行”生成候选歌词。</small></div>`;
   const editor=task.selectedCandidateId?`<label class="task-form-field task-selected-output"><span>已选用歌词（可选修改）</span><textarea data-task-required data-selected-lyrics-editor ${disabled} placeholder="可直接提交当前歌词，也可按需修改…">${escapeHtml(task.selectedCandidateText||'')}</textarea><small>确认歌词后即可提交审核，无需修改。</small></label>`:'';
-  return `<div class="ref-task-workbench"><header class="ref-workbench-header"><div class="ref-workbench-meta"><span>歌词生成</span><em>可配置</em></div><div class="ref-workbench-title"><div><h2>歌词生成 · 配置并运行</h2><p><span data-task-display-name>${escapeHtml(task.workName)}</span> · 基于参考歌词生成新的歌词版本</p></div><span class="task-status ${status.className}">${status.label}</span></div></header><div class="ref-workbench-columns"><section class="ref-workbench-panel ref-workbench-input"><header><b>输入</b></header><div class="ref-workbench-content"><div class="ref-preset-field"><span>预设分类</span><div>${presetButton('no-theory','不使用理论')}${presetButton('young-pop','年轻流行')}${presetButton('urban-folk','城市民谣')}${presetButton('cinematic','电影叙事')}</div></div><label class="task-form-field ref-reference-lyrics"><span>参考歌词 <em>*</em></span><textarea readonly>夜色沿着海岸线慢慢退潮\n旧站台还留着昨日的风\n我把没说完的话写进灯火\n等清晨替我们重新命名</textarea></label><div class="ref-config-grid"><label class="task-form-field"><span>创作配置 <em>*</em></span><select data-task-required data-generation-required data-task-field="config" ${disabled}><option value="">请选择配置</option><option value="urban" ${taskSelectedOption(task,'config','urban')}>都市叙事 · 中文流行</option><option value="cinematic" ${taskSelectedOption(task,'config','cinematic')}>电影感 · 抒情</option><option value="indie" ${taskSelectedOption(task,'config','indie')}>极简意象 · Indie</option></select></label><label class="task-form-field"><span>用户提示词 <em>*</em></span><textarea data-task-required data-generation-required data-task-field="prompt" ${disabled} placeholder="描述希望保留与调整的歌词方向…">${taskFormValue(task,'prompt')}</textarea></label><label class="task-form-field"><span>系统提示词（选填）</span><input data-task-field="systemPrompt" ${disabled} value="${taskFormValue(task,'systemPrompt')}" placeholder="补充创作规则" /></label><label class="task-form-field"><span>金句（选填）</span><input data-task-field="goldenLine" ${disabled} value="${taskFormValue(task,'goldenLine')}" placeholder="填写希望保留的核心句" /></label><label class="task-form-field"><span>韵脚（选填）</span><input data-task-field="rhyme" ${disabled} value="${taskFormValue(task,'rhyme')}" placeholder="例如 ang / iang" /></label><label class="task-form-field"><span>规避词（选填）</span><input data-task-field="avoidWords" ${disabled} value="${taskFormValue(task,'avoidWords')}" placeholder="填写不希望出现的词语" /></label><label class="task-form-field"><span>意象（选填）</span><input data-task-field="imagery" ${disabled} value="${taskFormValue(task,'imagery')}" placeholder="例如 夜雨、海岸、霓虹" /></label><label class="task-form-field"><span>歌词格式（选填）</span><select data-task-field="lyricsFormat" ${disabled}><option value="standard">标准段落</option><option value="verse-chorus" ${taskSelectedOption(task,'lyricsFormat','verse-chorus')}>主歌 / 副歌</option><option value="free" ${taskSelectedOption(task,'lyricsFormat','free')}>自由格式</option></select></label></div></div></section><section class="ref-workbench-panel ref-workbench-output"><header><b>输出</b></header><div class="ref-workbench-content">${result}<div class="ref-run-row"><select data-task-field="count" aria-label="生成数量" ${disabled}><option value="3">3 份歌词</option><option value="2" ${taskSelectedOption(task,'count','2')}>2 份歌词</option><option value="1" ${taskSelectedOption(task,'count','1')}>1 份歌词</option></select>${!locked?`<button type="button" data-task-generate="lyrics">${generated?'重新运行':'▶ 开始运行'}</button>`:''}</div>${editor}${task.status==='terminated'?'<div class="task-termination-note">任务已终止，后续节点未生成。</div>':''}${task.status==='in_progress'?`<div class="ref-workbench-actions"><button class="task-terminate-button" type="button" data-task-action="terminate">终止任务</button><button class="task-complete-button" type="button" data-task-action="complete" ${taskNodeCanComplete(task)?'':'disabled'}>确认歌词并进入歌词审核</button></div>`:''}</div></section></div></div>`;
+  return `<div class="ref-task-workbench"><header class="ref-workbench-header"><div class="ref-workbench-meta"><span>歌词生成</span><em>可配置</em></div><div class="ref-workbench-title"><div><h2>歌词生成 · 配置并运行</h2><p><span data-task-display-name>${escapeHtml(task.workName)}</span> · 基于参考歌词生成新的歌词版本</p></div><span class="task-status ${status.className}">${status.label}</span></div></header><div class="ref-workbench-columns"><section class="ref-workbench-panel ref-workbench-input"><header><b>输入</b></header><div class="ref-workbench-content"><label class="task-form-field ref-reference-lyrics"><span>参考歌词 <em>*</em></span><textarea readonly>夜色沿着海岸线慢慢退潮\n旧站台还留着昨日的风\n我把没说完的话写进灯火\n等清晨替我们重新命名</textarea></label><div class="ref-config-grid"><label class="task-form-field"><span>创作配置 <em>*</em></span><select data-task-required data-generation-required data-task-field="config" ${disabled}><option value="">请选择配置</option><option value="urban" ${taskSelectedOption(task,'config','urban')}>都市叙事 · 中文流行</option><option value="cinematic" ${taskSelectedOption(task,'config','cinematic')}>电影感 · 抒情</option><option value="indie" ${taskSelectedOption(task,'config','indie')}>极简意象 · Indie</option></select></label><label class="task-form-field"><span>用户提示词 <em>*</em></span><textarea data-task-required data-generation-required data-task-field="prompt" ${disabled} placeholder="描述希望保留与调整的歌词方向…">${taskFormValue(task,'prompt')}</textarea></label><label class="task-form-field"><span>系统提示词（选填）</span><input data-task-field="systemPrompt" ${disabled} value="${taskFormValue(task,'systemPrompt')}" placeholder="补充创作规则" /></label><label class="task-form-field"><span>金句（选填）</span><input data-task-field="goldenLine" ${disabled} value="${taskFormValue(task,'goldenLine')}" placeholder="填写希望保留的核心句" /></label><label class="task-form-field"><span>韵脚（选填）</span><input data-task-field="rhyme" ${disabled} value="${taskFormValue(task,'rhyme')}" placeholder="例如 ang / iang" /></label><label class="task-form-field"><span>规避词（选填）</span><input data-task-field="avoidWords" ${disabled} value="${taskFormValue(task,'avoidWords')}" placeholder="填写不希望出现的词语" /></label><label class="task-form-field"><span>意象（选填）</span><input data-task-field="imagery" ${disabled} value="${taskFormValue(task,'imagery')}" placeholder="例如 夜雨、海岸、霓虹" /></label><label class="task-form-field"><span>歌词格式（选填）</span><select data-task-field="lyricsFormat" ${disabled}><option value="standard">标准段落</option><option value="verse-chorus" ${taskSelectedOption(task,'lyricsFormat','verse-chorus')}>主歌 / 副歌</option><option value="free" ${taskSelectedOption(task,'lyricsFormat','free')}>自由格式</option></select></label></div></div></section><section class="ref-workbench-panel ref-workbench-output"><header><b>输出</b></header><div class="ref-workbench-content">${result}<div class="ref-run-row"><select data-task-field="count" aria-label="生成数量" ${disabled}><option value="3">3 份歌词</option><option value="2" ${taskSelectedOption(task,'count','2')}>2 份歌词</option><option value="1" ${taskSelectedOption(task,'count','1')}>1 份歌词</option></select>${!locked?`<button type="button" data-task-generate="lyrics">${generated?'重新运行':'▶ 开始运行'}</button>`:''}</div>${editor}${task.status==='terminated'?'<div class="task-termination-note">任务已终止，后续节点未生成。</div>':''}${task.status==='in_progress'?`<div class="ref-workbench-actions"><button class="task-terminate-button" type="button" data-task-action="terminate">终止任务</button><button class="task-complete-button" type="button" data-task-action="complete" ${taskNodeCanComplete(task)?'':'disabled'}>确认歌词并进入歌词审核</button></div>`:''}</div></section></div></div>`;
 }
 function renderReferenceSongWorkspace(task){
   const locked=task.status!=='in_progress',disabled=locked?'disabled':'',generated=task.generationStage==='generated'||Boolean(task.candidates?.length),status=taskStatusMeta[task.status];
@@ -537,7 +546,7 @@ function renderProductionTaskDetail(task){
   taskDetailPanel.classList.toggle('is-reference-song',isReferenceSong);
   taskDetailPanel.classList.toggle('task-reference-workspace',isReferenceLyrics||isReferenceSong);
   if(!task){taskDetailPanel.innerHTML='<div class="task-detail-empty"><span aria-hidden="true">▤</span><h2>选择一条任务</h2><p>右侧将根据工作流节点类型展示对应的任务处理页面。</p></div>';return}
-  if(isReferenceLyrics){taskDetailPanel.innerHTML=renderReferenceLyricsWorkspace(task);taskDetailPanel.querySelector('.ref-preset-field > span')?.replaceChildren(document.createTextNode('预设方案'));const formatSelect=taskDetailPanel.querySelector('[data-task-field="lyricsFormat"]');if(formatSelect){const formatInput=document.createElement('input');formatInput.type='text';formatInput.dataset.taskField='lyricsFormat';formatInput.value=lyricFormatLabel(formatSelect.value);formatInput.placeholder='例如：主歌 / 副歌';formatInput.disabled=formatSelect.disabled;formatInput.className=formatSelect.className;formatSelect.replaceWith(formatInput)}taskDetailPanel.querySelector('[data-task-field="config"]')?.closest('.task-form-field')?.remove();return}
+  if(isReferenceLyrics){taskDetailPanel.innerHTML=renderReferenceLyricsWorkspace(task);const formatSelect=taskDetailPanel.querySelector('[data-task-field="lyricsFormat"]');if(formatSelect){const formatInput=document.createElement('input');formatInput.type='text';formatInput.dataset.taskField='lyricsFormat';formatInput.value=lyricFormatLabel(formatSelect.value);formatInput.placeholder='例如：主歌 / 副歌';formatInput.disabled=formatSelect.disabled;formatInput.className=formatSelect.className;formatSelect.replaceWith(formatInput)}taskDetailPanel.querySelector('[data-task-field="config"]')?.closest('.task-form-field')?.remove();return}
   if(isReferenceSong){taskDetailPanel.innerHTML=renderReferenceSongWorkspace(task);return}
   const context=taskContextByTask(task),status=taskStatusMeta[task.status],category=taskCategoryMeta[task.nodeCategory]||taskCategoryMeta.song;
   const siblingTasks=productionTasks.filter(item=>item.projectId===task.projectId&&String(item.workId)===String(task.workId)),taskByNode=new Map(siblingTasks.map(item=>[item.nodeId,item]));
@@ -557,13 +566,6 @@ function annotateTaskFieldTooltips(){
     const task=productionTasks.find(item=>item.id===selectedTaskId),field=reference.querySelector('textarea');
     field.dataset.taskField='referenceLyrics';
     field.value=task?.formValues?.referenceLyrics??field.value;
-    const heading=reference.querySelector('span');
-    heading.classList.add('reference-field-heading');
-    const button=document.createElement('button');
-    button.type='button';button.className='reference-change-button';button.textContent='更换对标';
-    button.disabled=task?.status!=='in_progress';
-    button.addEventListener('click',event=>{event.preventDefault();openReferenceLyricsPicker(task)});
-    heading.append(button);
   }
   taskDetailPanel.querySelectorAll('[data-task-field], .ref-reference-lyrics textarea').forEach(updateTaskFieldTooltip);
 }
@@ -685,7 +687,7 @@ function advanceProductionTask(task,outcome){
         context.work.status='制作中';context.work.stage=sourceTask.nodeTitle;context.work.updated=new Date().toISOString();selectedTaskId=sourceTask.id;
         normalizeProductionTaskConcurrency();
         if(!persistProductionTasks()){productionTasks=beforeTasks;Object.assign(context.work,beforeWork);showToast('审核结果保存失败，请稍后重试','error');return}
-        renderTaskCenter();showToast(`审核已退回「${sourceTask.nodeTitle}」重新处理`);return;
+        syncProjectPlanProductionProgress(context.project);renderTaskCenter();showToast(`审核已退回「${sourceTask.nodeTitle}」重新处理`);return;
       }
     }
     const nextNode=context.snapshot.nodes[task.nodeIndex+1];
@@ -700,6 +702,7 @@ function advanceProductionTask(task,outcome){
   normalizeProductionTaskConcurrency();
   if(!persistProductionTasks()){productionTasks=beforeTasks;Object.assign(context.work,beforeWork);showToast('任务状态保存失败，请稍后重试','error');return}
   renderTaskCenter();
+  syncProjectPlanProductionProgress(context.project);
   showToast(outcome==='complete'?(nextTask?`当前任务已完成，已生成「${nextTask.nodeTitle}」任务`:'当前任务已完成，作品工作流已结束'):'任务已终止并归入已完成');
 }
 function initializeTaskCenter(){ensureProjectWorkNumbers();loadProductionTasks();taskCenterReady=true;renderTaskCenter()}
@@ -747,7 +750,6 @@ taskList.addEventListener('paste',event=>{
 });
 taskDetailPanel.addEventListener('click',event=>{
   const task=productionTasks.find(item=>item.id===selectedTaskId);
-  const preset=event.target.closest('[data-ref-preset]');if(preset&&task){const presetValues=referenceLyricsPresetValues[preset.dataset.refPreset]||{};task.formValues={...(task.formValues||{}),...presetValues,preset:preset.dataset.refPreset};persistProductionTasks();renderTaskCenter();return}
   const songPlay=event.target.closest('[data-task-song-play]');if(songPlay){toggleTaskSongPreview(songPlay);return}
   const generate=event.target.closest('[data-task-generate]');if(generate){generateTaskCandidates(task,generate.dataset.taskGenerate);return}
   const candidate=event.target.closest('[data-task-candidate]');if(candidate){selectTaskCandidate(task,candidate.dataset.taskCandidate);return}
@@ -774,6 +776,7 @@ const businessCustomers=[
 ];
 const businessSearch=document.querySelector('#businessSearch');
 const businessStatus=document.querySelector('#businessStatus');
+const businessAvailability=document.querySelector('#businessAvailability');
 const businessAddButton=document.querySelector('#businessAddButton');
 const businessTable=document.querySelector('#businessTable');
 const businessEmpty=document.querySelector('#businessEmpty');
@@ -781,9 +784,10 @@ function businessStatusClass(status){return {'进行中':'running','待交付':'
 function generateCustomerCode(type){const prefix=type==='平台方'?'OP':'MP';const latest=businessCustomers.reduce((max,item)=>{const match=String(item.code||'').match(new RegExp(`^${prefix}(\\d{3})$`));return match?Math.max(max,Number(match[1])):max},0);return `${prefix}${String(latest+1).padStart(3,'0')}`}
 function businessOrderRow(item){return `<div class="business-row" role="row"><div class="business-cell primary" role="cell"><b>${escapeHtml(item.id)}</b><small>${escapeHtml(item.created)}</small></div><div class="business-cell primary" role="cell"><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.customer)}</small></div><div class="business-cell" role="cell">${escapeHtml(item.owner)}</div><div class="business-cell" role="cell">${escapeHtml(item.nature)}</div><div class="business-cell" role="cell">${item.projects}</div><div class="business-cell" role="cell"><span class="business-status ${businessStatusClass(item.status)}">${escapeHtml(item.status)}</span></div><div class="business-cell" role="cell">${escapeHtml(item.created)}</div><div class="business-cell" role="cell"><button class="business-action" data-toast="查看订单：${escapeHtml(item.name)}">查看</button></div></div>`}
 function businessCustomerRow(item){const enabled=item.enabled!==false,notes=richTextPlainText(item.notes||[item.progressNotes,item.communication].filter(Boolean).join('；'))||'—';const demands=(item.demands||[]).map(demand=>`<span>${escapeHtml(demand)}</span>`).join('')||'<span>未填写</span>';return `<div class="business-row customer-row ${enabled?'':'is-disabled'}" role="row" data-customer-code="${escapeHtml(item.code)}"><div class="business-cell primary" role="cell"><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.code)}</small></div><div class="business-cell" role="cell" title="${escapeHtml(item.company||'-')}">${escapeHtml(item.company||'-')}</div><div class="business-cell" role="cell">${escapeHtml(item.type||'-')}</div><div class="business-cell business-wrap" role="cell" title="${escapeHtml(item.businessLine||'-')}">${escapeHtml(item.businessLine||'-')}</div><div class="business-cell business-tags" role="cell">${demands}</div><div class="business-cell" role="cell">${escapeHtml(item.contact||'-')}</div><div class="business-cell" role="cell"><span class="business-status ${businessStatusClass(item.status)}">${escapeHtml(item.status||'-')}</span></div><div class="business-cell" role="cell"><span class="customer-priority ${String(item.priority||'P2').toLowerCase()}">${escapeHtml(item.priority||'P2')}</span></div><div class="business-cell business-wrap" role="cell" title="${escapeHtml(notes)}">${escapeHtml(notes)}</div><div class="business-cell" role="cell"><span class="customer-availability ${enabled?'enabled':'disabled'}">${enabled?'启用':'禁用'}</span></div><div class="business-cell customer-actions" role="cell"><button class="business-action edit" type="button" data-customer-edit="${escapeHtml(item.code)}" aria-label="编辑客户 ${escapeHtml(item.name)}">编辑</button><button class="business-action ${enabled?'disable':'enable'}" type="button" data-customer-toggle="${escapeHtml(item.code)}" aria-label="${enabled?'禁用':'启用'}客户 ${escapeHtml(item.name)}">${enabled?'禁用':'启用'}</button></div></div>`}
-function renderBusiness(){const keyword=businessSearch.value.trim().toLowerCase();const status=businessStatus.value;const items=businessCustomers.filter(item=>Object.values(item).flat().join(' ').toLowerCase().includes(keyword)&&(status==='all'||item.status===status));businessTable.innerHTML=`<div class="business-row business-head customer-row" role="row"><span>客户名称</span><span>公司名称</span><span>客户类型</span><span>客户业务线</span><span>制作需求</span><span>对接人</span><span>推进状态</span><span>优先级</span><span>备注</span><span>客户状态</span><span>操作</span></div>${items.map(businessCustomerRow).join('')}`;businessTable.parentElement.hidden=!items.length;businessEmpty.hidden=Boolean(items.length);document.querySelector('#businessListTitle').textContent='客户信息';document.querySelector('#businessResultCount').textContent=`${items.length} 条记录`}
+function renderBusiness(){const keyword=businessSearch.value.trim().toLowerCase();const status=businessStatus.value;const availability=businessAvailability.value;const items=businessCustomers.filter(item=>Object.values(item).flat().join(' ').toLowerCase().includes(keyword)&&(status==='all'||item.status===status)&&(availability==='all'||(item.enabled!==false)===(availability==='enabled')));businessTable.innerHTML=`<div class="business-row business-head customer-row" role="row"><span>客户名称</span><span>公司名称</span><span>客户类型</span><span>客户业务线</span><span>制作需求</span><span>对接人</span><span>推进状态</span><span>优先级</span><span>备注</span><span>客户状态</span><span>操作</span></div>${items.map(businessCustomerRow).join('')}`;businessTable.parentElement.hidden=!items.length;businessEmpty.hidden=Boolean(items.length);document.querySelector('#businessListTitle').textContent='客户信息';document.querySelector('#businessResultCount').textContent=`${items.length} 条记录`}
 businessSearch.addEventListener('input',renderBusiness);
 businessStatus.addEventListener('change',renderBusiness);
+businessAvailability.addEventListener('change',renderBusiness);
 businessAddButton.addEventListener('click',()=>openCustomerDialog('business',businessAddButton));
 businessTable.addEventListener('click',event=>{
   const editButton=event.target.closest('[data-customer-edit]');
@@ -859,7 +863,7 @@ function createPlanWorks(plan,reservedSerials,reservedWorkNumbers){
 function openProjectBatchDialog(){const start=new Date(),delivery=new Date(start);delivery.setDate(delivery.getDate()+7);projectBatchForm.reset();projectBatchNotes.innerHTML='';newBatchNameCount.textContent='0 / 50';populateBatchWorkflows();projectBatchDelivery.value=localDateValue(delivery);projectBatchDialog.hidden=false;document.body.classList.add('order-dialog-open');requestAnimationFrame(()=>newBatchName.focus({preventScroll:true}))}
 function closeProjectBatchDialog(restoreFocus=true){projectBatchDialog.hidden=true;document.body.classList.remove('order-dialog-open');if(restoreFocus)requestAnimationFrame(()=>document.querySelector('#addProjectBatch').focus({preventScroll:true}))}
 newBatchName.addEventListener('input',()=>{if(Array.from(newBatchName.value).length>50)newBatchName.value=Array.from(newBatchName.value).slice(0,50).join('');newBatchNameCount.textContent=`${Array.from(newBatchName.value).length} / 50`});
-projectBatchForm.onsubmit=event=>{event.preventDefault();const project=projectData.find(item=>item.id===selectedProjectId);if(!project){showToast('未找到当前项目','error');return}const name=newBatchName.value.trim();if(!name)return requireOrderControl(newBatchName,'请输入计划名称');if(project.batches.some(batch=>batch.name===name)){showToast('当前项目中已存在同名计划','error');newBatchName.focus({preventScroll:true});return}if(!Number.isSafeInteger(Number(projectBatchQuantity.value))||Number(projectBatchQuantity.value)<1)return requireOrderControl(projectBatchQuantity,'生产数量必须为正整数');if(!projectBatchWorkflow.value)return requireOrderControl(projectBatchWorkflow,'请选择已发布工作流');if(!projectBatchDelivery.value)return requireOrderControl(projectBatchDelivery,'请选择交付日期');const workflow=workflowData.find(item=>item.id===projectBatchWorkflow.value);if(!workflow)return requireOrderControl(projectBatchWorkflow,'请选择有效的已发布工作流');const numbers=reserveDailyProductionNumbers({plan:1,flow:Number(projectBatchQuantity.value),work:Number(projectBatchQuantity.value)});if(!numbers)return;project.batches.unshift({id:numbers.plan[0],name,quantity:Number(projectBatchQuantity.value),completed:0,delivered:0,terminated:0,inProgress:0,owner:'未分配',workflowId:workflow.id,workflowName:workflow.name,workflowVersion:workflow.version,start:localDateValue(new Date()),delivery:projectBatchDelivery.value,priority:'普通',status:'待生产',progress:0,notes:projectBatchNotes.innerHTML.trim()});project.works=[...createPlanWorks(project.batches[0],numbers.flow,numbers.work),...(project.works||[])];project.date='刚刚';renderProjectDetail();renderProjects();closeProjectBatchDialog();showToast(`生产计划「${name}」已新增`)};
+projectBatchForm.onsubmit=event=>{event.preventDefault();const project=projectData.find(item=>item.id===selectedProjectId);if(!project){showToast('未找到当前项目','error');return}const name=newBatchName.value.trim();if(!name)return requireOrderControl(newBatchName,'请输入计划名称');if(project.batches.some(batch=>batch.name===name)){showToast('当前项目中已存在同名计划','error');newBatchName.focus({preventScroll:true});return}if(!Number.isSafeInteger(Number(projectBatchQuantity.value))||Number(projectBatchQuantity.value)<1)return requireOrderControl(projectBatchQuantity,'生产数量必须为正整数');if(!projectBatchWorkflow.value)return requireOrderControl(projectBatchWorkflow,'请选择已发布工作流');if(!projectBatchDelivery.value)return requireOrderControl(projectBatchDelivery,'请选择交付日期');const workflow=workflowData.find(item=>item.id===projectBatchWorkflow.value);if(!workflow)return requireOrderControl(projectBatchWorkflow,'请选择有效的已发布工作流');const numbers=reserveDailyProductionNumbers({plan:1,flow:Number(projectBatchQuantity.value),work:Number(projectBatchQuantity.value)});if(!numbers)return;project.batches.unshift({id:numbers.plan[0],name,quantity:Number(projectBatchQuantity.value),completed:0,delivered:0,terminated:0,inProgress:0,owner:'未分配',workflowId:workflow.id,workflowName:workflow.name,workflowVersion:workflow.version,start:localDateValue(new Date()),delivery:projectBatchDelivery.value,priority:'普通',status:'待生产',progress:0,notes:projectBatchNotes.innerHTML.trim()});const newWorks=createPlanWorks(project.batches[0],numbers.flow,numbers.work);project.works=[...newWorks,...(project.works||[])];startProductionPlanTasks(project,newWorks);project.date='刚刚';renderProjectDetail();renderProjects();closeProjectBatchDialog();showToast(`生产计划「${name}」已新增`)};
 document.querySelector('#addProjectBatch').onclick=openProjectBatchDialog;
 document.querySelector('#closeProjectBatch').onclick=()=>closeProjectBatchDialog();
 document.querySelector('#cancelProjectBatch').onclick=()=>closeProjectBatchDialog();
@@ -869,6 +873,66 @@ const projectCreateForm=document.querySelector('#projectCreateForm');
 const projectWorkflowSelect=document.querySelector('#projectWorkflow');
 const projectBatchName=document.querySelector('#projectBatchName');
 const batchNameCount=document.querySelector('#batchNameCount');
+const MAX_PROJECT_PLAN_GROUPS=5;
+const projectPlanGroups=document.querySelector('#projectPlanGroups');
+const addProjectPlanGroupButton=document.querySelector('#addProjectPlanGroup');
+const projectPlanGroupTemplate=projectPlanGroups.firstElementChild.cloneNode(true);
+let projectPlanGroupSequence=1;
+function updateProjectPlanGroups(){
+  const groups=Array.from(projectPlanGroups.querySelectorAll('[data-project-plan-group]'));
+  groups.forEach((group,index)=>{
+    group.querySelector('[data-plan-group-title]').textContent=`生产计划 ${index+1}`;
+    group.setAttribute('aria-label',`生产计划 ${index+1}`);
+    group.querySelector('[data-remove-plan-group]').disabled=index===0;
+  });
+  document.querySelector('#projectPlanGroupCount').textContent=`${groups.length} / ${MAX_PROJECT_PLAN_GROUPS} 组`;
+  addProjectPlanGroupButton.disabled=groups.length>=MAX_PROJECT_PLAN_GROUPS;
+  addProjectPlanGroupButton.textContent=addProjectPlanGroupButton.disabled?'已达上限（最多 5 组生产计划）':'＋ 添加一组生产计划（最多 5 组）';
+}
+function addProjectPlanGroup(){
+  if(projectPlanGroups.children.length>=MAX_PROJECT_PLAN_GROUPS)return;
+  const group=projectPlanGroupTemplate.cloneNode(true),suffix=`-group-${++projectPlanGroupSequence}`;
+  group.querySelectorAll('[id]').forEach(element=>element.id+=suffix);
+  group.querySelectorAll('label[for]').forEach(label=>label.htmlFor+=suffix);
+  projectPlanGroups.append(group);
+  populatePublishedWorkflows();updateProjectPlanGroups();
+  group.querySelector('[name="productionName"]').focus();
+}
+addProjectPlanGroupButton.addEventListener('click',addProjectPlanGroup);
+projectPlanGroups.addEventListener('click',event=>{
+  const button=event.target.closest('[data-remove-plan-group]');
+  if(!button||button.disabled)return;
+  button.closest('[data-project-plan-group]').remove();
+  updateProjectPlanGroups();addProjectPlanGroupButton.focus({preventScroll:true});
+});
+function collectProjectPlanDrafts(){
+  const groups=Array.from(projectPlanGroups.querySelectorAll('[data-project-plan-group]')),drafts=[];
+  if(!groups.length||groups.length>MAX_PROJECT_PLAN_GROUPS){showToast('请添加 1 至 5 组生产计划','error');return null}
+  for(const [index,group] of groups.entries()){
+    const name=group.querySelector('[name="productionName"]'),quantity=group.querySelector('[name="quantity"]'),workflowSelect=group.querySelector('[name="workflow"]');
+    const prefix=`第 ${index+1} 组：`,length=Array.from(name.value.trim()).length;
+    const invalid=(control,message)=>{invalidateProjectField(control,prefix+message);return null};
+    if(!length)return invalid(name,'请输入生产计划名称');
+    if(length>50)return invalid(name,'生产计划名称不能超过 50 个字符');
+    if(!Number.isSafeInteger(Number(quantity.value))||Number(quantity.value)<1)return invalid(quantity,'生产数量必须为正整数');
+    const workflow=workflowData.find(item=>item.id===workflowSelect.value&&item.publishClass==='published');
+    if(!workflow)return invalid(workflowSelect,'请选择已发布工作流');
+    const notes=group.querySelector('.rich-input');
+    drafts.push({name:name.value.trim(),quantity:Number(quantity.value),workflow,delivery:group.querySelector('[name="deliveryDate"]').value,notes:sanitizeRichText(notes.innerHTML.trim()),summary:notes.textContent.trim()});
+  }
+  return drafts;
+}
+function buildInitialProjectPlans(drafts,owner,numbers){
+  const batches=[],works=[];let offset=0;
+  drafts.forEach((draft,index)=>{
+    const {workflow}=draft;
+    const plan={id:numbers.plan[index],name:draft.name,quantity:draft.quantity,completed:0,delivered:0,terminated:0,inProgress:0,owner,workflowId:workflow.id,workflowName:workflow.name,workflowVersion:workflow.version,start:localDateValue(new Date()),delivery:draft.delivery||'待排期',priority:'普通',status:'生产中',progress:0,notes:draft.notes};
+    batches.push(plan);
+    works.push(...createPlanWorks(plan,numbers.flow.slice(offset,offset+draft.quantity),numbers.work.slice(offset,offset+draft.quantity)));
+    offset+=draft.quantity;
+  });
+  return {batches,works};
+}
 const projectCustomer=document.querySelector('#projectCustomer');
 const projectNameInput=document.querySelector('#projectName');
 const projectOrderReference=document.querySelector('#projectOrderReference');
@@ -897,7 +961,14 @@ const newCustomerNotes=document.querySelector('#newCustomerNotes');
 const newCustomerNotesCount=document.querySelector('#newCustomerNotesCount');
 const saveCustomerButton=document.querySelector('#saveCustomerButton');
 let editingCustomerCode=null;
-function populatePublishedWorkflows(){const previous=projectWorkflowSelect.value;const published=workflowData.filter(item=>item.publishClass==='published');projectWorkflowSelect.innerHTML='<option value="">请选择已发布工作流</option>';published.forEach(item=>{const option=document.createElement('option');option.value=item.id;option.textContent=`${item.name} · ${item.version}`;projectWorkflowSelect.append(option)});if(published.some(item=>item.id===previous))projectWorkflowSelect.value=previous}
+function populatePublishedWorkflows(){
+  const published=workflowData.filter(item=>item.publishClass==='published');
+  projectPlanGroups.querySelectorAll('[name="workflow"]').forEach(select=>{
+    const previous=select.value;select.innerHTML='<option value="">请选择已发布工作流</option>';
+    published.forEach(item=>{const option=document.createElement('option');option.value=item.id;option.textContent=`${item.name} · ${item.version}`;select.append(option)});
+    if(published.some(item=>item.id===previous))select.value=previous;
+  });
+}
 let editingProjectId=null;
 function setProjectEditMode(projectId=null){
   editingProjectId=projectId;
@@ -909,7 +980,7 @@ function setProjectEditMode(projectId=null){
   document.querySelector('.project-create-status').innerHTML=`<i></i> ${editing?'编辑中':'新项目'}`;
   projectCreateForm.querySelector('.project-submit-button').textContent=editing?'保存修改':'创建项目';
 }
-function resetProjectCreateForm(){setProjectEditMode();projectCreateForm.reset();populatePublishedWorkflows();projectOrderFileList.textContent='';projectCreateForm.querySelectorAll('.rich-input').forEach(editor=>editor.innerHTML='');projectCreateForm.querySelectorAll('.project-field.is-invalid').forEach(field=>field.classList.remove('is-invalid'));batchNameCount.textContent='0 / 50'}
+function resetProjectCreateForm(){setProjectEditMode();Array.from(projectPlanGroups.children).slice(1).forEach(group=>group.remove());projectCreateForm.reset();populatePublishedWorkflows();projectOrderFileList.textContent='';projectCreateForm.querySelectorAll('.rich-input').forEach(editor=>editor.innerHTML='');projectCreateForm.querySelectorAll('.project-field.is-invalid').forEach(field=>field.classList.remove('is-invalid'));batchNameCount.textContent='0 / 50';updateProjectPlanGroups()}
 function openProjectCreatePage(){resetProjectCreateForm();switchPage('project-create',document.querySelector('.nav-item[data-page="projects"]'));requestAnimationFrame(()=>projectCustomer.focus({preventScroll:true}))}
 function openProjectEditPage(projectId){
   const project=projectData.find(item=>item.id===projectId);if(!project)return;
@@ -952,15 +1023,16 @@ function updateCustomerNotesCount(){let characters=Array.from(richTextPlainText(
 function openCustomerDialog(source='order',trigger=document.querySelector('#addCustomerButton'),customer=null){customerDialogSource=source;customerDialogTrigger=trigger;editingCustomerCode=source==='edit'&&customer?customer.code:null;const editing=Boolean(editingCustomerCode);const descriptions={business:'新增后将同步到客户列表。',project:'新增后将自动回填到当前项目。',order:'新增后将自动回填到当前订单。',edit:'修改客户基础信息、业务属性与推进记录。'};document.querySelector('#newCustomerTitle').textContent=editing?'编辑客户':'新增客户';document.querySelector('#newCustomerDescription').textContent=descriptions[source]||descriptions.order;saveCustomerButton.textContent=editing?'保存修改':'确认新增';newCustomerForm.reset();newCustomerNotes.innerHTML='';customerDemandField.classList.remove('is-invalid');setCustomerDemandOpen(false);if(editing){newCustomerName.value=customer.name||'';newCustomerCompany.value=customer.company||'';newCustomerType.value=customer.type||'';newCustomerBusinessLine.value=customer.businessLine||'';customerDemandOptions.forEach(input=>input.checked=(customer.demands||[]).includes(input.value));newCustomerContact.value=customer.contact||'';newCustomerProgressStatus.value=customer.status||'';newCustomerPriority.value=customer.priority||'P2';newCustomerNotes.innerHTML=sanitizeRichText(customer.notes||[customer.progressNotes,customer.communication].filter(Boolean).join('<br>'))}updateCustomerDemandSummary();updateCustomerNotesCount();newCustomerDialog.hidden=false;document.body.classList.add('order-dialog-open');requestAnimationFrame(()=>newCustomerName.focus({preventScroll:true}))}
 function requireOrderControl(control,message){if(String(control.value||'').trim())return true;control.focus({preventScroll:true});control.scrollIntoView({behavior:'smooth',block:'center'});showToast(message,'error');return false}
 function invalidateProjectField(control,message){control.closest('.project-field')?.classList.add('is-invalid');control.focus({preventScroll:true});control.scrollIntoView({behavior:'smooth',block:'center'});showToast(message,'error');return false}
-projectBatchName.addEventListener('input',()=>{if(projectBatchName.value.length>50)projectBatchName.value=Array.from(projectBatchName.value).slice(0,50).join('');batchNameCount.textContent=`${Array.from(projectBatchName.value).length} / 50`;projectBatchName.closest('.project-field').classList.remove('is-invalid')});
-document.querySelectorAll('#projectCreateForm input,#projectCreateForm select,#projectCreateForm textarea').forEach(control=>control.addEventListener('change',()=>control.closest('.project-field')?.classList.remove('is-invalid')));
-document.querySelectorAll('.rich-toolbar button').forEach(button=>button.addEventListener('mousedown',event=>{event.preventDefault();const editor=button.closest('.rich-editor').querySelector('.rich-input');editor.focus();if(button.dataset.richCommand==='clear')editor.innerHTML='';else document.execCommand(button.dataset.richCommand,false,null);editor.dispatchEvent(new Event('input',{bubbles:true}))}));
+projectPlanGroups.addEventListener('input',event=>{const input=event.target;if(input.name!=='productionName')return;input.value=Array.from(input.value).slice(0,50).join('');input.closest('[data-project-plan-group]').querySelector('[data-plan-name-count]').textContent=`${Array.from(input.value).length} / 50`;input.closest('.project-field').classList.remove('is-invalid')});
+projectCreateForm.addEventListener('change',event=>event.target.closest('.project-field')?.classList.remove('is-invalid'));
+document.addEventListener('mousedown',event=>{const button=event.target.closest('.rich-toolbar button');if(!button)return;event.preventDefault();const editor=button.closest('.rich-editor').querySelector('.rich-input');editor.focus();if(button.dataset.richCommand==='clear')editor.innerHTML='';else document.execCommand(button.dataset.richCommand,false,null);editor.dispatchEvent(new Event('input',{bubbles:true}))});
 newCustomerNotes.addEventListener('input',updateCustomerNotesCount);
 document.querySelector('#addProjectCustomerButton').onclick=()=>openCustomerDialog('project',document.querySelector('#addProjectCustomerButton'));
 document.querySelector('#closeNewOrder').onclick=()=>closeOrderDialog();
 document.querySelector('#cancelNewOrder').onclick=()=>closeOrderDialog();
 document.querySelector('#addCustomerButton').onclick=()=>openCustomerDialog('order',document.querySelector('#addCustomerButton'));
 document.querySelector('#closeNewCustomer').onclick=()=>closeCustomerDialog();
+document.querySelector('#backNewCustomer').onclick=()=>closeCustomerDialog();
 document.querySelector('#cancelNewCustomer').onclick=()=>closeCustomerDialog();
 newOrderDialog.addEventListener('click',event=>{if(event.target===newOrderDialog)closeOrderDialog()});
 newOrderDialog.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeOrderDialog()}});
@@ -1019,44 +1091,38 @@ document.querySelector('#cancelProjectCreate').onclick=()=>switchPage('projects'
 projectCreateForm.onsubmit=event=>{
   event.preventDefault();
   const owner=document.querySelector('#projectOwner');
-  const quantity=document.querySelector('#projectQuantity');
-  const batchLength=Array.from(projectBatchName.value.trim()).length;
   const projectName=projectNameInput.value.trim();
   if(!projectCustomer.value)return invalidateProjectField(projectCustomer,'请选择客户名称');
   if(!projectName)return invalidateProjectField(projectNameInput,'请输入项目名称');
   if(projectData.some(item=>item.id!==editingProjectId&&item.title===projectName))return invalidateProjectField(projectNameInput,'该项目名称已存在');
   if(!owner.value)return invalidateProjectField(owner,'请选择负责人');
   if(editingProjectId){saveProjectEdit();return}
-  if(!batchLength)return invalidateProjectField(projectBatchName,'请输入生产计划名称');
-  if(batchLength>50)return invalidateProjectField(projectBatchName,'生产计划名称不能超过 50 个字符');
-  if(!Number.isSafeInteger(Number(quantity.value))||Number(quantity.value)<1)return invalidateProjectField(quantity,'生产数量必须为正整数');
-  if(!projectWorkflowSelect.value)return invalidateProjectField(projectWorkflowSelect,'请选择已发布工作流');
-  const workflow=workflowData.find(item=>item.id===projectWorkflowSelect.value);
-  if(!workflow)return invalidateProjectField(projectWorkflowSelect,'请选择有效的已发布工作流');
-  const numbers=reserveDailyProductionNumbers({project:1,plan:1,flow:Number(quantity.value),work:Number(quantity.value)});
+  const drafts=collectProjectPlanDrafts();if(!drafts)return;
+  const totalQuantity=drafts.reduce((sum,plan)=>sum+plan.quantity,0);
+  if(!Number.isSafeInteger(totalQuantity)){showToast('生产总数量超出有效范围','error');return}
+  const numbers=reserveDailyProductionNumbers({project:1,plan:drafts.length,flow:totalQuantity,work:totalQuantity});
   if(!numbers)return;
-  const productionName=projectBatchName.value.trim();
   const orderId=`ORD-202609-${String(businessOrders.length+29).padStart(3,'0')}`;
   const customerName=projectCustomer.options[projectCustomer.selectedIndex].text;
   const ownerName=owner.options[owner.selectedIndex].text;
-  const deliveryDate=document.querySelector('#projectDeliveryDate').value;
+  const deliveryDate=drafts.map(plan=>plan.delivery).filter(Boolean).sort().pop()||'';
   const orderNotes=document.querySelector('#projectOrderNotes').innerHTML.trim();
-  const productionPlanNotes=document.querySelector('#projectProductionPlanNotes').innerHTML.trim();
+  const productionPlanNotes=drafts.map(plan=>plan.notes).filter(Boolean).join('<br>');
+  const initialPlans=buildInitialProjectPlans(drafts,ownerName,numbers);
   const references=Array.from(projectOrderReference.files||[]).map(file=>({name:file.name,size:file.size,type:file.type}));
   businessOrders.unshift({id:orderId,name:projectName,customer:customerName,owner:ownerName,nature:'—',productionType:'—',cycle:'—',projects:1,status:'进行中',created:'2026-09-04',notes:orderNotes,references:Array.from(projectOrderReference.files||[]).map(file=>file.name)});
   const matchedCustomer=businessCustomers.find(item=>item.name===customerName);
   if(matchedCustomer){matchedCustomer.orders+=1;matchedCustomer.projects+=1;matchedCustomer.last='刚刚'}
-  const productionPlanSummary=document.querySelector('#projectProductionPlanNotes').textContent.trim();
-  const description=productionPlanSummary||`${productionName} · ${quantity.value} 份`;
-  const initialBatch={id:numbers.plan[0],name:productionName,quantity:Number(quantity.value),completed:0,delivered:0,terminated:0,inProgress:0,owner:ownerName,workflowId:workflow.id,workflowName:workflow.name,workflowVersion:workflow.version,start:localDateValue(new Date()),delivery:deliveryDate||'待排期',priority:'普通',status:'待生产',progress:0,notes:productionPlanNotes};
-  projectData.unshift({id:numbers.project[0],title:projectName,desc:description,type:'生产项目',progress:0,date:'刚刚',color:'linear-gradient(135deg,#5c3bd1,#b64f88)',members:['H'],scope:'owned',risk:false,batches:[initialBatch],works:createPlanWorks(initialBatch,numbers.flow,numbers.work),orderId,quantity:Number(quantity.value),workflowId:workflow.id,deliveryDate,notes:orderNotes,productionPlanNotes});
+  const description=drafts.length===1?(drafts[0].summary||`${drafts[0].name} · ${totalQuantity} 份`):`${drafts.length} 组生产计划 · ${totalQuantity} 份`;
+  projectData.unshift({id:numbers.project[0],title:projectName,desc:description,type:'生产项目',progress:0,date:'刚刚',color:'linear-gradient(135deg,#5c3bd1,#b64f88)',members:['H'],scope:'owned',risk:false,...initialPlans,orderId,quantity:totalQuantity,workflowId:drafts[0].workflow.id,deliveryDate,notes:orderNotes,productionPlanNotes});
   projectData[0].references=references;
   projectData[0].customer=customerName;
   projectData[0].owner=ownerName;
+  startProductionPlanTasks(projectData[0],projectData[0].works);
   renderBusiness();
   setProjectFilter('all');
   switchPage('projects',document.querySelector('.nav-item[data-page="projects"]'));
-  showToast(`项目「${projectName}」创建成功`);
+  showToast(`项目「${projectName}」创建成功，已添加 ${drafts.length} 组生产计划`);
 };
 const root=document.documentElement;const saved=localStorage.getItem('orchestra-theme');if(saved)root.dataset.theme=saved;
 document.querySelector('#themeToggle').onclick=()=>{root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';localStorage.setItem('orchestra-theme',root.dataset.theme)};
@@ -1129,6 +1195,7 @@ projectPlanList.addEventListener('click',event=>{const button=event.target.close
 document.querySelector('.project-detail-tabs').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)||!event.target.closest('[data-project-detail-tab]'))return;event.preventDefault();const current=Math.max(0,projectDetailTabs.indexOf(document.activeElement));let next=current;if(event.key==='ArrowRight')next=(current+1)%projectDetailTabs.length;if(event.key==='ArrowLeft')next=(current-1+projectDetailTabs.length)%projectDetailTabs.length;if(event.key==='Home')next=0;if(event.key==='End')next=projectDetailTabs.length-1;setProjectDetailTab(projectDetailTabs[next].dataset.projectDetailTab,true)});
 document.querySelector('#backProjectDetails').onclick=()=>switchPage('projects',document.querySelector('.nav-item[data-page="projects"]'));
 projectCustomerManagement.onclick=()=>switchPage('business',document.querySelector('.nav-item[data-page="projects"]'));
+document.querySelector('#businessBackButton').onclick=()=>switchPage('projects');
 document.querySelector('#newProject').onclick=openProjectCreatePage;
 document.querySelector('#startProject').onclick=()=>openPrimaryCanvas();
 document.querySelector('#workflowSearch').addEventListener('input',renderWorkflows);

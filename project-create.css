@@ -24,6 +24,17 @@
 .project-form-card-heading > span i { display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: #8159e7; vertical-align: 1px; }
 
 .project-form-grid { margin-top: 20px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 17px 20px; }
+.project-plan-group { padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb,var(--surface-2) 35%,var(--surface)); }
+.project-plan-group-heading { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.project-plan-group-heading h3 { margin: 0; color: var(--text); font-size: 14px; font-weight: 650; }
+.project-plan-group-heading button { padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px; background: transparent; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+.project-plan-group-heading button:hover { color: #e66c83; border-color: #e66c8366; }
+.project-plan-group-heading button:disabled { visibility: hidden; }
+.project-add-plan-button { width: 100%; min-height: 44px; margin-top: 16px; padding: 10px 16px; border: 1px dashed #8058e77d; border-radius: 10px; background: #8058e710; color: #8058e7; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+html[data-theme="dark"] .project-add-plan-button:not(:disabled) { color: #b89aff; }
+.project-add-plan-button:not(:disabled):hover { border-color: #8058e7; background: #8058e720; }
+.project-add-plan-button:disabled { border-color: var(--line); background: var(--surface-2); color: var(--muted); cursor: not-allowed; opacity: .6; }
+.project-add-plan-button:focus-visible,.project-plan-group-heading button:focus-visible { outline: 2px solid #8a65ed; outline-offset: 3px; }
 .project-field { min-width: 0; display: block; }
 .project-field-wide { grid-column: 1 / -1; }
 .project-field > span em { color: #d45065; font-style: normal; }
@@ -84,6 +95,10 @@ body.order-dialog-open { overflow: hidden; }
 .order-dialog header p { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
 .order-dialog header button { width: 34px; height: 34px; flex: none; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); color: var(--muted); font-size: 20px; cursor: pointer; }
 .order-dialog header button:hover,.order-dialog header button:focus-visible { color: var(--text); border-color: #8058e75c; outline: 0; }
+.customer-dialog-heading { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.order-dialog header .customer-dialog-back { display: inline-flex; align-items: center; justify-content: center; background: #381b92; border-color: #8460da; color: #fff; }
+.order-dialog header .customer-dialog-back:hover { background: #4824ae; color: #fff; }
+.order-dialog header .customer-dialog-back:focus-visible { outline: 2px solid #906aed; outline-offset: 3px; }
 .order-dialog-body { min-height: 0; margin: 0 -5px; padding: 0 5px 3px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: color-mix(in srgb,var(--muted) 38%,transparent) transparent; }
 .customer-dialog-body { min-height: 0; margin: 0 -6px; padding: 14px 6px 3px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: color-mix(in srgb,var(--muted) 38%,transparent) transparent; }
 .customer-form-section { padding: 17px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb,var(--surface-2) 36%,var(--surface)); }
