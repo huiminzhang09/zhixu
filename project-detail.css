@@ -113,7 +113,7 @@
 .project-works-table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; scrollbar-width: thin; }
 .project-works-table-wrap[hidden] { display: none; }
 .project-works-table { min-width: 1180px; }
-.project-work-row { min-height: 64px; padding: 0 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 32px 1.02fr 1.08fr minmax(145px,1.2fr) .72fr .72fr .72fr .46fr .46fr minmax(118px,1fr); align-items: center; gap: 12px; font-size: 11px; transition: background .16s,box-shadow .16s; }
+.project-work-row { min-height: 64px; padding: 0 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 32px 1.02fr 1.08fr minmax(145px,1.2fr) .72fr .72fr .72fr .46fr .46fr; align-items: center; gap: 12px; font-size: 11px; transition: background .16s,box-shadow .16s; }
 .project-work-row.is-selected { background: color-mix(in srgb,#8058e7 8%,var(--surface)); box-shadow: inset 3px 0 #8058e7; }
 .project-work-row.head { min-height: 43px; border-top: 0; color: var(--muted); background: var(--surface-2); font-size: 10px; font-weight: 620; }
 .project-work-cell { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -134,7 +134,7 @@
 .project-work-name-editor > div { display: flex; gap: 8px; }
 .project-work-name-editor button { min-height: 28px; padding: 2px 6px; border: 0; border-radius: 4px; background: var(--surface-2); color: var(--muted); font: inherit; cursor: pointer; }
 .project-work-name-editor button[data-save-work-name] { color: #906aed; }
-.project-work-cell.serial,.project-work-cell.updated { color: var(--muted); font-variant-numeric: tabular-nums; }
+.project-work-cell.serial { color: var(--muted); font-variant-numeric: tabular-nums; }
 .project-work-status { width: max-content; padding: 4px 7px; border-radius: 99px; display: inline-flex; align-items: center; font-size: 9px; font-weight: 680; }
 .project-work-status.making { color: #628fe7; background: color-mix(in srgb,#4c86df 12%,transparent); }
 .project-work-status.review { color: #d5963f; background: color-mix(in srgb,#d5963f 13%,transparent); }
