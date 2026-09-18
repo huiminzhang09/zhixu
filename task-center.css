@@ -296,7 +296,6 @@ body.task-mode .task-detail-actions button { min-height: 42px; font-size: 12px; 
 .task-termination-note { margin-top: 13px; padding: 11px 12px; border: 1px solid color-mix(in srgb,#d35d69 28%,var(--line)); border-radius: 10px; color: #c85f69; background: color-mix(in srgb,#d35d69 7%,var(--bg)); font-size: 9px; }
 .task-detail-actions { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
 .task-detail-actions button { min-height: 38px; padding: 0 15px; border-radius: 10px; font-size: 10px; font-weight: 720; cursor: pointer; }
-.task-terminate-button { border: 1px solid color-mix(in srgb,#d35d69 30%,var(--line)); color: #c65e68; background: color-mix(in srgb,#d35d69 7%,var(--surface)); }
 .task-complete-button { border: 0; color: #fff; background: linear-gradient(135deg,#7045e7,#bd4c95); box-shadow: 0 8px 20px rgba(111,67,216,.2); }
 .task-complete-button:disabled { opacity: .42; box-shadow: none; cursor: not-allowed; }
 .task-detail-actions button:focus-visible { outline: 2px solid #8058e7; outline-offset: 2px; }

@@ -233,6 +233,7 @@
           </div>
         </div>
         <div class="business-table-wrap"><div class="business-table" id="businessTable" role="table"></div></div>
+        <div class="business-pagination" id="businessPagination" aria-label="客户列表分页"><span id="businessPageSummary"></span><label>每页 <select id="businessPageSize" aria-label="每页数量"><option value="30">30 条</option><option value="50">50 条</option><option value="100">100 条</option></select></label><div><button id="businessPrevPage" type="button" aria-label="上一页">‹</button><span class="business-page-indicator" id="businessPageIndicator">1 / 1</span><button id="businessNextPage" type="button" aria-label="下一页">›</button></div></div>
         <div class="business-empty" id="businessEmpty" hidden><span>⌕</span><h3>没有找到匹配记录</h3><p>请调整搜索关键词或状态条件</p></div>
       </section>
     </section>
@@ -582,7 +583,7 @@
           <h3 id="customerBasicTitle">客户基础信息</h3>
           <div class="customer-form-grid">
             <label><span>客户名称 <em>*</em></span><input id="newCustomerName" type="text" maxlength="50" autocomplete="off" placeholder="请输入客户名称" /></label>
-            <label><span>公司名称 <em>*</em></span><input id="newCustomerCompany" type="text" maxlength="80" autocomplete="organization" placeholder="请输入公司名称" /></label>
+            <label><span>公司名称 <em>*</em></span><input id="newCustomerCompany" type="text" maxlength="50" autocomplete="organization" placeholder="请输入公司名称" /></label>
             <label><span>客户类型 <em>*</em></span><select id="newCustomerType" required><option value="">请选择客户类型</option><option>平台方</option><option>渠道方</option><option>版权方</option><option>制作方</option><option>艺人</option></select></label>
           </div>
         </section>
@@ -590,7 +591,7 @@
         <section class="customer-form-section" aria-labelledby="customerBusinessTitle">
           <h3 id="customerBusinessTitle">客户业务属性</h3>
           <div class="customer-business-grid">
-            <label><span>客户业务线 <em>*</em></span><input id="newCustomerBusinessLine" type="text" maxlength="100" autocomplete="off" placeholder="例如：短视频音乐授权、直播背景音乐" /></label>
+            <label><span>客户业务线 <em>*</em></span><input id="newCustomerBusinessLine" type="text" maxlength="200" autocomplete="off" placeholder="例如：短视频音乐授权、直播背景音乐" /></label>
             <div class="customer-demand-field" id="customerDemandField" role="group" aria-labelledby="customerDemandLabel">
               <span class="customer-demand-label" id="customerDemandLabel">制作需求 <em>*</em></span>
               <div class="customer-demand-multiselect" id="customerDemandSelect">
@@ -608,6 +609,7 @@
                   <label class="customer-demand-option" role="option" aria-selected="false"><input type="checkbox" name="customerDemand" value="其他" /><span>其他</span></label>
                 </div>
               </div>
+              <label class="customer-demand-note" id="customerDemandNoteField" hidden><span>制作需求备注</span><input id="newCustomerDemandNote" type="text" maxlength="200" autocomplete="off" placeholder="请补充其他制作需求" /></label>
             </div>
           </div>
         </section>
@@ -617,10 +619,10 @@
           <div class="customer-form-grid">
             <label><span>对接人 <em>*</em></span><select id="newCustomerContact" required><option value="">请选择对接人</option><option>张三</option><option>Lin Chen</option><option>Ming Xu</option></select></label>
             <label><span>推进状态 <em>*</em></span><select id="newCustomerProgressStatus" required><option value="">请选择推进状态</option><option>商务推进</option><option>合同签署</option><option>确定意向</option><option>持续合作</option><option>初步接触</option><option>制作进行</option><option>内部决策</option><option>前置合作待后置推进</option><option>长期合作中</option></select></label>
-            <label><span>推进优先级 <em>*</em></span><select id="newCustomerPriority" required><option>P1</option><option selected>P2</option><option>P3</option></select></label>
+            <label><span>推进优先级 <em>*</em></span><select id="newCustomerPriority" required><option value="">请选择推进优先级</option><option>P1</option><option>P2</option><option>P3</option></select></label>
           </div>
           <div class="project-rich-field customer-full-field customer-notes-field">
-            <div class="customer-rich-heading"><span>备注</span><small id="newCustomerNotesCount" aria-live="polite">0 / 1000</small></div>
+            <div class="customer-rich-heading"><span>备注</span><small id="newCustomerNotesCount" aria-live="polite">0 / 200</small></div>
             <div class="rich-editor">
               <div class="rich-toolbar" aria-label="客户备注格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div>
               <div class="rich-input compact" id="newCustomerNotes" role="textbox" aria-label="备注" aria-describedby="newCustomerNotesCount" aria-multiline="true" contenteditable="true" data-placeholder="填写客户推进、沟通情况或相关链接…"></div>
@@ -676,7 +678,7 @@
     <div class="player-actions"><button aria-label="音量">♬</button><button aria-label="收藏">♡</button><button aria-label="评论">▢</button><button aria-label="更多">⋮</button></div>
   </footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="./script.js?v=134"></script>
+  <script src="./script.js?v=135"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
   <script src="./finished-library.js?v=7"></script>

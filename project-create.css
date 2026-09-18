@@ -129,6 +129,8 @@ body.order-dialog-open { overflow: hidden; }
 .customer-demand-field.is-invalid .customer-demand-trigger { border-color: #d94e65; box-shadow: 0 0 0 3px #d94e6513; }
 .customer-demand-menu { max-height: 220px; padding: 8px; position: absolute; z-index: 12; top: calc(100% + 6px); right: 0; left: 0; overflow-y: auto; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); box-shadow: 0 16px 38px rgba(0,0,0,.22); display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 3px; }
 .customer-demand-menu[hidden] { display: none; }
+.customer-demand-note { margin-top: 12px; }
+.customer-demand-note[hidden] { display: none; }
 .order-dialog .customer-demand-option { min-width: 0; margin: 0; padding: 8px; border-radius: 7px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .order-dialog .customer-demand-option:hover,.order-dialog .customer-demand-option:focus-within { background: var(--surface-2); }
 .order-dialog .customer-demand-option input { width: 14px; height: 14px; flex: 0 0 14px; margin: 0; accent-color: #7a50e7; }
