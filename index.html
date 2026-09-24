@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="./node-library-bottom.css?v=6" />
   <link rel="stylesheet" href="./connection-types.css?v=2" />
   <link rel="stylesheet" href="./workflow-nodes.css?v=5" />
+  <link rel="stylesheet" href="./production-model.css?v=20260924-batch" />
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
@@ -139,14 +140,6 @@
         </div>
       </header>
 
-      <div class="project-summary">
-        <article><span class="summary-icon purple" aria-hidden="true">▱</span><div><small>项目总数</small><strong id="projectTotal">6</strong></div><em>本周+2</em></article>
-        <article><span class="summary-icon blue" aria-hidden="true">▷</span><div><small>进行中</small><strong id="projectActiveCount">5</strong></div></article>
-        <article><span class="summary-icon red" aria-hidden="true">!</span><div><small>异常或延期项目</small><strong id="projectRiskCount">2</strong></div><em>需关注</em></article>
-        <article><span class="summary-icon green" aria-hidden="true">✓</span><div><small>本月完成</small><strong id="projectCompleteCount">1</strong></div></article>
-        <article><span class="summary-icon purple" aria-hidden="true">♙</span><div><small>团队参与人数</small><strong id="projectMemberCount">18</strong></div><em>团队总人数 xx</em></article>
-      </div>
-
       <nav class="project-tabs-shell" aria-label="项目范围筛选">
         <div class="project-tabs" role="tablist">
           <button class="project-tab active" type="button" role="tab" aria-selected="true" data-project-filter="all">全部项目</button>
@@ -177,17 +170,12 @@
         <div class="project-detail-context" aria-label="项目参考资料与备注"><div><strong>参考资料</strong><ul id="projectDetailReferences" class="project-detail-references"></ul></div><div><strong>项目备注</strong><div id="projectDetailNotes" class="project-detail-notes"></div></div></div>
       </header>
 
-      <div class="project-detail-summary" aria-label="项目汇总信息">
-        <article><span class="detail-summary-icon violet" aria-hidden="true">▤</span><div><small>生产计划</small><strong id="projectDetailPlanCount">0</strong></div></article>
-        <article><span class="detail-summary-icon blue" aria-hidden="true">♫</span><div><small>阶段作品</small><strong id="projectDetailWorkCount">0</strong></div></article>
-        <article><span class="detail-summary-icon green" aria-hidden="true">♙</span><div><small>参与成员</small><strong id="projectDetailMemberCount">0</strong></div></article>
-        <article><span class="detail-summary-icon orange" aria-hidden="true">◷</span><div><small>最近更新</small><strong id="projectDetailUpdated">-</strong></div></article>
-      </div>
-
       <nav class="project-detail-tabs" aria-label="项目详情栏目">
         <div role="tablist">
           <button class="active" id="projectPlanTab" type="button" role="tab" aria-selected="true" aria-controls="projectPlanPanel" data-project-detail-tab="plan">生产计划</button>
-          <button id="projectWorksTab" type="button" role="tab" aria-selected="false" aria-controls="projectWorksPanel" data-project-detail-tab="works">作品</button>
+          <button id="projectWorksTab" type="button" role="tab" aria-selected="false" aria-controls="projectWorksPanel" data-project-detail-tab="runs">生产运行</button>
+          <button type="button" role="tab" data-project-detail-tab="consumption" aria-selected="false">消耗统计</button>
+          <button type="button" role="tab" data-project-detail-tab="efficiency" aria-selected="false">人效统计</button>
         </div>
       </nav>
 
@@ -198,7 +186,7 @@
           <div class="project-detail-empty" id="projectPlanEmpty" hidden><span>▤</span><h3>暂无生产计划</h3><p>点击“新增生产计划”建立第一条生产计划。</p></div>
         </section>
 
-        <section class="project-detail-panel" id="projectWorksPanel" role="tabpanel" aria-labelledby="projectWorksTab" data-project-detail-panel="works" hidden>
+        <section class="project-detail-panel" id="projectWorksPanel" role="tabpanel" aria-labelledby="projectWorksTab" data-project-detail-panel="runs" hidden>
           <div class="project-works-toolbar">
             <label class="project-works-filter"><span>生产计划快捷筛选</span><select id="projectWorksPlanFilter" aria-label="生产计划快捷筛选"><option value="all">全部生产计划</option></select></label>
             <div class="project-works-toolbar-meta">
@@ -214,6 +202,7 @@
           <div class="project-detail-empty" id="projectWorksEmpty" hidden><span>♫</span><h3 id="projectWorksEmptyTitle">暂无作品</h3><p id="projectWorksEmptyDescription">生产开始后，作品会在这里持续沉淀。</p></div>
         </section>
 
+        <section class="project-detail-panel" id="consumptionPanel" data-project-detail-panel="consumption" hidden></section>
         <section class="project-detail-panel" id="projectEfficiencyPanel" aria-label="人效管理" data-project-detail-panel="efficiency" hidden>
           <div class="project-efficiency-list" id="projectEfficiencyList"></div>
         </section>
@@ -226,7 +215,7 @@
         <div class="business-toolbar">
           <div class="business-list-title"><b id="businessListTitle">客户信息</b><span id="businessResultCount">5 条记录</span></div>
           <div class="business-tools">
-            <label class="business-search"><span>⌕</span><input id="businessSearch" type="search" placeholder="搜索客户或联系人" aria-label="搜索客户" /></label>
+            <label class="business-search"><span>⌕</span><input id="businessSearch" type="search" maxlength="50" placeholder="搜索客户名称" aria-label="按客户名称搜索" /></label>
             <select id="businessStatus" aria-label="业务状态筛选"><option value="all">全部推进状态</option><option>商务推进</option><option>合同签署</option><option>确定意向</option><option>持续合作</option><option>初步接触</option><option>制作进行</option><option>内部决策</option><option>前置合作待后置推进</option><option>长期合作中</option></select>
             <select id="businessAvailability" aria-label="客户状态筛选"><option value="all">全部</option><option value="enabled">启用</option><option value="disabled">禁用</option></select>
             <button class="business-add-button" id="businessAddButton" type="button">＋ 新增客户</button>
@@ -260,12 +249,12 @@
         </section>
 
         <section class="project-form-card" id="projectInitialPlanFields" aria-labelledby="projectBasicTitle">
-          <header class="project-form-card-heading"><div><small>02</small><div><h2 id="projectBasicTitle">生产计划信息</h2><p>可添加最多 5 组生产计划，分别配置生产数量、工作流和交付日期。</p></div></div><span id="projectPlanGroupCount" aria-live="polite">1 / 5 组</span></header>
+          <header class="project-form-card-heading"><div><small>02</small><div><h2 id="projectBasicTitle">生产计划信息</h2><p>可添加最多 5 组生产计划，分别配置计划运行次数、工作流和交付日期。</p></div></div><span id="projectPlanGroupCount" aria-live="polite">1 / 5 组</span></header>
           <div id="projectPlanGroups">
           <div class="project-form-grid project-plan-group" data-project-plan-group role="group" aria-label="生产计划 1">
             <div class="project-plan-group-heading"><h3 data-plan-group-title>生产计划 1</h3><button type="button" data-remove-plan-group disabled>删除本组</button></div>
             <label class="project-field"><span>生产计划名称 <em>*</em><small id="batchNameCount" data-plan-name-count>0 / 50</small></span><input id="projectBatchName" name="productionName" type="text" maxlength="50" autocomplete="off" placeholder="输入生产计划名称" required /></label>
-            <label class="project-field"><span>生产数量 <em>*</em></span><input id="projectQuantity" name="quantity" type="number" min="1" step="1" value="50" inputmode="numeric" required /></label>
+            <label class="project-field"><span>计划运行次数 <em>*</em></span><input id="projectQuantity" name="quantity" type="number" min="1" step="1" value="50" inputmode="numeric" required /></label>
             <label class="project-field"><span>工作流 <em>*</em><small>仅显示已发布</small></span><select id="projectWorkflow" name="workflow" required><option value="">请选择已发布工作流</option></select></label>
             <label class="project-field"><span>交付日期</span><input id="projectDeliveryDate" name="deliveryDate" type="date" /></label>
             <div class="project-rich-field project-rich-wide"><label for="projectProductionPlanNotes">生产计划备注</label><div class="rich-editor"><div class="rich-toolbar" aria-label="生产计划备注格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input compact" id="projectProductionPlanNotes" role="textbox" aria-label="生产计划备注" aria-multiline="true" contenteditable="true" data-placeholder="填写生产目标、交付要求或协作说明…"></div></div></div>
@@ -282,7 +271,7 @@
       <div class="asset-tabs" role="tablist" aria-label="资产分类">
         <button id="assetFinishedTab" role="tab" aria-selected="true" aria-controls="assetFinishedPanel" tabindex="0">成品库</button>
       </div>
-      <div id="assetFinishedPanel" class="asset-panel finished-library-panel" role="tabpanel" aria-labelledby="assetFinishedTab"><div class="finished-library-caption"><span id="finishedWorkCount">共 0 个成品</span><small>团队内所有已完成制作的成品</small></div><div class="finished-table-scroll"><table class="finished-table"><thead><tr><th>名称</th><th>歌词</th><th>音频</th><th>歌手</th><th>状态</th><th>创建时间</th><th>完成时间</th></tr></thead><tbody id="finishedWorkRows"><tr><td colspan="7" class="finished-empty">暂无成品信息</td></tr></tbody></table></div></div>
+      <div id="assetFinishedPanel" class="asset-panel finished-library-panel" role="tabpanel" aria-labelledby="assetFinishedTab"><div class="finished-library-caption"><span id="finishedWorkCount">共 0 个成品</span><small>用户组合确认的作品 · 与项目作品共用记录</small></div><div class="finished-table-scroll"><table class="finished-table"><thead><tr><th>名称</th><th>歌词</th><th>音频</th><th>来源项目</th><th>状态</th><th>创建时间</th><th>完成时间</th></tr></thead><tbody id="finishedWorkRows"><tr><td colspan="7" class="finished-empty">暂无成品信息</td></tr></tbody></table></div></div>
       <div id="assetReferencesPanel" class="asset-panel" aria-label="对标曲库" hidden></div>
     </section>
     <section class="page-view workflows-page" id="workflowsPage" aria-labelledby="workflowsTitle">
@@ -640,7 +629,7 @@
       <div class="order-dialog-body project-batch-body">
         <div class="batch-form-grid">
           <label><span>计划名称 <em>*</em><small id="newBatchNameCount">0 / 50</small></span><input id="newBatchName" type="text" maxlength="50" autocomplete="off" placeholder="请输入计划名称" required /></label>
-          <label><span>生产数量 <em>*</em></span><input id="projectBatchQuantity" type="number" min="1" max="10000" step="1" value="50" required /></label>
+          <label><span>计划运行次数 <em>*</em></span><input id="projectBatchQuantity" type="number" min="1" step="1" value="50" required /></label>
           <label><span>工作流 <em>*</em></span><select id="projectBatchWorkflow" required><option value="">请选择已发布工作流</option></select></label>
           <label><span>交付日期</span><input id="projectBatchDelivery" type="date" /></label>
           <div class="project-rich-field batch-field-wide"><label for="projectBatchNotes">备注</label><div class="rich-editor"><div class="rich-toolbar" aria-label="生产计划备注格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input compact" id="projectBatchNotes" role="textbox" aria-label="备注" aria-multiline="true" contenteditable="true" data-placeholder="补充生产要求、验收标准或协作说明…"></div></div></div>
@@ -678,10 +667,12 @@
     <div class="player-actions"><button aria-label="音量">♬</button><button aria-label="收藏">♡</button><button aria-label="评论">▢</button><button aria-label="更多">⋮</button></div>
   </footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="./script.js?v=135"></script>
+  <script src="./script.js?v=137-midnight"></script>
+  <script src="./production-model.js?v=20260924-clean-stats"></script>
+  <script src="./composition-flow.js?v=20260924-flow"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
-  <script src="./finished-library.js?v=7"></script>
+  <script src="./finished-library.js?v=8"></script>
   <script src="./workflow-editor.js?v=12"></script>
 </body>
 </html>

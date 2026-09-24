@@ -8,21 +8,18 @@ function completeFinishedDisplay(work,index){
   return {...work,name:work.name||`向光而行-${String(index+1).padStart(3,'0')}`,lyricsContent:lyrics||'风吹过城市的窗\n把未说的话送往远方\n沿着星光慢慢走\n每一次出发都有回响\n\n让明天在心底生长\n让晚风轻轻唱\n走过漫长的夜色\n我们终会遇见晨光',audioUrl:audio||'',singer:work.singer||['林音（示例）','陈声（示例）','许晴（示例）'][index%3],createdAt:finishedDate(work.createdAt)!=='—'?work.createdAt:'2026-09-01T09:00:00+08:00',completedAt:finishedDate(work.completedAt)!=='—'?work.completedAt:'2026-09-06T18:40:00+08:00',demo:missing};
 }
 function renderFinishedLibrary(){
-  const team=document.querySelector('.workspace-option.active')?.dataset.workspaceId||'orchestra-studio';
-  displayedFinishedWorks=projectData.filter(project=>(project.teamId||'orchestra-studio')===team).flatMap(project=>project.works||[]).filter(work=>work.status==='已完成').map(completeFinishedDisplay);
-  document.querySelector('#finishedWorkCount').textContent=`共 ${displayedFinishedWorks.length} 个成品`;
-  document.querySelector('#finishedWorkRows').innerHTML=displayedFinishedWorks.map((work,index)=>{
-    const lyrics=work.lyricsContent||work.lyricsText||(work.lyrics&&!['查看','暂无'].includes(work.lyrics)?work.lyrics:'');
-    const audio=work.audioUrl?finishedAudioUrl(work.audioUrl):'';
-    return `<tr><td>${escapeHtml(work.name||`待命名作品-${String(index+1).padStart(3,'0')}`)}${work.demo?'<small class="finished-demo-note">示例补全数据</small>':''}</td><td>${lyrics?`<button type="button" data-finished-lyrics="${index}" title="${escapeHtml(lyrics)}">查看歌词</button>`:'<span class="finished-missing">暂无</span>'}</td><td>${audio?`<audio controls preload="metadata" src="${escapeHtml(audio)}" aria-label="播放 ${escapeHtml(work.name||'成品音频')}"></audio>`:'<span class="finished-missing">暂无音频</span>'}</td><td>${escapeHtml(work.singer||'—')}</td><td><span class="finished-status">已完成</span></td><td>${escapeHtml(finishedDate(work.createdAt))}</td><td>${escapeHtml(finishedDate(work.completedAt))}</td></tr>`;
-  }).join('')||'<tr><td colspan="7" class="finished-empty">暂无已完成制作的成品</td></tr>';
+ const team=document.querySelector('.workspace-option.active')?.dataset.workspaceId||'orchestra-studio';
+ displayedFinishedWorks=projectData.filter(p=>(p.teamId||'orchestra-studio')===team).flatMap(p=>(p.works||[]));
+ document.querySelector('#finishedWorkCount').textContent=`共 ${displayedFinishedWorks.length} 个成品`;
+ document.querySelector('#finishedWorkRows').innerHTML=displayedFinishedWorks.map((w,index)=>{const p=projectData.find(p=>p.id===w.projectId),lyrics=w.resources.find(r=>r.kind==='歌词'),audio=w.resources.find(r=>r.kind==='音频');return `<tr><td>${escapeHtml(w.name)}<small>${escapeHtml(w.id)}</small></td><td>${lyrics?`<button type="button" data-finished-lyrics="${index}">查看歌词</button>`:'—'}</td><td>${audio?`<audio controls preload="none" src="${escapeHtml(audio.url)}"></audio>`:'—'}</td><td><button type="button" data-finished-project="${escapeHtml(w.projectId)}">${escapeHtml(p?.title||'—')}</button></td><td>已确认</td><td>${modelTime(w.createdAt)}</td><td>${modelTime(w.createdAt)}</td></tr>`}).join('')||'<tr><td colspan="7">暂无已组合确认的作品</td></tr>';
 }
+document.querySelector('#finishedWorkRows').addEventListener('click',e=>{const b=e.target.closest('[data-finished-project]');if(b){openProjectDetail(b.dataset.finishedProject);setProjectDetailTab('runs')}});
 document.querySelector('#finishedWorkRows').addEventListener('click',event=>{
   const button=event.target.closest('[data-finished-lyrics]');if(!button)return;
   const work=displayedFinishedWorks[Number(button.dataset.finishedLyrics)];if(!work)return;
   const dialog=document.createElement('dialog');dialog.className='reference-picker';
   dialog.innerHTML='<form method="dialog"><header><h2>成品歌词</h2><button aria-label="关闭">×</button></header><textarea readonly aria-label="成品歌词内容"></textarea></form>';
-  dialog.querySelector('textarea').value=work.lyricsContent||work.lyricsText||work.lyrics;
+  dialog.querySelector('textarea').value=work.resources.find(r=>r.kind==='歌词')?.content||'';
   dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.append(dialog);dialog.showModal();
 });
 new MutationObserver(()=>{renderFinishedLibrary();if(!document.querySelector('#assetsPage.active'))document.querySelectorAll('#assetFinishedPanel audio').forEach(audio=>audio.pause())}).observe(document.querySelector('#assetsPage'),{attributes:true,attributeFilter:['class']});
