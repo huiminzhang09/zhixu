@@ -1259,7 +1259,7 @@ function selectWorkspace(option,announce=true){const wasActive=option.classList.
 const savedWorkspace=workspaceOptions.find(item=>item.dataset.workspaceId===localStorage.getItem('orchestra-workspace'))||workspaceOptions[0];
 if(savedWorkspace)selectWorkspace(savedWorkspace,false);
 function setProfileSection(section){
-  const profileHeaders={details:['PROFILE','个人资料','管理头像、公开信息与个人偏好。'],security:['SECURITY','账号安全','维护登录凭据与多重身份验证方式。'],teams:['TEAM CENTER','团队管理','管理所属团队、角色权限和团队资源。'],quota:['RESOURCES','资源与额度','查看积分、生成额度、存储空间与本月用量。']};
+  const profileHeaders={details:['PROFILE','个人资料','管理头像、公开信息与个人偏好。'],security:['SECURITY','账号安全','维护登录凭据与多重身份验证方式。'],teams:['团队设置','团队设置','管理团队成员、积分资源与访问权限。'],quota:['RESOURCES','资源与额度','查看积分、生成额度、存储空间与本月用量。']};
   const [eyebrow,title,subtitle]=profileHeaders[section]||profileHeaders.details;
   document.querySelector('#profileEyebrow').textContent=eyebrow;document.querySelector('#profileTitle').textContent=title;document.querySelector('#profileSubtitle').textContent=subtitle;
   profilePage.classList.remove('team-management-active');
@@ -1273,7 +1273,7 @@ function openProfileSection(section){
   setProfileSection(section);setAvatarMenu(false);switchPage('profile');profilePage.scrollTop=0;requestAnimationFrame(()=>profileClose.focus({preventScroll:true}));
 }
 function closeProfileSection(){setAvatarMenu(false);switchPage(profileReturnPage);requestAnimationFrame(()=>{const previousBehavior=document.documentElement.style.scrollBehavior;document.documentElement.style.scrollBehavior='auto';window.scrollTo(0,profileReturnScrollY);document.documentElement.style.scrollBehavior=previousBehavior;avatarButton.focus({preventScroll:true})})}
-function openTeamManagementProfile(){const activeWorkspace=document.querySelector('.workspace-option.active')?.dataset.workspaceId||'orchestra-studio';const managementTargets={'orchestra-studio':['Orchestra Studio','团队最高管理员'],'sound-lab':['Sound Lab','团队管理员'],'indie-makers':['Indie Makers','生产者']};const [teamName,teamRole]=managementTargets[activeWorkspace]||managementTargets['orchestra-studio'];openProfileSection('teams');openTeamManager(teamName,teamRole,'overview')}
+function openTeamManagementProfile(){const activeWorkspace=document.querySelector('.workspace-option.active')?.dataset.workspaceId||'orchestra-studio';const managementTargets={'orchestra-studio':['Orchestra Studio','团队最高管理员'],'sound-lab':['Sound Lab','团队管理员'],'indie-makers':['Indie Makers','生产者']};const [teamName,teamRole]=managementTargets[activeWorkspace]||managementTargets['orchestra-studio'];openProfileSection('teams');openTeamManager(teamName,teamRole)}
 profileTabs.forEach(item=>item.onclick=()=>item.dataset.profileTab==='teams'?openTeamManagementProfile():openProfileSection(item.dataset.profileTab));
 avatarButton.onclick=event=>{event.stopPropagation();setAvatarMenu(avatarMenu.hidden)};
 avatarButton.onkeydown=event=>{if(event.key==='ArrowDown'){event.preventDefault();setAvatarMenu(true)}};
@@ -1303,7 +1303,6 @@ document.querySelector('#twoFactorToggle').onchange=event=>showToast(event.targe
 const teamOverview=document.querySelector('#teamOverview');
 const teamMemberView=document.querySelector('#teamMemberView');
 const teamManager=document.querySelector('#teamManager');
-let teamManagerReturnView='overview';
 let lastTeamViewTrigger=null;
 const teamDirectory={
   'Orchestra Studio':{logo:'O',logoClass:'violet',owner:'Huimin Zhang',created:'2026年6月12日',members:'8',description:'AI 音乐产品与创作实验团队',id:'ORCH-20260902',plan:'创作者团队版',credits:2480,songs:186,seats:8,seatTotal:20,storage:68,storageTotal:100,nextGrant:'2026-10-01',remainingInvites:3},
@@ -1361,7 +1360,7 @@ const teamRoleProfiles={
 const managerRoles=new Set(['团队最高管理员','团队管理员']);
 const getTeamRoleProfile=role=>teamRoleProfiles[role]||teamRoleProfiles['生产者'];
 function setTeamAdminSection(section){
-  document.querySelectorAll('[data-team-section]').forEach(tab=>{const active=tab.dataset.teamSection===section;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1});
+  document.querySelectorAll('[data-team-section]').forEach(tab=>{const active=tab.dataset.teamSection===section;tab.classList.toggle('active',active);if(active)tab.setAttribute('aria-current','page');else tab.setAttribute('aria-current','false');tab.tabIndex=active?0:-1});
   document.querySelectorAll('[data-team-admin-panel]').forEach(panel=>{const active=panel.dataset.teamAdminPanel===section;panel.hidden=!active;panel.classList.toggle('active',active)});
 }
 function setTeamMemberSection(section){
@@ -1392,9 +1391,8 @@ function openTeamMemberView(teamName,teamRole,teamMembers){
   setTeamMemberSection('basic');
   requestAnimationFrame(()=>teamMemberView.scrollIntoView({block:'start'}));
 }
-function openTeamManager(teamName,teamRole,returnView='overview'){
+function openTeamManager(teamName,teamRole){
   if(!managerRoles.has(teamRole)){showToast('您暂无团队管理权限','error');return false}
-  teamManagerReturnView=returnView;
   const highest=teamRole==='团队最高管理员';
   const team=teamDirectory[teamName]||{logo:Array.from(teamName)[0]||'T',logoClass:'violet',owner:'—',description:'团队信息'};
   teamOverview.hidden=true;teamMemberView.hidden=true;teamManager.hidden=false;
@@ -1415,21 +1413,18 @@ function openTeamManager(teamName,teamRole,returnView='overview'){
   document.querySelector('#managedStorageUsage').textContent=`${team.storage||0} / ${team.storageTotal||0} GB`;
   document.querySelector('#managedStorageProgress').style.setProperty('--used',`${team.storageTotal?Math.min(100,Math.round(team.storage/team.storageTotal*100)):0}%`);
   document.querySelector('.team-renewal-note').textContent=`下次额度发放时间：${team.nextGrant||'—'} · 本周期剩余邀请成员次数：${team.remainingInvites||0} 次`;
-  document.querySelector('#teamNameInput').value=teamName;
   document.querySelectorAll('[data-managed-team-logo]').forEach(teamLogo=>{teamLogo.textContent=team.logo;teamLogo.className=`team-logo ${team.logoClass}`});
-  document.querySelector('#teamOwnerInput').value=team.owner;
-  document.querySelector('#teamDescriptionInput').value=team.description;
   document.querySelector('#managerScopeNote').textContent=highest?'管理全部成员、管理员设置和角色权限。':'仅可管理授权范围内的生产者，不可修改同级或更高等级成员。';
   setTeamAdminSection('members');
   requestAnimationFrame(()=>teamManager.scrollIntoView({block:'start'}));
-  showToast(`已进入 ${teamName} 团队管理`);
+  showToast(`已进入 ${teamName} 团队设置`);
   return true
 }
 document.querySelectorAll('.team-view-button').forEach(button=>button.onclick=()=>{lastTeamViewTrigger=button;openTeamMemberView(button.dataset.teamName,button.dataset.teamRole,button.dataset.teamMembers)});
-document.querySelectorAll('.team-manage-button').forEach(button=>button.onclick=()=>openTeamManager(button.dataset.teamName,button.dataset.teamRole,'overview'));
-document.querySelector('#memberViewManage').onclick=event=>openTeamManager(event.currentTarget.dataset.teamName,event.currentTarget.dataset.teamRole,'member');
+document.querySelectorAll('.team-manage-button').forEach(button=>button.onclick=()=>openTeamManager(button.dataset.teamName,button.dataset.teamRole));
+document.querySelector('#memberViewManage').onclick=event=>openTeamManager(event.currentTarget.dataset.teamName,event.currentTarget.dataset.teamRole);
 document.querySelector('#backMemberTeamList').onclick=()=>{teamMemberView.hidden=true;teamOverview.hidden=false;requestAnimationFrame(()=>lastTeamViewTrigger?.focus())};
-document.querySelector('#backTeamList').onclick=()=>{profilePage.classList.remove('team-management-active');teamManager.hidden=true;if(teamManagerReturnView==='member'){teamMemberView.hidden=false;requestAnimationFrame(()=>document.querySelector('#memberViewManage').focus())}else{teamOverview.hidden=false}};
+
 const teamMemberTabs=Array.from(document.querySelectorAll('[data-team-view-tab]'));
 teamMemberTabs.forEach((tab,index)=>{
   tab.onclick=()=>setTeamMemberSection(tab.dataset.teamViewTab);
@@ -1462,7 +1457,6 @@ teamAdminTabs.forEach((tab,index)=>{
     nextTab.focus();
   };
 });
-document.querySelector('#teamInfoForm').onsubmit=event=>{event.preventDefault();const teamName=document.querySelector('#teamNameInput').value.trim();if(!teamName){showToast('请输入团队名称','error');return}document.querySelector('#managedTeamName').textContent=teamName;showToast('团队信息已保存')};
 document.addEventListener('click',e=>{const target=e.target.closest('[data-toast]');if(target)showToast(target.dataset.toast)});
 document.querySelectorAll('.filter').forEach(el=>el.onclick=()=>{document.querySelector('.filter.active')?.classList.remove('active');el.classList.add('active');grid.animate([{opacity:.35,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:300})});
 let current=0,playing=false,timer;const play=document.querySelector('#mainPlay'),seek=document.querySelector('#seek');

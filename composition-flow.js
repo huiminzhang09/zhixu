@@ -25,7 +25,24 @@ function showComposer(project,runId=''){
  const d=modelDialog('组合作品',`<p>来源流水：${escapeHtml(run.serial)}</p><p class="model-note">${compositionNotice}</p><form id="compositionForm" novalidate><div class="model-table-scroll"><table class="model-table composition-table"><thead><tr><th>作品名称</th><th>歌词</th><th>音频</th><th>操作</th></tr></thead><tbody id="compositionRows"></tbody></table></div><button type="button" id="addComposition" ${hasResources?'':'disabled'}>＋添加作品</button>${hasResources?'':'<p class="composition-empty">暂无可组合的歌词或音频。</p>'}<p id="compositionError" role="alert"></p><div class="composition-footer"><button type="button" data-composition-cancel>取消</button><button type="submit" id="confirmComposition" ${hasResources?'':'disabled'}>确认生成</button></div></form>`);
  const form=d.querySelector('form'),rows=d.querySelector('#compositionRows'),error=d.querySelector('#compositionError'),submit=d.querySelector('#confirmComposition');let pending=false;
  const syncRows=()=>rows.querySelectorAll('tr').forEach((row,i)=>{row.querySelector('[data-delete-row]').disabled=rows.children.length===1;row.querySelector('[name="name"]').setAttribute('aria-label',`第${i+1}行作品名称`);row.querySelector('[name="lyrics"]').setAttribute('aria-label',`第${i+1}行歌词`);row.querySelector('[name="audio"]').setAttribute('aria-label',`第${i+1}行音频`)});
- function add(){const row=document.createElement('tr');row.innerHTML=`<td><input name="name" maxlength="70" required placeholder="请输入作品名称"></td><td><select name="lyrics" required>${options(lyrics,'请选择歌词')}</select></td><td><select name="audio" required>${options(audio,'请选择音频')}</select></td><td><button type="button" data-delete-row>删除</button></td>`;rows.append(row);row.querySelector('[data-delete-row]').onclick=()=>{if(rows.children.length>1){row.remove();syncRows();error.textContent=''}};syncRows()}
+ function add(){
+  const row=document.createElement('tr');
+  row.innerHTML=`<td><input name="name" maxlength="70" required placeholder="请输入作品名称"></td><td><select name="lyrics" required>${options(lyrics,'请选择歌词')}</select><div data-lyrics-preview></div></td><td><select name="audio" required>${options(audio,'请选择音频')}</select><div data-audio-preview></div></td><td><button type="button" data-delete-row>删除</button></td>`;
+  rows.append(row);
+  row.querySelector('[name="lyrics"]').onchange=event=>{
+   const resource=lyrics.find(r=>r.id===event.target.value),preview=row.querySelector('[data-lyrics-preview]');
+   preview.innerHTML=resource?`<div class="composition-selected-resource"><small>${escapeHtml(compositionResourceName(resource,lyrics.indexOf(resource)))}</small><details class="composition-lyrics"><summary>查看歌词</summary><pre>${escapeHtml(resource.content||'暂无歌词内容')}</pre></details></div>`:'';
+  };
+  row.querySelector('[name="audio"]').onchange=event=>{
+   const resource=audio.find(r=>r.id===event.target.value),preview=row.querySelector('[data-audio-preview]');
+   preview.querySelectorAll('audio').forEach(player=>player.pause());
+   preview.innerHTML=resource?`<div class="composition-selected-resource"><small>${escapeHtml(compositionResourceName(resource,audio.indexOf(resource)))}</small>${resource.label?`<small>${escapeHtml(resource.label)}</small>`:''}${resource.url?`<audio controls preload="metadata" controlslist="nodownload" aria-label="播放 ${escapeHtml(compositionResourceName(resource,audio.indexOf(resource)))}" src="${escapeHtml(resource.url)}"></audio>`:'<small>暂无可播放音频</small>'}</div>`:'';
+  };
+  row.querySelector('[data-delete-row]').onclick=()=>{if(rows.children.length>1){row.querySelectorAll('audio').forEach(player=>player.pause());row.remove();syncRows();error.textContent=''}};
+  syncRows();
+ }
+ d.addEventListener('play',event=>{if(event.target.tagName==='AUDIO')d.querySelectorAll('audio').forEach(player=>{if(player!==event.target)player.pause()})},true);
+
  add();d.querySelector('#addComposition').onclick=()=>add();d.querySelector('[data-composition-cancel]').onclick=()=>d.close();
  form.addEventListener('input',()=>error.textContent='');form.addEventListener('change',()=>error.textContent='');
  form.onsubmit=e=>{
@@ -42,7 +59,7 @@ function showComposer(project,runId=''){
    if(!a)return invalid(`请选择第${i+1}行的音频。`,song);
    drafts.push({name,resources:modelClone([{...l,title:l.title||`歌词 ${lyrics.indexOf(l)+1}`},{...a,title:a.title||`音频 ${audio.indexOf(a)+1}`}])});
   }
-  pending=true;submit.disabled=true;
+  d.querySelectorAll('audio').forEach(player=>player.pause());pending=true;submit.disabled=true;
   const confirmation=modelDialog('确认生成作品',`<p>本次将生成${drafts.length}个作品，提交后该流水不可再次组合，未使用的资源也无法再通过该流水组合作品。确认生成吗？</p><div class="composition-footer"><button type="button" data-confirm-cancel>取消</button><button type="button" data-confirm-generate>确认生成</button></div>`);
   let committing=false;confirmation.addEventListener('cancel',event=>{if(committing)event.preventDefault()});
   confirmation.querySelector('[data-confirm-cancel]').onclick=()=>confirmation.close();

@@ -22,7 +22,8 @@
   <link rel="stylesheet" href="./node-library-bottom.css?v=6" />
   <link rel="stylesheet" href="./connection-types.css?v=2" />
   <link rel="stylesheet" href="./workflow-nodes.css?v=5" />
-  <link rel="stylesheet" href="./production-model.css?v=20260924-batch" />
+  <link rel="stylesheet" href="./production-model.css?v=20260927-summary-heading" />
+  <link rel="stylesheet" href="./team-navigation.css?v=8" />
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
@@ -66,7 +67,7 @@
           <div class="avatar-menu-list">
             <button class="avatar-menu-item active" id="profileDetailsTab" type="button" aria-controls="profileDetailsPanel" data-profile-tab="details"><i aria-hidden="true">◉</i><span><b>个人资料</b><small>头像与公开信息</small></span></button>
             <button class="avatar-menu-item" id="profileSecurityTab" type="button" aria-controls="profileSecurityPanel" data-profile-tab="security"><i aria-hidden="true">⌾</i><span><b>账号安全</b><small>登录与安全验证</small></span></button>
-            <button class="avatar-menu-item" id="profileTeamsTab" type="button" aria-controls="profileTeamsPanel" data-profile-tab="teams"><i aria-hidden="true">♟</i><span><b>团队管理</b><small>团队、角色与权限</small></span></button>
+            <button class="avatar-menu-item" id="profileTeamsTab" type="button" aria-controls="profileTeamsPanel" data-profile-tab="teams"><i aria-hidden="true">♟</i><span><b>团队设置</b><small>成员、积分与权限</small></span></button>
             <button class="avatar-menu-item" id="profileQuotaTab" type="button" aria-controls="profileQuotaPanel" data-profile-tab="quota"><i aria-hidden="true">◫</i><span><b>资源与额度</b><small>资源使用与配额</small></span></button>
           </div>
         </div>
@@ -343,14 +344,14 @@
             <div class="login-history"><div class="subsection-heading"><div><h3>最近登录设备</h3><p>发现异常设备时请及时修改密码。</p></div><button class="ghost-button" data-toast="已退出其他设备">退出其他设备</button></div><div class="device-row"><span>⌘</span><div><b>Mac · Chrome</b><small>上海 · 当前设备</small></div><em>刚刚活跃</em></div><div class="device-row"><span>▯</span><div><b>iPhone · Safari</b><small>上海 · 已验证设备</small></div><em>2 天前</em></div></div>
           </section>
 
-          <section class="profile-panel" id="profileTeamsPanel" data-profile-panel="teams" role="region" aria-label="团队管理" hidden>
+          <section class="profile-panel" id="profileTeamsPanel" data-profile-panel="teams" role="region" aria-label="团队设置" hidden>
             <div class="team-overview" id="teamOverview">
-              <header class="panel-heading system-panel-heading"><div class="system-heading-main"><span class="system-heading-icon teams" aria-hidden="true">♟</span><div><small>个人中心</small><h2>团队管理</h2><p>查看所属团队、个人角色与权限；管理员可进入完整管理功能。</p></div></div><button class="primary-button" data-toast="创建团队功能已准备">＋ 创建团队</button></header>
+              <header class="panel-heading system-panel-heading"><div class="system-heading-main"><span class="system-heading-icon teams" aria-hidden="true">♟</span><div><small>个人中心</small><h2>团队设置</h2><p>管理团队成员、积分资源与访问权限。</p></div></div><button class="primary-button" data-toast="创建团队功能已准备">＋ 创建团队</button></header>
               <div class="team-summary"><article><small>已加入团队</small><strong>3</strong><span>角色按团队分别生效</span></article><article><small>我的最高角色</small><strong>团队最高管理员</strong><span>拥有 1 个团队最高权限</span></article><article><small>我参与的项目</small><strong>8</strong><span>4 个正在进行</span></article></div>
               <div class="subsection-heading"><div><h3>已加入团队</h3><p>查看当前团队中的角色、项目与个人资源使用。</p></div></div>
               <div class="joined-team-list">
-                <article class="joined-team-card"><span class="team-logo violet">O</span><div class="team-main"><div><h3>Orchestra Studio</h3><span class="role-badge owner">团队最高管理员</span></div><p>AI 音乐产品与创作实验团队</p><footer><span>8 位成员</span><span>4 个团队项目</span><span>更新于今天</span></footer></div><div class="team-card-actions"><button class="team-view-button" data-team-name="Orchestra Studio" data-team-role="团队最高管理员" data-team-members="8">查看团队</button><button class="team-manage-button" data-team-name="Orchestra Studio" data-team-role="团队最高管理员">进入团队管理 <span>→</span></button></div></article>
-                <article class="joined-team-card"><span class="team-logo cyan">S</span><div class="team-main"><div><h3>Sound Lab</h3><span class="role-badge admin">团队管理员</span></div><p>声音采样、生成式音乐与跨媒体协作</p><footer><span>12 位成员</span><span>2 个团队项目</span><span>更新于昨天</span></footer></div><div class="team-card-actions"><button class="team-view-button" data-team-name="Sound Lab" data-team-role="团队管理员" data-team-members="12">查看团队</button><button class="team-manage-button" data-team-name="Sound Lab" data-team-role="团队管理员">进入团队管理 <span>→</span></button></div></article>
+                <article class="joined-team-card"><span class="team-logo violet">O</span><div class="team-main"><div><h3>Orchestra Studio</h3><span class="role-badge owner">团队最高管理员</span></div><p>AI 音乐产品与创作实验团队</p><footer><span>8 位成员</span><span>4 个团队项目</span><span>更新于今天</span></footer></div><div class="team-card-actions"><button class="team-view-button" data-team-name="Orchestra Studio" data-team-role="团队最高管理员" data-team-members="8">查看团队</button><button class="team-manage-button" data-team-name="Orchestra Studio" data-team-role="团队最高管理员">进入团队设置 <span>→</span></button></div></article>
+                <article class="joined-team-card"><span class="team-logo cyan">S</span><div class="team-main"><div><h3>Sound Lab</h3><span class="role-badge admin">团队管理员</span></div><p>声音采样、生成式音乐与跨媒体协作</p><footer><span>12 位成员</span><span>2 个团队项目</span><span>更新于昨天</span></footer></div><div class="team-card-actions"><button class="team-view-button" data-team-name="Sound Lab" data-team-role="团队管理员" data-team-members="12">查看团队</button><button class="team-manage-button" data-team-name="Sound Lab" data-team-role="团队管理员">进入团队设置 <span>→</span></button></div></article>
                 <article class="joined-team-card"><span class="team-logo orange">I</span><div class="team-main"><div><h3>Indie Makers</h3><span class="role-badge producer">生产者</span></div><p>独立音乐项目制作与交付协作团队</p><footer><span>16 位成员</span><span>2 个参与项目</span><span>更新于 2 天前</span></footer></div><div class="team-card-actions"><button class="team-view-button" data-team-name="Indie Makers" data-team-role="生产者" data-team-members="16">查看团队</button></div></article>
               </div>
             </div>
@@ -358,10 +359,10 @@
             <div class="team-member-view" id="teamMemberView" hidden>
               <div class="team-detail-backbar">
                 <button class="team-detail-back" id="backMemberTeamList" type="button" aria-label="返回上一级"><span aria-hidden="true">‹</span> 返回上一级</button>
-                <small>个人中心 / 团队管理 / 团队详情</small>
+                <small>个人中心 / 团队设置 / 团队详情</small>
               </div>
 
-              <header class="team-manager-heading team-detail-heading"><div><small>团队管理</small><h2 id="viewedTeamName">Orchestra Studio</h2></div><span class="role-badge owner" id="viewedTeamRole">团队最高管理员</span></header>
+              <header class="team-manager-heading team-detail-heading"><div><small>团队设置</small><h2 id="viewedTeamName">Orchestra Studio</h2></div><span class="role-badge owner" id="viewedTeamRole">团队最高管理员</span></header>
 
               <nav class="team-member-tabs" role="tablist" aria-label="团队详情">
                 <button class="active" id="teamViewBasicTab" type="button" role="tab" aria-selected="true" aria-controls="teamViewBasicPanel" data-team-view-tab="basic"><i aria-hidden="true">◈</i><span><b>团队基本信息</b><small>资料、成员与团队状态</small></span></button>
@@ -380,7 +381,7 @@
                 </section>
 
                 <section class="team-member-tab-panel" id="teamViewRolePanel" role="tabpanel" aria-labelledby="teamViewRoleTab" data-team-view-panel="role" hidden>
-                  <div class="team-detail-panel-heading"><div><small>当前身份</small><h3 id="viewedRoleName">团队最高管理员</h3><p id="viewedRoleScope">拥有团队最高控制权</p></div><button class="primary-button member-view-manage" id="memberViewManage" data-team-name="Orchestra Studio" data-team-role="团队最高管理员">进入团队管理</button></div>
+                  <div class="team-detail-panel-heading"><div><small>当前身份</small><h3 id="viewedRoleName">团队最高管理员</h3><p id="viewedRoleScope">拥有团队最高控制权</p></div><button class="primary-button member-view-manage" id="memberViewManage" data-team-name="Orchestra Studio" data-team-role="团队最高管理员">进入团队设置</button></div>
                   <div class="role-permission-card"><div class="subsection-heading"><div><h3>我的权限清单</h3><p>权限由团队角色和单独授权共同决定。</p></div></div><div class="permission-tag-list" id="teamRolePermissions"></div></div>
                 </section>
 
@@ -397,10 +398,6 @@
             </div>
 
             <div class="team-manager" id="teamManager" hidden>
-              <div class="team-detail-backbar team-manager-backbar">
-                <button class="team-detail-back" id="backTeamList" type="button" aria-label="返回上一级"><span aria-hidden="true">‹</span> 返回上一级</button>
-                <small>个人中心 / 团队管理</small>
-              </div>
               <header class="team-management-header">
                 <div class="team-management-identity">
                   <span class="team-logo violet" id="managedTeamLogo" data-managed-team-logo>O</span>
@@ -420,26 +417,20 @@
               </section>
               <p class="team-renewal-note">下次额度发放时间：2026-10-01 <span>·</span> 本周期剩余邀请成员次数：3 次</p>
               <div class="team-admin-layout">
-                <nav class="team-admin-nav" role="tablist" aria-label="团队管理功能">
-                  <button class="active" id="teamMembersTab" type="button" role="tab" aria-selected="true" aria-controls="teamMembersPanel" data-team-section="members"><i aria-hidden="true">♟</i><span><b>成员与权限</b><small>成员、角色与权限</small></span></button>
-                  <button id="teamResourcesTab" type="button" role="tab" aria-selected="false" aria-controls="teamResourcesPanel" data-team-section="resources"><i aria-hidden="true">◫</i><span><b>资源与额度</b><small>积分与资源分配</small></span></button>
-                  <button id="teamDashboardTab" type="button" role="tab" aria-selected="false" aria-controls="teamDashboardPanel" data-team-section="dashboard"><i aria-hidden="true">⌁</i><span><b>数据与日志</b><small>看板和操作记录</small></span></button>
-                  <button id="teamInfoTab" type="button" role="tab" aria-selected="false" aria-controls="teamInfoPanel" data-team-section="info"><i aria-hidden="true">◈</i><span><b>团队设置</b><small>资料、权限与安全</small></span></button>
+                <nav class="team-admin-nav" aria-label="团队设置菜单">
+                  <button class="active" id="teamMembersTab" type="button" aria-current="page" aria-controls="teamMembersPanel" data-team-section="members"><i aria-hidden="true">♙</i><span><b>成员管理</b></span></button>
+                  <button id="teamResourcesTab" type="button" aria-current="false" aria-controls="teamResourcesPanel" data-team-section="resources"><i aria-hidden="true">ϟ</i><span><b>积分管理</b></span></button>
+                  <button id="teamPermissionsTab" type="button" aria-current="false" aria-controls="teamInfoPanel" data-team-section="permissions"><i aria-hidden="true">♙</i><span><b>角色设置</b></span></button>
                 </nav>
 
                 <div class="team-admin-content">
-                  <section class="team-admin-panel" id="teamInfoPanel" role="tabpanel" aria-labelledby="teamInfoTab" data-team-admin-panel="info" hidden>
-                    <div class="member-toolbar"><div><h3>团队信息</h3><p>维护团队名称、标识和协作说明。</p></div><span class="panel-state success">资料完整</span></div>
-                    <div class="team-identity"><span class="team-logo violet" data-managed-team-logo>O</span><div><b>团队标识</b><p>建议使用 1:1 图片，支持 JPG、PNG。</p></div><button class="secondary-button" data-toast="团队标识上传功能已准备">更换标识</button></div>
-                    <form class="team-info-form" id="teamInfoForm"><label><span>团队名称</span><input id="teamNameInput" value="Orchestra Studio" /></label><label><span>团队最高管理员</span><input id="teamOwnerInput" value="Huimin Zhang" disabled /></label><label class="form-wide"><span>团队简介</span><textarea id="teamDescriptionInput" rows="4">AI 音乐产品与创作实验团队</textarea></label><label><span>团队规模</span><select><option selected>1–20 人</option><option>21–50 人</option><option>50 人以上</option></select></label><label><span>默认项目权限</span><select><option selected>成员可查看</option><option>仅管理员可查看</option></select></label><div class="form-actions form-wide"><button type="button" class="ghost-button" data-toast="修改已取消">取消</button><button type="submit" class="primary-button">保存团队信息</button></div></form>
-                    <div class="danger-zone" data-highest-only><div><b>团队所有权与危险操作</b><p>仅团队最高管理员可以转让或解散团队。</p></div><button class="secondary-button" data-toast="团队转让流程已打开">转让团队</button><button class="danger-button" data-toast="解散团队需要再次确认">解散团队</button></div>
-                  </section>
+                  <section class="team-admin-panel" id="teamInfoPanel" role="tabpanel" aria-labelledby="teamPermissionsTab" data-team-admin-panel="permissions" hidden></section>
 
                   <section class="team-admin-panel active" id="teamMembersPanel" role="tabpanel" aria-labelledby="teamMembersTab" data-team-admin-panel="members">
                     <div class="member-section-bar"><div class="member-subtabs" aria-label="成员视图"><button class="active" type="button" aria-current="page">全部成员</button><button type="button" data-toast="分组管理已打开">分组管理</button></div><div class="member-section-actions"><button class="ghost-button" type="button" data-toast="成员积分配置已打开">成员积分配置</button><button class="ghost-button" type="button" data-toast="待处理申请已打开">待处理申请</button><button class="primary-button" type="button" data-toast="邀请链接已生成">邀请成员</button></div></div>
                     <p class="manager-scope-note" id="managerScopeNote">管理全部成员、管理员设置和角色权限。</p>
                     <div class="permission-summary"><span><b>团队最高管理员</b><small>团队最高控制权</small></span><span><b>团队管理员</b><small>授权范围内管理</small></span><span><b>生产者</b><small>项目生产与交付</small></span></div>
-                    <div class="member-table"><div class="member-table-head"><span>成员</span><span>团队角色</span><span>加入时间</span><span>操作</span></div><div class="member-table-row"><span class="member-person"><i>H</i><b>Huimin Zhang<small>hui***@example.com</small></b></span><span><em class="role-badge owner">团队最高管理员</em></span><span>2026-06-12</span><button data-highest-only data-toast="团队最高管理员角色不可移除">•••</button></div><div class="member-table-row"><span class="member-person"><i class="pink">L</i><b>Lin Chen<small>lin***@example.com</small></b></span><span><em class="role-badge admin">团队管理员</em></span><span>2026-07-04</span><button data-highest-only data-toast="管理员角色设置已打开">•••</button></div><div class="member-table-row"><span class="member-person"><i class="green">M</i><b>Ming Xu<small>ming***@example.com</small></b></span><span><em class="role-badge producer">生产者</em></span><span>2026-08-19</span><button data-toast="成员操作菜单已打开">•••</button></div></div>
+                    <div class="member-table"><div class="member-table-head"><span>成员</span><span>团队角色</span><span>加入时间</span><span>操作</span></div><div class="member-table-row" data-member-row data-member-id="huimin-zhang" data-member-name="Huimin Zhang" data-default-role="团队最高管理员"><span class="member-person"><i>H</i><b>Huimin Zhang<small>hui***@example.com</small></b></span><span><em class="role-badge owner">团队最高管理员</em></span><span>2026-06-12</span><button type="button" class="role-edit-button" disabled aria-label="最高管理员角色固定">角色固定</button></div><div class="member-table-row" data-member-row data-member-id="lin-chen" data-member-name="Lin Chen" data-default-role="团队管理员"><span class="member-person"><i class="pink">L</i><b>Lin Chen<small>lin***@example.com</small></b></span><span><em class="role-badge admin">团队管理员</em></span><span>2026-07-04</span><button type="button" class="role-edit-button" data-edit-member-role="lin-chen">编辑角色</button></div><div class="member-table-row" data-member-row data-member-id="ming-xu" data-member-name="Ming Xu" data-default-role="生产者"><span class="member-person"><i class="green">M</i><b>Ming Xu<small>ming***@example.com</small></b></span><span><em class="role-badge producer">生产者</em></span><span>2026-08-19</span><button type="button" class="role-edit-button" data-edit-member-role="ming-xu">编辑角色</button></div></div>
                   </section>
 
                   <section class="team-admin-panel" id="teamResourcesPanel" role="tabpanel" aria-labelledby="teamResourcesTab" data-team-admin-panel="resources" hidden>
@@ -667,12 +658,13 @@
     <div class="player-actions"><button aria-label="音量">♬</button><button aria-label="收藏">♡</button><button aria-label="评论">▢</button><button aria-label="更多">⋮</button></div>
   </footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="./script.js?v=137-midnight"></script>
-  <script src="./production-model.js?v=20260924-clean-stats"></script>
-  <script src="./composition-flow.js?v=20260924-flow"></script>
+  <script src="./script.js?v=138-team-settings"></script>
+  <script src="./production-model.js?v=20260927-summary-heading"></script>
+  <script src="./composition-flow.js?v=20260927-preview"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
   <script src="./finished-library.js?v=8"></script>
   <script src="./workflow-editor.js?v=12"></script>
+  <script src="./team-navigation.js?v=5"></script>
 </body>
 </html>

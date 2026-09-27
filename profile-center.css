@@ -230,7 +230,6 @@ html[data-theme="dark"] .avatar-plan-row b { color: #dcb04d; }
 .personal-resource-list article > span i { display: block; width: var(--used); height: 100%; border-radius: inherit; background: linear-gradient(90deg,#7045dc,#c24c8a); }
 
 .team-manager { scroll-margin-top: 24px; }
-.team-manager-backbar { margin-bottom: 14px; }
 .profile-page.team-management-active .profile-heading { display: none; }
 .profile-page.team-management-active .profile-shell { max-width: none; }
 .profile-page.team-management-active #profileTeamsPanel { min-height: calc(100dvh - 96px); padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }

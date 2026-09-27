@@ -196,3 +196,17 @@
 .model-dialog [data-confirm-generate], .model-dialog [data-run-next] { min-height: 40px; padding: 0 15px; color: #fff; border: 0; border-radius: 10px; background: linear-gradient(115deg,#7043e2,#bd498e); }
 .model-dialog [data-delete-row] { background: transparent; color: var(--muted); border-color: var(--line); }
 .model-dialog .composition-empty { color: var(--muted); }
+.composition-table td { vertical-align: top; }
+.composition-selected-resource { margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.composition-selected-resource small { display: block; color: var(--muted); font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
+.composition-lyrics { margin-top: 8px; }
+.composition-lyrics summary { width: fit-content; color: var(--production-accent); font-size: 12px; cursor: pointer; }
+.composition-lyrics summary:focus-visible { outline: 2px solid var(--production-accent); outline-offset: 3px; border-radius: 3px; }
+.composition-lyrics pre { max-height: 200px; overflow: auto; margin: 10px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); font: inherit; font-size: 12px; line-height: 1.8; }
+.model-dialog .composition-selected-resource audio { display: block; width: 100%; min-width: 0; height: 36px; margin-top: 10px; }
+.completion-rate-help { display: inline-flex; vertical-align: middle; margin-left: 4px; color: var(--muted); cursor: help; border-radius: 50%; }
+.completion-rate-help:hover, .completion-rate-help:focus-visible { color: var(--production-accent); }
+.completion-rate-help:focus-visible { outline: 2px solid var(--production-accent); outline-offset: 3px; }
+#consumptionPanel .model-person-summary-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 16px; margin: 24px 0 12px; }
+#consumptionPanel .model-person-summary-heading h3 { margin: 0; }
+#consumptionPanel .model-person-summary-heading button { flex: none; margin-left: auto; }
