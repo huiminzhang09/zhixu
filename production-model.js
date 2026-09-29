@@ -9,7 +9,7 @@ const modelTime=value=>value?new Date(value).toLocaleString('zh-CN',{timeZone:'A
 const modelDate=value=>new Date(value).toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'});
 const modelDone=run=>['已完成','已交付'].includes(run.status);
 const modelButton=(attr,value,label)=>`<button type="button" ${attr}="${escapeHtml(value)}">${escapeHtml(label)}</button>`;
-const modelTable=(headers,rows)=>`<div class="model-table-scroll"><table class="model-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(row=>`<tr>${row.map(c=>`<td>${c??'—'}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${headers.length}" class="model-empty">暂无符合条件的记录</td></tr>`}</tbody></table></div>`;
+const modelTable=(headers,rows,className='')=>`<div class="model-table-scroll"><table class="model-table ${className}"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(row=>`<tr>${row.map(c=>`<td>${c??'—'}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${headers.length}" class="model-empty">暂无符合条件的记录</td></tr>`}</tbody></table></div>`;
 function renderProjectRunStatistics(project){
  const runs=project.runs||[],running=runs.filter(run=>['制作中','进行中'].includes(run.status)).length,completed=runs.filter(modelDone).length;
  const works=(project.works||[]).length,resources=runs.reduce((count,run)=>count+modelResources(project,run).length,0);
@@ -19,13 +19,13 @@ function renderProjectRunStatistics(project){
   ['已生成作品数',works,'个','通过资源组合并成功保存的正式作品数量'],
   ['已产出资源数',resources,'个','生产运行实际产出的歌词、音频等资源数量']
  ];
- const root=document.querySelector('#projectRunStatistics');if(!root)return;
+ const root=document.querySelector('#projectRunStatisticsCards');if(!root)return;
  root.innerHTML=items.map(([label,value,unit,description])=>`<article class="project-stat-card"><div class="project-stat-label"><span>${label}</span><button type="button" class="project-stat-help" aria-label="${description}" data-tooltip="${description}"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M8.1 7.6a2 2 0 1 1 3.8.9c-.5.8-1.9 1.1-1.9 2.5" stroke-linecap="round"/><circle cx="10" cy="13.7" r=".7" fill="currentColor" stroke="none"/></svg></button></div><strong>${value}<small>${unit}</small></strong></article>`).join('');
 }
 let formalPlanFilter='all';
 const statisticsState={};
 function modelPersist(){try{localStorage.setItem(productionModelKey,JSON.stringify(projectData));return true}catch{showToast('保存失败，请检查浏览器存储空间','error');return false}}
-function modelDialog(title,html){const d=document.createElement('dialog');d.className='model-dialog';d.innerHTML=`<header><h2>${escapeHtml(title)}</h2><button type="button" data-close aria-label="关闭">×</button></header>${html}`;d.querySelector('[data-close]').onclick=()=>d.close();d.addEventListener('close',()=>{d.querySelectorAll('audio').forEach(a=>a.pause());d.remove()});document.body.append(d);d.showModal();return d}
+function modelDialog(title,html,className=''){const d=document.createElement('dialog');d.className=`model-dialog ${className}`.trim();d.innerHTML=`<header><h2>${escapeHtml(title)}</h2><button type="button" data-close aria-label="关闭">×</button></header>${html}`;d.querySelector('[data-close]').onclick=()=>d.close();d.addEventListener('close',()=>{d.querySelectorAll('audio').forEach(a=>a.pause());d.remove()});document.body.append(d);d.showModal();return d}
 function modelResources(project,run){
  run.resources||=[];
  // Existing completed demo records have no actual generated media: never fabricate their output.
@@ -79,7 +79,7 @@ function modelEnsureDemoNodeCalls(p=projectData.find(item=>item.id===selectedPro
   const result=index===6||index===12?'失败':index===8?'执行中':'成功';
   const end=result==='执行中'?null:new Date(Math.min(now,startMs+5*60*1000)).toISOString();
   const relatedRun=relatedRuns.length?relatedRuns[index%relatedRuns.length]:null;
-  const sample={id,person:index%2?'李四':'张三',planId:plan.id,api,start,end,result,workflow:plan.workflowName||'示例工作流',version:plan.workflowVersion||'V1.0',runId:relatedRun?.serial||relatedRun?.id||`DEMO-RUN-${String(index+1).padStart(3,'0')}`,node};
+  const sample={id,person:index%2?'李四':'张三',planId:plan.id,api,start,end,result,failureReason:result==='失败'?'演示记录：节点输出未通过校验':'',workflow:plan.workflowName||'示例工作流',version:plan.workflowVersion||'V1.0',runId:relatedRun?.serial||relatedRun?.id||`DEMO-RUN-${String(index+1).padStart(3,'0')}`,node};
   const existing=p.calls.find(call=>call.id===id);
   if(!existing){p.calls.push(sample);changed=true}
   else if(Object.entries(sample).some(([key,value])=>existing[key]!==value)){Object.assign(existing,sample);changed=true}
@@ -100,16 +100,35 @@ function modelApplyDatePreset(state,preset,now=new Date()){
  else {state.from=preset==='month'?today.slice(0,7)+'-01':today;state.rangeStart=new Date(state.from+'T00:00:00+08:00').getTime();state.rangeEnd=now.getTime()}
  return state;
 }
-function modelStatsState(project){return statisticsState[project.id]||=modelApplyDatePreset({person:'all',plan:'all',api:'all',period:'day',dimension:'task'},'today')}
+function modelStatsState(project){const state=statisticsState[project.id]||=modelApplyDatePreset({person:'all',plan:'all',api:'all',node:'all',period:'day',dimension:'task',view:'overview',expandedPeople:[]},'today');state.view||='overview';state.expandedPeople||=[];return state}
+function modelCallPerson(call){return call.person?.trim()||'系统／未归属'}
 function modelInPeriod(value,state){
  if(!value)return false;const timestamp=new Date(value).getTime();if(!Number.isFinite(timestamp))return false;
  if(state.datePreset&&state.datePreset!=='custom')return timestamp>=state.rangeStart&&timestamp<=state.rangeEnd;
  const date=modelDate(value);return (!state.from||date>=state.from)&&(!state.to||date<=state.to);
 }
-function modelFilteredCalls(project,state){const seen=new Set();return (project.calls||[]).filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return modelInPeriod(c.start,state)&&(state.person==='all'||c.person===state.person)&&(state.plan==='all'||c.planId===state.plan)&&(state.api==='all'||c.api===state.api)&&(!state.result||c.result===state.result)})}
+function modelFilteredCalls(project,state,kind){const seen=new Set();return (project.calls||[]).filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return modelInPeriod(c.start,state)&&(state.person==='all'||modelCallPerson(c)===state.person)&&(state.plan==='all'||c.planId===state.plan)&&(kind!=='consumption'||state.node==='all'||c.node===state.node)&&(!state.result||c.result===state.result)})}
 function modelPeriod(value,period){const day=modelDate(value);if(period==='month')return day.slice(0,7);if(period==='week'){const d=new Date(day+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d.toISOString().slice(0,10)+' 周'}return day}
-function modelStatsFilters(project,state,kind){const options=(values,current)=>'<option value="all">全部</option>'+values.map(v=>`<option value="${escapeHtml(v)}" ${current===v?'selected':''}>${escapeHtml(v)}</option>`).join('');return `<div class="model-toolbar model-filters">${`<div class="model-date-presets" role="group" aria-label="查询时间">${[['today','当前'],['seven','近七天'],['month','本月']].map(([value,label])=>`<button type="button" data-date-preset="${value}" aria-pressed="${state.datePreset===value}" class="${state.datePreset===value?'active':''}">${label}</button>`).join('')}</div>`}<label>开始日期 <input type="date" data-stat="from" value="${state.from}"></label><label>结束日期 <input type="date" data-stat="to" value="${state.to}"></label><label>人员 <select data-stat="person">${options([...new Set([...(project.calls||[]).map(c=>c.person),...(project.works||[]).map(w=>w.creator)])],state.person)}</select></label><label>计划 <select data-stat="plan"><option value="all">全部</option>${project.batches.map(p=>`<option value="${escapeHtml(p.id)}" ${state.plan===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></label><label>接口 <select data-stat="api">${options([...new Set((project.calls||[]).map(c=>c.api).filter(Boolean))],state.api)}</select></label>${kind==='efficiency'?`<label>统计维度 <select data-stat="dimension">${[['task','任务'],['flow','流水']].map(([v,l])=>`<option value="${v}" ${state.dimension===v?'selected':''}>${l}</option>`).join('')}</select></label>`:''}<button type="button" data-stat-reset>重置</button></div>`}
-function modelCallDetails(project,state,person){const next={...state,...(person?{person}:{})},rows=modelFilteredCalls(project,next);modelDialog('节点运行明细',`<p>北京时间 · ${escapeHtml(person||'当前筛选')} · ${rows.length} 条节点运行记录；关闭后保留原筛选。</p>`+modelTable(['节点','工作流及版本','生产运行编号','执行人','开始时间','结束时间','运行状态'],rows.map(c=>[escapeHtml(c.node),escapeHtml(c.workflow+' '+c.version),escapeHtml(c.runId),escapeHtml(c.person),modelTime(c.start),modelTime(c.end),c.result==='执行中'?'运行中':c.result])))}
+function modelStatsFilters(project,state,kind,view='overview'){
+ const options=(values,current)=>'<option value="all">全部</option>'+values.map(v=>`<option value="${escapeHtml(v)}" ${current===v?'selected':''}>${escapeHtml(v)}</option>`).join('');
+ const hiddenNodes=new Set(['文本输入','自己写歌词','自己上传歌曲','歌词入库','音频入库']);
+ const nodeOptions=[...new Set((project.calls||[]).map(c=>c.node).filter(node=>node&&!hiddenNodes.has(node)))];
+ if(!nodeOptions.includes('svc音色转换'))nodeOptions.push('svc音色转换');
+ if(state.node!=='all'&&!nodeOptions.includes(state.node))state.node='all';
+ const people=[...new Set([...(project.calls||[]).map(modelCallPerson),...(kind==='efficiency'?(project.metricTasks||[]).map(t=>t.person):[]),...(kind==='efficiency'?(project.works||[]).map(w=>w.creator):[])].filter(Boolean))];
+ const personFilter=`<label>人员 <select data-stat="person">${options(people,state.person)}</select></label>`;
+ const callFilter=kind==='consumption'?`<label>节点 <select data-stat="node">${options(nodeOptions,state.node)}</select></label>`:'';
+ const periodFilter=kind==='consumption'&&view==='overview'?`<label>统计周期 <select data-stat="period">${[['day','天'],['week','周'],['month','月']].map(([value,label])=>`<option value="${value}" ${state.period===value?'selected':''}>${label}</option>`).join('')}</select></label>`:'';
+ const personControl=personFilter;
+ return `<div class="model-toolbar model-filters"><div class="model-date-presets" role="group" aria-label="快捷时间">${[['today','当前'],['seven','近七天'],['month','本月']].map(([value,label])=>`<button type="button" data-date-preset="${value}" aria-pressed="${state.datePreset===value}" class="${state.datePreset===value?'active':''}">${label}</button>`).join('')}</div><label>开始日期 <input type="date" data-stat="from" value="${state.from}"></label><label>结束日期 <input type="date" data-stat="to" value="${state.to}"></label><label>生产计划 <select data-stat="plan"><option value="all">全部</option>${project.batches.map(p=>`<option value="${escapeHtml(p.id)}" ${state.plan===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></label>${callFilter}${personControl}${periodFilter}${kind==='efficiency'?`<label>统计维度 <select data-stat="dimension">${[['task','任务'],['flow','流水']].map(([v,l])=>`<option value="${v}" ${state.dimension===v?'selected':''}>${l}</option>`).join('')}</select></label>`:''}<button type="button" data-stat-reset>重置</button></div>`;
+}
+function modelRunDetailButton(person,node,result,label){return `<button type="button" class="run-stat-count" data-run-detail data-person="${escapeHtml(person||'')}" data-node="${escapeHtml(node||'')}" data-result="${escapeHtml(result||'')}">${escapeHtml(label)}</button>`}
+function modelCallDetails(project,state,person,kind='consumption'){
+ const next={...state,...(person?{person}:{})},rows=modelFilteredCalls(project,next,kind),planName=id=>project.batches.find(p=>p.id===id)?.name||'—';
+ const filters=[next.person!=='all'?next.person:'全部人员',next.plan!=='all'?planName(next.plan):'全部生产计划',next.node!=='all'?next.node:'全部节点',next.result||'全部结果'].join(' · ');
+ const table=modelTable(['运行记录编号','人员','生产计划','流水编号','工作流及版本','节点','开始时间','结束时间','结果','失败原因'],rows.map(c=>[escapeHtml(c.id),escapeHtml(modelCallPerson(c)),escapeHtml(planName(c.planId)),escapeHtml(c.runId),escapeHtml(`${c.workflow||'—'} ${c.version||''}`.trim()),escapeHtml(c.node||'—'),modelTime(c.start),modelTime(c.end),c.result==='执行中'?'运行中':escapeHtml(c.result||'—'),escapeHtml(c.result==='失败'?(c.failureReason||c.errorMessage||'暂无失败原因'):'—')]));
+ modelDialog('运行明细',`<p>${escapeHtml(filters)} · ${rows.length} 条节点运行记录；关闭后保留原筛选和展开状态。</p>${table}`,'model-run-drawer');
+}
 function modelInterfaceConsumption(calls){
  // Consumption comes from metering records, never from request counts.
  if(!calls.length)return '—';
@@ -117,32 +136,55 @@ function modelInterfaceConsumption(calls){
  const totals=new Map();calls.forEach(c=>totals.set(c.consumptionUnit,(totals.get(c.consumptionUnit)||0)+c.consumptionAmount));
  return [...totals].map(([unit,total])=>`${total.toLocaleString('zh-CN',{maximumFractionDigits:4})} ${escapeHtml(unit)}`).join(' / ');
 }
+function modelRunCounts(calls){return {total:calls.length,success:calls.filter(c=>c.result==='成功').length,failed:calls.filter(c=>c.result==='失败').length,running:calls.filter(c=>c.result==='执行中').length}}
+function modelPeopleRunSummary(project,calls,state){
+ const people=[...new Set(calls.map(modelCallPerson))],expanded=new Set(state.expandedPeople),headers=['人员','运行总次数','成功次数','失败次数','运行中次数','操作'];
+ const countCell=(person,node,result,count)=>modelRunDetailButton(person,node,result,String(count));
+ const rows=people.map(person=>{
+  const personCalls=calls.filter(c=>modelCallPerson(c)===person),counts=modelRunCounts(personCalls),isExpanded=expanded.has(person);
+  const nodes=[...new Set(personCalls.map(c=>c.node||'未知节点'))].map(node=>[node,personCalls.filter(c=>(c.node||'未知节点')===node)]);
+  const nodeRows=nodes.map(([node,items])=>{const n=modelRunCounts(items);return [escapeHtml(node),countCell(person,node,'',n.total),countCell(person,node,'成功',n.success),countCell(person,node,'失败',n.failed),countCell(person,node,'执行中',n.running)]});
+  const nodeTable=modelTable(['节点名称','运行总次数','成功次数','失败次数','运行中次数'],nodeRows);
+  return `<tr><td><button type="button" class="run-stat-person-toggle" data-run-expand="${escapeHtml(person)}" aria-expanded="${isExpanded}" aria-label="${isExpanded?'收起':'展开'}${escapeHtml(person)}的节点统计">${escapeHtml(person)}</button></td><td>${countCell(person,'','',counts.total)}</td><td>${countCell(person,'','成功',counts.success)}</td><td>${countCell(person,'','失败',counts.failed)}</td><td>${countCell(person,'','执行中',counts.running)}</td><td>${countCell(person,'','','查看明细')}</td></tr><tr class="run-stat-person-detail" data-person-detail="${escapeHtml(person)}" ${isExpanded?'':'hidden'}><td colspan="6">${nodeTable}</td></tr>`;
+ }).join('');
+ return `<div class="model-table-scroll"><table class="model-table run-stat-people-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows||`<tr><td colspan="${headers.length}" class="model-empty">暂无符合条件的记录</td></tr>`}</tbody></table></div>`;
+}
 function renderModelStats(project,kind){
  if(kind==='consumption')modelEnsureDemoNodeCalls(project);
- const state=modelStatsState(project),root=document.querySelector(kind==='consumption'?'#consumptionPanel':'#projectEfficiencyPanel'),calls=modelFilteredCalls(project,state);
- let html=modelStatsFilters(project,state,kind);
+ const state=modelStatsState(project),root=document.querySelector(kind==='consumption'?'#consumptionPanel':'#projectEfficiencyPanel'),calls=modelFilteredCalls(project,state,kind);
+ let html='';
+ if(kind==='consumption')html=`<nav class="run-stat-tabs" role="tablist" aria-label="运行统计页面">${[['overview','运行概览'],['people','人员节点汇总']].map(([view,label])=>`<button type="button" role="tab" data-stat-subtab="${view}" aria-selected="${state.view===view}" class="${state.view===view?'active':''}">${label}</button>`).join('')}</nav>`;
+ html+=modelStatsFilters(project,state,kind,state.view);
  if(state.from&&state.to&&state.from>state.to)html+='<p role="alert">开始日期不能晚于结束日期。</p>';
  if(kind==='consumption'){
-  html+=`<div class="model-metrics">${[['节点运行总次数',calls.length,''],['成功',calls.filter(c=>c.result==='成功').length,'成功'],['失败',calls.filter(c=>c.result==='失败').length,'失败'],['运行中',calls.filter(c=>c.result==='执行中').length,'执行中']].map(([l,n,result])=>`<article><small>${l}</small>${`<button type="button" data-stat-result="${result}">${n}</button>`}</article>`).join('')}</div><p>每条节点执行记录计为一次运行；同一节点重新执行会另计一次。</p>`;
-  const groups=new Map();calls.forEach(c=>{const k=modelPeriod(c.start,state.period);groups.set(k,[...(groups.get(k)||[]),c])});html+=modelTable(['统计周期','节点运行次数','成功','失败','运行中'],[...groups].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>[k,v.length,...['成功','失败','执行中'].map(s=>v.filter(c=>c.result===s).length)]));
-  html+='<div class="model-person-summary-heading model-toolbar"><h3>人员节点运行汇总</h3>'+modelButton('data-stat-detail','','查看当前筛选节点明细')+'</div>'+modelTable(['人员','节点运行次数','节点分布'],[...new Set(calls.map(c=>c.person))].map(person=>{const list=calls.filter(c=>c.person===person),nodeSummary=[...new Set(list.map(c=>c.node))].map(node=>`<span><b>${escapeHtml(node)}</b><small>${list.filter(c=>c.node===node).length} 次</small></span>`).join('');return [modelButton('data-stat-person',person,person),modelButton('data-stat-detail',person,String(list.length)),`<div class="model-node-distribution">${nodeSummary}</div>`]}));
+  if(state.view==='people'){
+   html+='<div class="run-stat-table-heading"><h3>人员节点汇总</h3></div>'+modelPeopleRunSummary(project,calls,state);
+  }else{
+   const counts=modelRunCounts(calls),cards=[['节点运行总次数',counts.total,''],['成功次数',counts.success,'成功'],['失败次数',counts.failed,'失败'],['运行中次数',counts.running,'执行中']];
+   html+=`<div class="model-metrics run-stat-metrics">${cards.map(([label,count,result])=>`<article><small>${label}</small><button type="button" data-stat-result="${result}">${count}</button></article>`).join('')}</div>`;
+   const groups=new Map();calls.forEach(c=>{const key=modelPeriod(c.start,state.period);groups.set(key,[...(groups.get(key)||[]),c])});
+   const groupedRows=[...groups].sort(([a],[b])=>a.localeCompare(b)).map(([key,items])=>{const n=modelRunCounts(items);return [escapeHtml(key),n.total,n.success,n.failed,n.running]});
+   html+='<div class="run-stat-table-heading"><h3>周期统计</h3></div>'+modelTable(['日期','运行总次数','成功次数','失败次数','运行中次数'],groupedRows,'run-stat-period-table');
+  }
  }else{
   const tasks=(project.metricTasks||[]).filter(t=>modelInPeriod(t.assignedAt,state)&&(state.plan==='all'||t.planId===state.plan));
   const people=[...new Set([...tasks.map(t=>t.person),...calls.map(c=>c.person),...(project.works||[]).map(w=>w.creator)])].filter(p=>state.person==='all'||p===state.person);
-  html+=modelTable(['人员','总数量','进行中数量（当前）','已完成数量','完成率 <span class="completion-rate-help" tabindex="0" role="img" aria-label="完成率=已完成数量÷已分配数量" title="完成率=已完成数量÷已分配数量"><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M7.8 7.2a2.25 2.25 0 0 1 4.4.6c0 1.5-2.2 1.8-2.2 3.3" stroke-linecap="round"/><circle cx="10" cy="13.6" r=".75" fill="currentColor" stroke="none"/></svg></span>','组合创建作品数','付费接口调用次数'],people.map(person=>{
+  html+=modelTable(['人员','总数量','进行中数量（当前）','已完成数量','完成率 <span class="completion-rate-help" tabindex="0" role="img" aria-label="完成率 =（已完成数量 ÷ 总数量）× 100%" data-tooltip="完成率 =（已完成数量 ÷ 总数量）× 100%"><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M7.8 7.2a2.25 2.25 0 0 1 4.4.6c0 1.5-2.2 1.8-2.2 3.3" stroke-linecap="round"/><circle cx="10" cy="13.6" r=".75" fill="currentColor" stroke="none"/></svg></span>'],people.map(person=>{
    const cohort=tasks.filter(t=>t.person===person),end=state.to||'9999-12-31',done=cohort.filter(t=>t.completedAt&&modelDate(t.completedAt)<=end),active=cohort.filter(t=>(!t.completedAt||modelDate(t.completedAt)>end)&&!(t.status==='terminated'&&(!t.terminatedAt||modelDate(t.terminatedAt)<=end)));
-   const works=(project.works||[]).filter(w=>w.creator===person&&modelInPeriod(w.createdAt,state)&&(state.plan==='all'||w.planId===state.plan));
    const rate=(n,d)=>d?`${(n/d*100).toFixed(1)}%（${n}/${d}）`:'—（分母为 0）';
-   return [modelButton('data-stat-person',person,person),modelButton('data-metric-detail',person+'|assigned',String(cohort.length)),modelButton('data-metric-detail',person+'|active',String(active.length)),modelButton('data-metric-detail',person+'|completed',String(done.length)),modelButton('data-metric-detail',person+'|cohort',rate(done.length,cohort.length)),modelButton('data-metric-detail',person+'|works',String(works.length)),modelButton('data-stat-detail',person,String(calls.filter(c=>c.person===person).length))];
+   return [modelButton('data-stat-person',person,person),modelButton('data-metric-detail',person+'|assigned',String(cohort.length)),modelButton('data-metric-detail',person+'|active',String(active.length)),modelButton('data-metric-detail',person+'|completed',String(done.length)),modelButton('data-metric-detail',person+'|cohort',rate(done.length,cohort.length))];
   }));
  }
  root.innerHTML=html;
+ root.querySelectorAll('[data-stat-subtab]').forEach(button=>button.onclick=()=>{state.view=button.dataset.statSubtab;renderModelStats(project,kind)});
+ root.querySelector('.run-stat-tabs')?.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;const tabs=[...root.querySelectorAll('[data-stat-subtab]')],index=tabs.indexOf(event.target.closest('[data-stat-subtab]'));if(index<0)return;event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;tabs[next].focus();tabs[next].click()});
  root.querySelectorAll('[data-stat]').forEach(el=>el.onchange=()=>{state[el.dataset.stat]=el.value;if(['from','to'].includes(el.dataset.stat)){state.datePreset='custom';delete state.rangeStart;delete state.rangeEnd}renderModelStats(project,kind)});
  root.querySelectorAll('[data-date-preset]').forEach(button=>button.onclick=()=>{const preset=button.dataset.datePreset;if(preset==='custom'){state.datePreset='custom';delete state.rangeStart;delete state.rangeEnd}else modelApplyDatePreset(state,preset);renderModelStats(project,kind);if(preset==='custom')root.querySelector('[data-stat=from]').focus()});
- root.querySelector('[data-stat-reset]').onclick=()=>{delete statisticsState[project.id];renderModelStats(project,kind)};
- root.querySelectorAll('[data-stat-result]').forEach(b=>b.onclick=()=>modelCallDetails(project,{...state,result:b.dataset.statResult}));
- root.querySelectorAll('[data-stat-detail]').forEach(b=>b.onclick=()=>modelCallDetails(project,state,b.dataset.statDetail));
- root.querySelectorAll('[data-stat-person]').forEach(b=>b.onclick=()=>{state.person=b.dataset.statPerson;renderModelStats(project,kind);modelCallDetails(project,state,state.person)});
+ root.querySelector('[data-stat-reset]').onclick=()=>{const view=state.view;delete statisticsState[project.id];const reset=modelApplyDatePreset({person:'all',plan:'all',api:'all',node:'all',period:'day',dimension:'task',view,expandedPeople:[]},'today');statisticsState[project.id]=reset;renderModelStats(project,kind)};
+ root.querySelectorAll('[data-stat-result]').forEach(b=>b.onclick=()=>modelCallDetails(project,{...state,result:b.dataset.statResult||undefined},undefined,kind));
+ root.querySelectorAll('[data-run-detail]').forEach(b=>b.onclick=()=>{const next={...state,person:b.dataset.person||state.person,node:b.dataset.node||state.node,result:b.dataset.result||state.result};modelCallDetails(project,next,undefined,kind)});
+ root.querySelectorAll('[data-run-expand]').forEach(b=>b.onclick=()=>{const person=b.dataset.runExpand,detail=b.closest('tr')?.nextElementSibling,open=b.getAttribute('aria-expanded')!=='true';if(open&&!state.expandedPeople.includes(person))state.expandedPeople.push(person);if(!open)state.expandedPeople=state.expandedPeople.filter(value=>value!==person);b.setAttribute('aria-expanded',String(open));b.setAttribute('aria-label',`${open?'收起':'展开'}${person}的节点统计`);if(detail?.matches('[data-person-detail]'))detail.hidden=!open});
+ root.querySelectorAll('[data-stat-person]').forEach(b=>b.onclick=()=>{state.person=b.dataset.statPerson;renderModelStats(project,kind);modelCallDetails(project,state,state.person,kind)});
  root.querySelectorAll('[data-metric-detail]').forEach(b=>b.onclick=()=>{
   const [person,type]=b.dataset.metricDetail.split('|'),byPlan=x=>state.plan==='all'||x.planId===state.plan,end=state.to||'9999-12-31';let body='';
   if(type==='works')body=modelTable(['作品编号','作品名称','保存时间'],(project.works||[]).filter(w=>w.creator===person&&byPlan(w)&&modelInPeriod(w.createdAt,state)).map(w=>[escapeHtml(w.id),escapeHtml(w.name),modelTime(w.createdAt)]));
@@ -168,7 +210,7 @@ for(const form of [projectBatchForm,projectCreateForm]){form.noValidate=true;for
 window.addEventListener('beforeunload',modelPersist);
 projectWorksGrid.setAttribute('aria-label','生产运行列表');
 document.querySelector('.project-works-mobile-select span').textContent='全选未完成运行';
-const projectRunStatistics=document.createElement('section');projectRunStatistics.id='projectRunStatistics';projectRunStatistics.className='project-statistics';projectRunStatistics.setAttribute('aria-label','项目统计');document.querySelector('#projectWorksPanel').prepend(projectRunStatistics);renderProjectRunStatistics(modelProject());
+const projectRunStatisticsSection=document.createElement('section');projectRunStatisticsSection.id='projectRunStatisticsSection';projectRunStatisticsSection.className='project-run-statistics-section';projectRunStatisticsSection.setAttribute('aria-label','项目统计');const projectRunStatisticsFilter=document.createElement('div');projectRunStatisticsFilter.className='project-run-statistics-filter';projectRunStatisticsFilter.append(projectWorksPlanFilter.closest('.project-works-filter'));const projectRunStatistics=document.createElement('div');projectRunStatistics.id='projectRunStatisticsCards';projectRunStatistics.className='project-statistics';projectRunStatisticsSection.append(projectRunStatisticsFilter,projectRunStatistics);document.querySelector('#projectWorksPanel').prepend(projectRunStatisticsSection);renderProjectRunStatistics(modelProject());
 renderProjects();
 ensureAssignedProductionTasks=function(project,runs){let created=0;for(const run of runs){if(modelDone(run)||run.status==='已终止')continue;const context=resolveTaskWorkflowContext(project,run);if(!context)continue;const tasks=productionTasks.filter(t=>t.projectId===project.id&&String(t.workId)===String(run.id));let active=tasks.find(t=>t.status==='in_progress');if(active){const node=context.snapshot.nodes.find(n=>n.id===active.nodeId),assignee=taskAssigneeForNode(context,node);if(assignee.id){active.assigneeId=assignee.id;active.assigneeName=assignee.name}continue}const index=run.waitingNodeIndex??(tasks.length?Math.max(...tasks.map(t=>t.nodeIndex))+1:0),node=context.snapshot.nodes[index];if(!node)continue;if(!taskAssigneeForNode(context,node).id){run.stage='等待人员分配';run.waitingNodeIndex=index;continue}active=createProductionTask(context,node,index,'in_progress');active.assignmentCreated=true;productionTasks.push(active);run.startedAt||=new Date().toISOString();run.stage=node.title;delete run.waitingNodeIndex;created++}return created};
 startProductionPlanTasks=function(project,runs){const n=ensureAssignedProductionTasks(project,runs);syncProjectPlanProductionProgress(project);persistProductionTasks();return n};

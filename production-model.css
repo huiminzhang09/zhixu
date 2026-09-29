@@ -220,9 +220,43 @@
 .composition-lyrics summary:focus-visible { outline: 2px solid var(--production-accent); outline-offset: 3px; border-radius: 3px; }
 .composition-lyrics pre { max-height: 200px; overflow: auto; margin: 10px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); font: inherit; font-size: 12px; line-height: 1.8; }
 .model-dialog .composition-selected-resource audio { display: block; width: 100%; min-width: 0; height: 36px; margin-top: 10px; }
-.completion-rate-help { display: inline-flex; vertical-align: middle; margin-left: 4px; color: var(--muted); cursor: help; border-radius: 50%; }
+.completion-rate-help { position: relative; display: inline-flex; vertical-align: middle; margin-left: 4px; color: var(--muted); cursor: help; border-radius: 50%; }
 .completion-rate-help:hover, .completion-rate-help:focus-visible { color: var(--production-accent); }
 .completion-rate-help:focus-visible { outline: 2px solid var(--production-accent); outline-offset: 3px; }
+.completion-rate-help::after { position: absolute; z-index: 40; top: calc(100% + 8px); right: 0; width: max-content; max-width: min(290px,80vw); padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--surface-2); box-shadow: var(--shadow); content: attr(data-tooltip); font-size: 12px; font-weight: 500; line-height: 1.5; white-space: nowrap; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-3px); transition: opacity .16s,transform .16s,visibility .16s; }
+.completion-rate-help:hover::after, .completion-rate-help:focus-visible::after { opacity: 1; visibility: visible; transform: translateY(0); }
 #consumptionPanel .model-person-summary-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 16px; margin: 24px 0 12px; }
 #consumptionPanel .model-person-summary-heading h3 { margin: 0; }
 #consumptionPanel .model-person-summary-heading button { flex: none; margin-left: auto; }
+.run-stat-tabs { display: flex; gap: 24px; margin: -3px 0 18px; border-bottom: 1px solid var(--line); }
+.run-stat-tabs button { position: relative; min-height: 40px; padding: 0 3px; border: 0; border-radius: 0; color: var(--muted); background: transparent; font-size: 13px; font-weight: 650; cursor: pointer; }
+.run-stat-tabs button::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; border-radius: 2px; background: transparent; content: ''; }
+.run-stat-tabs button.active { color: var(--production-accent); }
+.run-stat-tabs button.active::after { background: linear-gradient(90deg,#7548e7,#b947a0); }
+.run-stat-tabs button:focus-visible { outline: 2px solid var(--production-accent); outline-offset: -3px; border-radius: 5px; }
+.run-stat-metrics { gap: 12px; margin: 15px 0 20px; }
+.run-stat-metrics article { padding: 13px 17px; }
+.run-stat-metrics small { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.run-stat-metrics button { font-size: 24px; }
+.run-stat-table-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 18px 0 10px; }
+.run-stat-table-heading h3 { margin: 0; color: var(--text); font-size: 14px; }
+.run-stat-table-heading button { flex: none; }
+.model-table.run-stat-period-table { table-layout: fixed; min-width: 700px; }
+.model-table.run-stat-period-table th, .model-table.run-stat-period-table td { width: 20%; max-width: none; text-align: center; }
+.model-table.run-stat-period-table td:first-child, .model-table.run-stat-period-table td:last-child { min-width: 0; }
+.run-stat-count { min-width: 34px; }
+.run-stat-people-table td:first-child { min-width: 180px; }
+.run-stat-people-table td:last-child { min-width: 110px; }
+.run-stat-people-table [hidden] { display: none; }
+.run-stat-people-table .run-stat-person-toggle { min-height: 0; padding: 0; border: 0; border-radius: 0; color: var(--text); background: transparent; font-size: 12px; font-weight: 650; }
+.run-stat-people-table .run-stat-person-toggle:hover { border-color: transparent; color: var(--production-accent); background: transparent; }
+.run-stat-person-detail > td { padding: 12px 18px 16px 35px; background: color-mix(in srgb,var(--surface-2) 28%,var(--surface)); }
+.run-stat-person-detail .model-table-scroll { border-radius: 9px; }
+.model-dialog.model-run-drawer { position: fixed; inset: 0 0 0 auto; width: min(1180px,calc(100vw - 24px)); height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 18px 0 0 18px; }
+.model-dialog.model-run-drawer .model-table { min-width: 1120px; }
+@media(max-width:700px) {
+  .run-stat-tabs { gap: 18px; }
+  .run-stat-metrics article { padding: 12px; }
+  .run-stat-table-heading { align-items: flex-start; }
+  .model-dialog.model-run-drawer { inset: 0; width: 100vw; border-radius: 0; }
+}
