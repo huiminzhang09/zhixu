@@ -14,8 +14,8 @@ function renderProjectRunStatistics(project){
  const runs=project.runs||[],running=runs.filter(run=>['制作中','进行中'].includes(run.status)).length,completed=runs.filter(modelDone).length;
  const works=(project.works||[]).length,resources=runs.reduce((count,run)=>count+modelResources(project,run).length,0);
  const items=[
-  ['进行中运行数',running,'次','当前处于进行中状态的生产运行数量'],
-  ['已完成运行数',completed,'次','已完成的生产运行数量，每次运行计一次'],
+  ['正在运行',running,'次','当前处于运行中的生产运行数量'],
+  ['运行完成',completed,'次','已完成的生产运行数量，每次运行计一次'],
   ['已生成作品数',works,'个','通过资源组合并成功保存的正式作品数量'],
   ['已产出资源数',resources,'个','生产运行实际产出的歌词、音频等资源数量']
  ];
@@ -120,14 +120,21 @@ function modelStatsFilters(project,state,kind,view='overview'){
  const callFilter=kind==='consumption'?`<label>节点 <select data-stat="node">${options(nodeOptions,state.node)}</select></label>`:'';
  const periodFilter=kind==='consumption'&&view==='overview'?`<label>统计周期 <select data-stat="period">${[['day','天'],['week','周'],['month','月']].map(([value,label])=>`<option value="${value}" ${state.period===value?'selected':''}>${label}</option>`).join('')}</select></label>`:'';
  const personControl=personFilter;
- return `<div class="model-toolbar model-filters"><div class="model-date-presets" role="group" aria-label="快捷时间">${[['today','当前'],['seven','近七天'],['month','本月']].map(([value,label])=>`<button type="button" data-date-preset="${value}" aria-pressed="${state.datePreset===value}" class="${state.datePreset===value?'active':''}">${label}</button>`).join('')}</div><label>开始日期 <input type="date" data-stat="from" value="${state.from}"></label><label>结束日期 <input type="date" data-stat="to" value="${state.to}"></label><label>生产计划 <select data-stat="plan"><option value="all">全部</option>${project.batches.map(p=>`<option value="${escapeHtml(p.id)}" ${state.plan===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></label>${callFilter}${personControl}${periodFilter}${kind==='efficiency'?`<label>统计维度 <select data-stat="dimension">${[['task','任务'],['flow','流水']].map(([v,l])=>`<option value="${v}" ${state.dimension===v?'selected':''}>${l}</option>`).join('')}</select></label>`:''}<button type="button" data-stat-reset>重置</button></div>`;
+ const dimensionLabel=kind==='efficiency'?`<label class="stats-dimension-field">统计维度 <span class="stats-dimension-help" tabindex="0" role="img" aria-label="任务维度：每个节点任务计一次，同一任务重复执行仍计一次。运行维度：同一人参与同一条运行中的多个节点，只计作一条运行；运行中计入运行中数量，完成后计入已完成数量，不按节点重复累计。" data-tooltip="任务：每个节点任务计一次，同一任务重复执行仍计一次。&#10;运行：同一人参与同一条运行中的多个节点，只计作一条运行；运行中计入运行中数量，完成后计入已完成数量，不按节点重复累计。"><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M8.1 7.6a2 2 0 1 1 3.8.9c-.5.8-1.9 1.1-1.9 2.5" stroke-linecap="round"/><circle cx="10" cy="13.7" r=".7" fill="currentColor" stroke="none"/></svg></span><select data-stat="dimension">${[['task','任务'],['flow','运行']].map(([v,l])=>`<option value="${v}" ${state.dimension===v?'selected':''}>${l}</option>`).join('')}</select></label>`:'';
+ return `<div class="model-toolbar model-filters"><div class="model-date-presets" role="group" aria-label="快捷时间">${[['today','当前'],['seven','近七天'],['month','本月']].map(([value,label])=>`<button type="button" data-date-preset="${value}" aria-pressed="${state.datePreset===value}" class="${state.datePreset===value?'active':''}">${label}</button>`).join('')}</div><label>开始日期 <input type="date" data-stat="from" value="${state.from}"></label><label>结束日期 <input type="date" data-stat="to" value="${state.to}"></label><label>生产计划 <select data-stat="plan"><option value="all">全部</option>${project.batches.map(p=>`<option value="${escapeHtml(p.id)}" ${state.plan===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></label>${callFilter}${personControl}${periodFilter}${dimensionLabel}<button type="button" data-stat-reset>重置</button></div>`;
 }
 function modelRunDetailButton(person,node,result,label){return `<button type="button" class="run-stat-count" data-run-detail data-person="${escapeHtml(person||'')}" data-node="${escapeHtml(node||'')}" data-result="${escapeHtml(result||'')}">${escapeHtml(label)}</button>`}
 function modelCallDetails(project,state,person,kind='consumption'){
  const next={...state,...(person?{person}:{})},rows=modelFilteredCalls(project,next,kind),planName=id=>project.batches.find(p=>p.id===id)?.name||'—';
- const filters=[next.person!=='all'?next.person:'全部人员',next.plan!=='all'?planName(next.plan):'全部生产计划',next.node!=='all'?next.node:'全部节点',next.result||'全部结果'].join(' · ');
- const table=modelTable(['运行记录编号','人员','生产计划','流水编号','工作流及版本','节点','开始时间','结束时间','结果','失败原因'],rows.map(c=>[escapeHtml(c.id),escapeHtml(modelCallPerson(c)),escapeHtml(planName(c.planId)),escapeHtml(c.runId),escapeHtml(`${c.workflow||'—'} ${c.version||''}`.trim()),escapeHtml(c.node||'—'),modelTime(c.start),modelTime(c.end),c.result==='执行中'?'运行中':escapeHtml(c.result||'—'),escapeHtml(c.result==='失败'?(c.failureReason||c.errorMessage||'暂无失败原因'):'—')]));
- modelDialog('运行明细',`<p>${escapeHtml(filters)} · ${rows.length} 条节点运行记录；关闭后保留原筛选和展开状态。</p>${table}`,'model-run-drawer');
+ const dateRange=next.from&&next.to?`${next.from} 至 ${next.to}`:'全部日期';
+ const filters=[['日期',dateRange],['人员',next.person!=='all'?next.person:'全部人员'],['生产计划',next.plan!=='all'?planName(next.plan):'全部生产计划'],['节点',next.node!=='all'?next.node:'全部节点'],['结果',next.result||'全部结果']];
+ const filterSummary=filters.map(([label,value])=>`<span class="run-detail-filter"><small>${label}</small><b>${escapeHtml(value)}</b></span>`).join('');
+ const resultCell=c=>`<span class="run-detail-result ${c.result==='成功'?'is-success':c.result==='失败'?'is-failed':'is-running'}">${c.result==='执行中'?'运行中':escapeHtml(c.result||'—')}</span>`;
+ const failureCell=c=>`<span class="run-detail-failure">${escapeHtml(c.result==='失败'?(c.failureReason||c.errorMessage||'暂无失败原因'):'—')}</span>`;
+ const table=modelTable(['运行记录编号','人员','生产计划','流水编号','工作流及版本','节点','开始时间','结束时间','结果','失败原因'],rows.map(c=>[
+  `<span class="run-detail-identifier">${escapeHtml(c.id)}</span>`,escapeHtml(modelCallPerson(c)),escapeHtml(planName(c.planId)),`<span class="run-detail-identifier">${escapeHtml(c.runId)}</span>`,escapeHtml(`${c.workflow||'—'} ${c.version||''}`.trim()),escapeHtml(c.node||'—'),`<time class="run-detail-datetime">${escapeHtml(modelTime(c.start))}</time>`,`<time class="run-detail-datetime">${escapeHtml(modelTime(c.end))}</time>`,resultCell(c),failureCell(c)
+ ]),'run-detail-table');
+ modelDialog('运行明细',`<section class="run-detail-summary" aria-label="当前筛选条件"><div class="run-detail-summary-title"><b>筛选条件</b><span>${rows.length} 条节点运行记录</span></div><div class="run-detail-filters">${filterSummary}</div><small class="run-detail-note">关闭后保留当前筛选和展开状态</small></section>${table}`,'model-run-drawer');
 }
 function modelInterfaceConsumption(calls){
  // Consumption comes from metering records, never from request counts.
@@ -136,16 +143,16 @@ function modelInterfaceConsumption(calls){
  const totals=new Map();calls.forEach(c=>totals.set(c.consumptionUnit,(totals.get(c.consumptionUnit)||0)+c.consumptionAmount));
  return [...totals].map(([unit,total])=>`${total.toLocaleString('zh-CN',{maximumFractionDigits:4})} ${escapeHtml(unit)}`).join(' / ');
 }
-function modelRunCounts(calls){return {total:calls.length,success:calls.filter(c=>c.result==='成功').length,failed:calls.filter(c=>c.result==='失败').length,running:calls.filter(c=>c.result==='执行中').length}}
+function modelRunCounts(calls){return {total:calls.length,success:calls.filter(c=>c.result==='成功').length,failed:calls.filter(c=>c.result==='失败').length}}
 function modelPeopleRunSummary(project,calls,state){
- const people=[...new Set(calls.map(modelCallPerson))],expanded=new Set(state.expandedPeople),headers=['人员','运行总次数','成功次数','失败次数','运行中次数','操作'];
+ const people=[...new Set(calls.map(modelCallPerson))],expanded=new Set(state.expandedPeople),headers=['人员','运行总次数','成功次数','失败次数','操作'];
  const countCell=(person,node,result,count)=>modelRunDetailButton(person,node,result,String(count));
  const rows=people.map(person=>{
   const personCalls=calls.filter(c=>modelCallPerson(c)===person),counts=modelRunCounts(personCalls),isExpanded=expanded.has(person);
   const nodes=[...new Set(personCalls.map(c=>c.node||'未知节点'))].map(node=>[node,personCalls.filter(c=>(c.node||'未知节点')===node)]);
-  const nodeRows=nodes.map(([node,items])=>{const n=modelRunCounts(items);return [escapeHtml(node),countCell(person,node,'',n.total),countCell(person,node,'成功',n.success),countCell(person,node,'失败',n.failed),countCell(person,node,'执行中',n.running)]});
-  const nodeTable=modelTable(['节点名称','运行总次数','成功次数','失败次数','运行中次数'],nodeRows);
-  return `<tr><td><button type="button" class="run-stat-person-toggle" data-run-expand="${escapeHtml(person)}" aria-expanded="${isExpanded}" aria-label="${isExpanded?'收起':'展开'}${escapeHtml(person)}的节点统计">${escapeHtml(person)}</button></td><td>${countCell(person,'','',counts.total)}</td><td>${countCell(person,'','成功',counts.success)}</td><td>${countCell(person,'','失败',counts.failed)}</td><td>${countCell(person,'','执行中',counts.running)}</td><td>${countCell(person,'','','查看明细')}</td></tr><tr class="run-stat-person-detail" data-person-detail="${escapeHtml(person)}" ${isExpanded?'':'hidden'}><td colspan="6">${nodeTable}</td></tr>`;
+  const nodeRows=nodes.map(([node,items])=>{const n=modelRunCounts(items);return [escapeHtml(node),countCell(person,node,'',n.total),countCell(person,node,'成功',n.success),countCell(person,node,'失败',n.failed)]});
+  const nodeTable=modelTable(['节点名称','运行总次数','成功次数','失败次数'],nodeRows);
+  return `<tr><td><button type="button" class="run-stat-person-toggle" data-run-expand="${escapeHtml(person)}" aria-expanded="${isExpanded}" aria-label="${isExpanded?'收起':'展开'}${escapeHtml(person)}的节点统计">${escapeHtml(person)}</button></td><td>${countCell(person,'','',counts.total)}</td><td>${countCell(person,'','成功',counts.success)}</td><td>${countCell(person,'','失败',counts.failed)}</td><td>${countCell(person,'','','查看明细')}</td></tr><tr class="run-stat-person-detail" data-person-detail="${escapeHtml(person)}" ${isExpanded?'':'hidden'}><td colspan="5">${nodeTable}</td></tr>`;
  }).join('');
  return `<div class="model-table-scroll"><table class="model-table run-stat-people-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows||`<tr><td colspan="${headers.length}" class="model-empty">暂无符合条件的记录</td></tr>`}</tbody></table></div>`;
 }
@@ -153,18 +160,18 @@ function renderModelStats(project,kind){
  if(kind==='consumption')modelEnsureDemoNodeCalls(project);
  const state=modelStatsState(project),root=document.querySelector(kind==='consumption'?'#consumptionPanel':'#projectEfficiencyPanel'),calls=modelFilteredCalls(project,state,kind);
  let html='';
- if(kind==='consumption')html=`<nav class="run-stat-tabs" role="tablist" aria-label="运行统计页面">${[['overview','运行概览'],['people','人员节点汇总']].map(([view,label])=>`<button type="button" role="tab" data-stat-subtab="${view}" aria-selected="${state.view===view}" class="${state.view===view?'active':''}">${label}</button>`).join('')}</nav>`;
+ if(kind==='consumption')html=`<nav class="run-stat-tabs" role="tablist" aria-label="运行统计页面">${[['overview','运行概览'],['people','人员汇总']].map(([view,label])=>`<button type="button" role="tab" data-stat-subtab="${view}" aria-selected="${state.view===view}" class="${state.view===view?'active':''}">${label}</button>`).join('')}</nav>`;
  html+=modelStatsFilters(project,state,kind,state.view);
  if(state.from&&state.to&&state.from>state.to)html+='<p role="alert">开始日期不能晚于结束日期。</p>';
  if(kind==='consumption'){
   if(state.view==='people'){
    html+='<div class="run-stat-table-heading"><h3>人员节点汇总</h3></div>'+modelPeopleRunSummary(project,calls,state);
   }else{
-   const counts=modelRunCounts(calls),cards=[['节点运行总次数',counts.total,''],['成功次数',counts.success,'成功'],['失败次数',counts.failed,'失败'],['运行中次数',counts.running,'执行中']];
+   const counts=modelRunCounts(calls),cards=[['节点运行总次数',counts.total,''],['成功次数',counts.success,'成功'],['失败次数',counts.failed,'失败']];
    html+=`<div class="model-metrics run-stat-metrics">${cards.map(([label,count,result])=>`<article><small>${label}</small><button type="button" data-stat-result="${result}">${count}</button></article>`).join('')}</div>`;
    const groups=new Map();calls.forEach(c=>{const key=modelPeriod(c.start,state.period);groups.set(key,[...(groups.get(key)||[]),c])});
-   const groupedRows=[...groups].sort(([a],[b])=>a.localeCompare(b)).map(([key,items])=>{const n=modelRunCounts(items);return [escapeHtml(key),n.total,n.success,n.failed,n.running]});
-   html+='<div class="run-stat-table-heading"><h3>周期统计</h3></div>'+modelTable(['日期','运行总次数','成功次数','失败次数','运行中次数'],groupedRows,'run-stat-period-table');
+   const groupedRows=[...groups].sort(([a],[b])=>a.localeCompare(b)).map(([key,items])=>{const n=modelRunCounts(items);return [escapeHtml(key),n.total,n.success,n.failed]});
+   html+='<div class="run-stat-table-heading"><h3>周期统计</h3></div>'+modelTable(['日期','运行总次数','成功次数','失败次数'],groupedRows,'run-stat-period-table');
   }
  }else{
   const tasks=(project.metricTasks||[]).filter(t=>modelInPeriod(t.assignedAt,state)&&(state.plan==='all'||t.planId===state.plan));
