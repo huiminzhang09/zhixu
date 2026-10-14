@@ -9,45 +9,87 @@
   {id:'sound-lab',name:'Sound Lab',role:'团队管理员'},
   {id:'indie-makers',name:'Indie Makers',role:'生产者'}
  ];
- let organizations=[];
+ let organizations=[],loginAccount='',selectionMessage=null;
  function membershipsForAccount(loginAccount){
   const initial=loginAccount==='18500760312'?[]:defaultOrganizations;
   const stored=JSON.parse(localStorage.getItem('orchestra-account-organizations:'+loginAccount)||'null');
   return Array.isArray(stored)?stored:initial;
  }
- function enterOrganization(organization){
+ function enterOrganization(organization,newMemberships=null,feedback=null){
+  const memberships=newMemberships||organizations,accountKey='orchestra-account-organizations:'+loginAccount;
+  const keys=['orchestra-login-organizations','orchestra-workspace','orchestra-demo-signed-out',...(newMemberships?[accountKey]:[])];
+  let previous=[];
   try{
+   previous=keys.map(key=>[key,localStorage.getItem(key)]);
+   if(newMemberships)localStorage.setItem(accountKey,JSON.stringify(memberships));
+   localStorage.setItem('orchestra-login-organizations',JSON.stringify(memberships));
    localStorage.setItem('orchestra-workspace',organization.id);
    localStorage.removeItem('orchestra-demo-signed-out');
-  }catch{show('无法保存登录状态，请允许浏览器使用本地存储后重试。');return}
+  }catch{
+   previous.forEach(([key,value])=>{try{if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value)}catch{}});
+   const error='无法保存登录状态，请允许浏览器使用本地存储后重试。';
+   if(feedback)feedback.textContent=error;else show(error);
+   return false;
+  }
+  organizations=memberships;
   location.replace('./index.html');
+  return true;
+ }
+ function openCreateOrganization(){
+  if(document.querySelector('.organization-create-dialog[open]'))return;
+  const dialog=document.createElement('dialog');dialog.className='organization-create-dialog';dialog.setAttribute('aria-labelledby','createOrganizationTitle');
+  dialog.innerHTML='<form novalidate><header><h2 id="createOrganizationTitle">新建企业</h2><button type="button" class="organization-dialog-close" data-close aria-label="关闭新建企业弹窗">×</button></header><p class="organization-create-intro">创建成功后，将以管理员身份进入该企业。</p><label for="organizationName">企业名称 <span class="required-mark">*</span></label><input id="organizationName" name="organizationName" placeholder="请输入企业名称" required maxlength="50" autocomplete="organization" aria-describedby="organizationNameHint createOrganizationMessage" autofocus><p class="hint" id="organizationNameHint">必填，最多五十个字符。</p><p class="message" id="createOrganizationMessage" role="alert"></p><footer><button type="button" class="secondary" data-close>取消</button><button type="submit" class="primary">创建并进入</button></footer></form>';
+  const createForm=dialog.querySelector('form'),nameInput=dialog.querySelector('input'),feedback=dialog.querySelector('.message');
+  dialog.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>dialog.close()));
+  dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+  nameInput.addEventListener('input',()=>{feedback.textContent='';nameInput.removeAttribute('aria-invalid')});
+  createForm.addEventListener('submit',event=>{
+   event.preventDefault();
+   const name=nameInput.value.trim();nameInput.value=name;
+   let error='';
+   if(!name)error='请输入企业名称。';
+   else if(name.length>50)error='企业名称最多五十个字符。';
+   else if(organizations.some(item=>item.name.toLowerCase()===name.toLowerCase()))error='企业名称已存在，请更换名称。';
+   if(error){feedback.textContent=error;nameInput.setAttribute('aria-invalid','true');nameInput.focus();return}
+   const organization={id:'team-'+crypto.randomUUID(),name,role:'团队最高管理员',createdLocally:true};
+   const submit=createForm.querySelector('[type="submit"]');submit.disabled=true;
+   if(enterOrganization(organization,[...organizations,organization],feedback))dialog.close();
+   else submit.disabled=false;
+  });
+  document.body.append(dialog);dialog.showModal();
  }
  function chooseOrganization(){
   if(organizations.length===1){enterOrganization(organizations[0]);return}
-  if(!organizations.length){try{localStorage.removeItem('orchestra-demo-signed-out')}catch{}location.replace('./index.html');return}
   try{localStorage.setItem('orchestra-demo-signed-out','true')}catch{}
   form.hidden=true;
   document.querySelector('.auth-links').hidden=true;
-  document.querySelector('h1').textContent='选择组织';
-  document.querySelector('.intro').textContent='请选择一个组织进行登录';
+  document.querySelector('h1').textContent='选择企业';
+  document.querySelector('.intro').textContent=organizations.length?'请选择一个企业进行登录':'新建企业后即可进入系统';
   const selection=document.createElement('form');selection.className='organization-selection';
   const group=document.createElement('fieldset');
-  const legend=document.createElement('legend');legend.textContent='可登录的组织';group.append(legend);
+  const legend=document.createElement('legend');legend.textContent='可登录的企业';group.append(legend);
   organizations.forEach(organization=>{
    const label=document.createElement('label');label.className='organization-option';
    const radio=document.createElement('input');radio.type='radio';radio.name='organization';radio.value=organization.id;radio.required=true;
    const details=document.createElement('span');const name=document.createElement('b');name.textContent=organization.name;
    const role=document.createElement('small');role.textContent=organization.role;details.append(name,role);label.append(radio,details);group.append(label);
   });
-  const submit=document.createElement('button');submit.type='submit';submit.className='primary';submit.textContent='登录所选组织';submit.disabled=true;
+  if(!organizations.length){
+   const empty=document.createElement('div');empty.className='organization-empty';
+   empty.innerHTML='<span class="organization-empty-icon" aria-hidden="true">＋</span><b>暂无可登录的企业</b><p>你还未加入任何企业，可以新建企业后继续。</p>';
+   group.append(empty);
+  }
+  const submit=document.createElement('button');submit.type='submit';submit.className='primary';submit.textContent='登录所选企业';submit.disabled=true;submit.hidden=!organizations.length;
+  const create=document.createElement('button');create.type='button';create.className=`organization-create ${organizations.length?'secondary':'primary'}`;create.textContent='＋ 新建企业';create.addEventListener('click',openCreateOrganization);
+  selectionMessage=document.createElement('p');selectionMessage.className='message';selectionMessage.setAttribute('role','status');selectionMessage.setAttribute('aria-live','polite');
   const back=document.createElement('a');back.href='./login.html';back.className='organization-back';back.textContent='返回登录';
-  selection.append(group,submit,back);form.after(selection);
-  selection.addEventListener('change',()=>{submit.disabled=!selection.elements.organization.value});
-  selection.addEventListener('submit',event=>{event.preventDefault();const chosen=organizations.find(item=>item.id===selection.elements.organization.value);if(chosen)enterOrganization(chosen)});
-  group.querySelector('input').focus();
+  selection.append(group,selectionMessage,submit,create,back);form.after(selection);
+  selection.addEventListener('change',()=>{submit.disabled=!selection.querySelector('[name="organization"]:checked');show('')});
+  selection.addEventListener('submit',event=>{event.preventDefault();const chosenId=selection.querySelector('[name="organization"]:checked')?.value;const chosen=organizations.find(item=>item.id===chosenId);if(chosen)enterOrganization(chosen)});
+  (group.querySelector('input')||create).focus();
  }
  let codeIssued=false,timer;
- const show=(text,success=false)=>{message.textContent=text;message.classList.toggle('success',success)};
+ const show=(text,success=false)=>{const target=selectionMessage||message;target.textContent=text;target.classList.toggle('success',success)};
  function validateAccount(){
   account.value=account.value.trim();
   const value=account.value;
@@ -72,8 +114,9 @@
   if((mode==='reset-password'||mode==='register')&&(!codeIssued||form.elements.code.value!=='123456')){show('请先获取演示验证码，并填写正确的验证码。');form.elements.code.focus();return}
   if(mode==='login'){
    try{
-    const loginAccount=account.value.trim().replace(/^\+?86(?=1\d{10}$)/,'');
+    loginAccount=account.value.trim().replace(/^\+?86(?=1\d{10}$)/,'');
     organizations=membershipsForAccount(loginAccount);
+    localStorage.setItem('orchestra-demo-signed-out','true');
     localStorage.setItem('orchestra-demo-account',loginAccount);
     localStorage.setItem('orchestra-login-organizations',JSON.stringify(organizations));
     localStorage.removeItem('orchestra-workspace');

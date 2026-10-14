@@ -7,3 +7,15 @@
 .organization-option:has(input:focus-visible) { outline: 2px solid #ac8cf7; outline-offset: 3px; }
 
 .demo-accounts{color:#999aa7;font-size:12px;line-height:1.8;margin-top:10px}.demo-accounts p{margin:6px 0}.demo-accounts b{color:#b291fb;font-weight:500}
+
+.organization-create{width:100%;margin-top:12px}.organization-selection .primary[hidden]+.organization-create{margin-top:0}
+.organization-empty{padding:28px 18px;text-align:center;border:1px dashed #3c344e;border-radius:14px;background:#0e0f14}
+.organization-empty-icon{display:grid;place-items:center;width:48px;height:48px;margin:0 auto 16px;border-radius:14px;background:#8559e81f;color:#b291fb;font-size:30px}
+.organization-empty b{display:block;font-size:16px}.organization-empty p{margin:10px 0 0;color:#999aa7;font-size:13px;line-height:1.8}
+.organization-create-dialog{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 40px);padding:28px;border:1px solid #33343f;border-radius:20px;background:#17181f;color:#f4f4f7;box-shadow:0 24px 80px #0008}
+.organization-create-dialog::backdrop{background:#0009;backdrop-filter:blur(4px)}
+.organization-create-dialog header{display:flex;align-items:center;justify-content:space-between;gap:16px}.organization-create-dialog h2{margin:0;font-size:21px}
+.organization-dialog-close{width:32px;min-height:32px;padding:0;border:1px solid #33343f;border-radius:9px;background:#22232c;color:#999aa7;font-size:23px}
+.organization-create-intro{margin:14px 0 22px;color:#999aa7;font-size:13px;line-height:1.7}.required-mark{color:#ef9ba9}
+.organization-create-dialog input[aria-invalid="true"]{border-color:#ef9ba9}
+.organization-create-dialog footer{display:flex;justify-content:flex-end;gap:12px;margin-top:24px}.organization-create-dialog footer .primary{width:auto;padding:0 20px}

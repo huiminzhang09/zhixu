@@ -298,6 +298,38 @@ body.task-mode .task-detail-actions button { min-height: 42px; font-size: 12px; 
 .task-detail-actions button { min-height: 38px; padding: 0 15px; border-radius: 10px; font-size: 10px; font-weight: 720; cursor: pointer; }
 .task-complete-button { border: 0; color: #fff; background: linear-gradient(135deg,#7045e7,#bd4c95); box-shadow: 0 8px 20px rgba(111,67,216,.2); }
 .task-complete-button:disabled { opacity: .42; box-shadow: none; cursor: not-allowed; }
+.task-return-button { border: 1px solid #d94f5f; color: #fff; background: #d94f5f; }
+.task-return-button:hover { border-color: #c43f50; background: #c43f50; }
+.task-return-dialog { width: min(480px,calc(100vw - 32px)); max-height: calc(100dvh - 40px); padding: 0; border: 1px solid var(--line); border-radius: 18px; color: var(--text); background: var(--surface); box-shadow: 0 24px 80px #0006; }
+.task-return-dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
+.task-return-form { padding: 24px; }
+.task-return-form header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.task-return-form h2 { margin: 0; font-size: 20px; }
+.task-return-close { width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); background: var(--surface-2); font-size: 23px; cursor: pointer; }
+.task-return-form > p { margin: 12px 0 24px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.task-return-form label { display: block; font-size: 13px; font-weight: 650; }
+.task-return-form label em { color: #e97681; font-style: normal; }
+.task-return-form select { display: block; width: 100%; min-height: 44px; margin-top: 10px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); font: inherit; }
+.task-return-form select[aria-invalid="true"] { border-color: #e97681; }
+.task-return-remark-field { margin-top: 20px; }
+.task-return-form textarea { display: block; box-sizing: border-box; width: 100%; min-height: 108px; margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); font: inherit; line-height: 1.6; resize: vertical; }
+.task-return-form textarea::placeholder { color: var(--muted); font-weight: 400; }
+.task-return-remark-count { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; text-align: right; }
+.task-return-feedback { margin: 14px 20px 0; padding: 12px 14px; border: 1px solid color-mix(in srgb,#d94f5f 30%,var(--line)); border-radius: 10px; background: color-mix(in srgb,#d94f5f 6%,var(--surface)); }
+.task-return-feedback strong { color: #e97681; font-size: 12px; }
+.task-return-feedback p { margin: 6px 0 0; color: #e97681; font-size: 13px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-execution-count { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 8px; color: var(--muted); background: var(--surface-2); font-size: 11px; line-height: 1.5; white-space: nowrap; }
+.task-execution-count.is-retry { color: #e97681; background: #d94f5f1a; }
+.task-detail-header > .task-execution-count { margin-left: 8px; }
+.ref-workbench-meta { flex-wrap: wrap; }
+.task-return-form > .task-return-error { margin: 8px 0 0; color: #e97681; }
+.task-return-note { margin-top: 16px; padding: 12px; border-radius: 10px; color: var(--muted); background: var(--bg); font-size: 12px; line-height: 1.7; }
+.task-return-form footer { margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px; }
+.task-return-form footer button { min-height: 40px; padding: 0 18px; border-radius: 9px; font-size: 13px; font-weight: 650; cursor: pointer; }
+.task-return-cancel { border: 1px solid var(--line); color: var(--text); background: var(--surface-2); }
+.task-return-confirm { border: 0; color: #fff; background: #d94f5f; }
+.task-return-confirm:hover { background: #c43f50; }
+.task-return-dialog :is(button,select,textarea):focus-visible { outline: 2px solid #9b72ed; outline-offset: 2px; }
 .task-detail-actions button:focus-visible { outline: 2px solid #8058e7; outline-offset: 2px; }
 
 .task-detail-shell.task-reference-workspace { min-height: 620px; }
