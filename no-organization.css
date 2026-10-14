@@ -1,0 +1,12 @@
+/* Accounts without a team only expose home, team creation, and sign out. */
+.no-organization #primaryNav .nav-item:not([data-page="home"]),
+.no-organization .page-view:not(#homePage),
+.no-organization #avatarMenu [data-profile-tab],
+.no-organization #teamManagementMenu,
+.no-organization .avatar-plan-row,
+.no-organization .avatar-quota-card,
+.no-organization .top-actions > .pill,
+.no-organization #startProject,
+.no-organization #homePage .create-panel,
+.no-organization #homePage .banner{display:none!important}
+.no-organization #homePage{display:block!important}

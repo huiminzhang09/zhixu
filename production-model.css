@@ -297,3 +297,5 @@
   .model-dialog.model-run-drawer { inset: 0; width: 100vw; padding: 18px 14px; border-radius: 0; }
   .run-detail-summary { padding: 12px; }
 }
+
+.composition-work-cards{display:grid;gap:18px;margin-bottom:18px}.composition-work-card{padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}.composition-work-heading,.composition-resource-toolbar,.composition-resource-choice{display:flex;align-items:center;justify-content:space-between;gap:12px}.composition-work-card>label{display:block;margin:16px 0}.composition-work-card input,.composition-resource-choice select{width:100%;box-sizing:border-box}.composition-resource-choice select{flex:1;min-width:0}.composition-resource-choice button{flex-shrink:0}.composition-resource-item{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px}.composition-resource-toolbar small{color:var(--muted)}

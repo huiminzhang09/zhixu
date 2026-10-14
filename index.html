@@ -16,14 +16,20 @@
   <link rel="stylesheet" href="./task-center.css?v=33" />
   <link rel="stylesheet" href="./workflows.css?v=12" />
   <link rel="stylesheet" href="./playlist-import.css?v=1" />
-  <link rel="stylesheet" href="./profile-center.css?v=13" />
+  <link rel="stylesheet" href="./profile-center.css?v=20261010-menu-unified" />
   <link rel="stylesheet" href="./node-editor.css?v=3" />
   <link rel="stylesheet" href="./node-editor-responsive.css?v=1" />
   <link rel="stylesheet" href="./node-library-bottom.css?v=6" />
   <link rel="stylesheet" href="./connection-types.css?v=2" />
   <link rel="stylesheet" href="./workflow-nodes.css?v=5" />
-  <link rel="stylesheet" href="./production-model.css?v=20261006-efficiency-dimension-definitions" />
+  <link rel="stylesheet" href="./production-model.css?v=20261013-multi-resource" />
   <link rel="stylesheet" href="./team-navigation.css?v=8" />
+  <link rel="stylesheet" href="./team-invites.css?v=20261013-phone">
+  <link rel="stylesheet" href="./run-pagination.css?v=20261013">
+  <link rel="stylesheet" href="./assignee-search.css?v=20261013">
+  <link rel="stylesheet" href="./no-organization.css?v=20261013">
+  <script>try{const teams=JSON.parse(localStorage.getItem('orchestra-login-organizations')||'null');if(Array.isArray(teams)&&teams.length===0){window.noOrganizationMode=true;document.documentElement.classList.add('no-organization')}}catch{}</script>
+  <link rel="stylesheet" href="./task-participation.css?v=20261013">
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
@@ -65,10 +71,11 @@
           <div class="avatar-plan-row"><span id="avatarPlanName">创作者团队版</span><b id="avatarWorkspaceStatus">团队最高管理员</b></div>
           <div class="avatar-quota-card"><div><small>当前可用额度</small><b id="avatarWorkspaceCredits">2,480 创作积分</b></div><div><small>歌曲生成</small><b id="avatarWorkspaceSongs">186 次</b></div></div>
           <div class="avatar-menu-list">
-            <button class="avatar-menu-item active" id="profileDetailsTab" type="button" aria-controls="profileDetailsPanel" data-profile-tab="details"><i aria-hidden="true">◉</i><span><b>个人资料</b><small>头像与公开信息</small></span></button>
-            <button class="avatar-menu-item" id="profileSecurityTab" type="button" aria-controls="profileSecurityPanel" data-profile-tab="security"><i aria-hidden="true">⌾</i><span><b>账号安全</b><small>登录与安全验证</small></span></button>
-            <button class="avatar-menu-item" id="profileTeamsTab" type="button" aria-controls="profileTeamsPanel" data-profile-tab="teams"><i aria-hidden="true">♟</i><span><b>团队设置</b><small>成员、积分与权限</small></span></button>
-            <button class="avatar-menu-item" id="profileQuotaTab" type="button" aria-controls="profileQuotaPanel" data-profile-tab="quota"><i aria-hidden="true">◫</i><span><b>资源与额度</b><small>资源使用与配额</small></span></button>
+            <button class="avatar-menu-item active" id="profileDetailsTab" type="button" aria-controls="profileDetailsPanel" data-profile-tab="details"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span><b>个人资料</b><small>头像与公开信息</small></span></button>
+            <button class="avatar-menu-item" id="profileSecurityTab" type="button" aria-controls="profileSecurityPanel" data-profile-tab="security"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg><span><b>账号安全</b><small>登录与安全验证</small></span></button>
+            <button class="avatar-menu-item" id="profileTeamsTab" type="button" aria-controls="profileTeamsPanel" data-profile-tab="teams"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 4.6V21"/></svg><span><b>团队设置</b><small>成员、积分与权限</small></span></button>
+            <button class="avatar-menu-item" id="profileQuotaTab" type="button" aria-controls="profileQuotaPanel" data-profile-tab="quota"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M15 15h3"/></svg><span><b>资源与额度</b><small>资源使用与配额</small></span></button>
+            <button class="avatar-menu-item avatar-logout" id="logoutButton" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M9 12h9"/></svg><span>退出登录</span></button>
           </div>
         </div>
       </div>
@@ -308,27 +315,19 @@
           <h1 id="profileTitle">个人中心</h1>
           <p id="profileSubtitle">管理个人信息、账号安全、团队身份与创作额度。</p>
         </div>
-        <div class="profile-heading-user">
-          <span class="profile-avatar-large">H<i></i></span>
-          <div><b>Huimin Zhang</b><small>Orchestra 创作者 · ID 20260902</small></div>
-        </div>
       </header>
 
       <div class="profile-shell">
         <div class="profile-content">
           <section class="profile-panel active" id="profileDetailsPanel" data-profile-panel="details" role="region" aria-label="个人资料">
-            <header class="panel-heading system-panel-heading"><div class="system-heading-main"><span class="system-heading-icon personal" aria-hidden="true">H</span><div><small>个人中心</small><h2>个人资料</h2><p>这些信息会展示在你的个人主页和协作空间中。</p></div></div><span class="panel-state success">资料完整度 80%</span></header>
             <div class="identity-card">
               <span class="profile-avatar-xl">H<i></i></span>
               <div><b>个人头像</b><p>支持 JPG、PNG，建议尺寸不小于 400 × 400。</p></div>
               <button class="secondary-button" data-toast="头像上传功能已准备">更换头像</button>
             </div>
             <form class="profile-form" id="profileForm">
-              <label><span>显示名称</span><input name="displayName" value="Huimin Zhang" /></label>
-              <label><span>Orchestra ID</span><input value="20260902" disabled /></label>
-              <label class="form-wide"><span>个人简介</span><textarea name="bio" rows="4">关注 AI 音乐工作流与交互体验，持续探索新的创作方式。</textarea><small>最多 120 个字符</small></label>
-              <label><span>所在地区</span><select name="region"><option selected>中国 · 上海</option><option>中国 · 北京</option><option>中国 · 深圳</option><option>其他地区</option></select></label>
-              <label><span>界面语言</span><select name="language"><option selected>简体中文</option><option>English</option></select></label>
+              <label><span>用户名</span><input name="username" value="Huimin Zhang" placeholder="请输入用户名" /></label>
+              <label><span>昵称</span><input name="nickname" placeholder="请输入昵称" /></label>
               <div class="form-actions form-wide"><button type="reset" class="ghost-button">取消修改</button><button type="submit" class="primary-button">保存资料</button></div>
             </form>
           </section>
@@ -427,8 +426,8 @@
                   <section class="team-admin-panel" id="teamInfoPanel" role="tabpanel" aria-labelledby="teamPermissionsTab" data-team-admin-panel="permissions" hidden></section>
 
                   <section class="team-admin-panel active" id="teamMembersPanel" role="tabpanel" aria-labelledby="teamMembersTab" data-team-admin-panel="members">
-                    <div class="member-section-bar"><div class="member-subtabs" aria-label="成员视图"><button class="active" type="button" aria-current="page">全部成员</button><button type="button" data-toast="分组管理已打开">分组管理</button></div><div class="member-section-actions"><button class="ghost-button" type="button" data-toast="成员积分配置已打开">成员积分配置</button><button class="ghost-button" type="button" data-toast="待处理申请已打开">待处理申请</button><button class="primary-button" type="button" data-toast="邀请链接已生成">邀请成员</button></div></div>
-                    <p class="manager-scope-note" id="managerScopeNote">管理全部成员、管理员设置和角色权限。</p>
+                    <div class="member-section-bar"><div class="member-section-actions"><button class="ghost-button" type="button" data-toast="成员积分配置已打开">成员积分配置</button><button class="primary-button" type="button" id="inviteMembersButton">邀请成员</button></div></div>
+                    
                     <div class="permission-summary"><span><b>团队最高管理员</b><small>团队最高控制权</small></span><span><b>团队管理员</b><small>授权范围内管理</small></span><span><b>生产者</b><small>项目生产与交付</small></span></div>
                     <div class="member-table"><div class="member-table-head"><span>成员</span><span>团队角色</span><span>加入时间</span><span>操作</span></div><div class="member-table-row" data-member-row data-member-id="huimin-zhang" data-member-name="Huimin Zhang" data-default-role="团队最高管理员"><span class="member-person"><i>H</i><b>Huimin Zhang<small>hui***@example.com</small></b></span><span><em class="role-badge owner">团队最高管理员</em></span><span>2026-06-12</span><button type="button" class="role-edit-button" disabled aria-label="最高管理员角色固定">角色固定</button></div><div class="member-table-row" data-member-row data-member-id="lin-chen" data-member-name="Lin Chen" data-default-role="团队管理员"><span class="member-person"><i class="pink">L</i><b>Lin Chen<small>lin***@example.com</small></b></span><span><em class="role-badge admin">团队管理员</em></span><span>2026-07-04</span><button type="button" class="role-edit-button" data-edit-member-role="lin-chen">编辑角色</button></div><div class="member-table-row" data-member-row data-member-id="ming-xu" data-member-name="Ming Xu" data-default-role="生产者"><span class="member-person"><i class="green">M</i><b>Ming Xu<small>ming***@example.com</small></b></span><span><em class="role-badge producer">生产者</em></span><span>2026-08-19</span><button type="button" class="role-edit-button" data-edit-member-role="ming-xu">编辑角色</button></div></div>
                   </section>
@@ -658,13 +657,19 @@
     <div class="player-actions"><button aria-label="音量">♬</button><button aria-label="收藏">♡</button><button aria-label="评论">▢</button><button aria-label="更多">⋮</button></div>
   </footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="./script.js?v=138-team-settings"></script>
-  <script src="./production-model.js?v=20261008-efficiency-columns"></script>
-  <script src="./composition-flow.js?v=20260929-four-composition-states"></script>
+  <script src="./script.js?v=20261013-participation"></script>
+  <script src="./production-model.js?v=20261012-run-allocation"></script>
+  <script src="./composition-flow.js?v=20261013-multi-resource"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
   <script src="./finished-library.js?v=8"></script>
   <script src="./workflow-editor.js?v=12"></script>
   <script src="./team-navigation.js?v=5"></script>
+  <script src="./logout.js?v=20261010-login"></script>
+  <script src="./team-invites.js?v=20261013-phone"></script>
+  <script src="./run-quantity-assignment.js?v=20261012-scope-notice"></script>
+  <script src="./run-pagination.js?v=20261013"></script>
+  <script src="./assignee-search.js?v=20261013"></script>
+  <script src="./avatar-team-entry.js?v=20261013-home-only"></script>
 </body>
 </html>
