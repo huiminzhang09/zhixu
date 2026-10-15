@@ -576,6 +576,16 @@ function renderProductionTaskDetail(task){
   const steps=nodes.map((node,index)=>{const generated=taskByNode.get(node.id),activeView=task.status==='in_progress',state=activeView?(index<task.nodeIndex?'done':index===task.nodeIndex?'current':'locked'):(generated?.status==='in_progress'?'current':generated?'done':'locked'),icon=state==='current'?'▷':state==='done'?'✓':'⌁';return `<div class="task-flow-step ${state}" title="${state==='locked'?'尚未到达该节点，任务未生成':state==='current'?'当前处理页面':'该页面已处理'}"><i>${icon}</i><span>${escapeHtml(node.title)}</span></div>`}).join('');
 taskDetailPanel.innerHTML=`<header class="task-detail-header"><span class="task-detail-kicker">NODE TASK · ${escapeHtml(task.workflowVersion)}</span><div class="task-detail-title"><i class="task-node-icon ${escapeHtml(task.nodeCategory)}" aria-hidden="true">${category.symbol}</i><div><h2>${escapeHtml(task.nodeTitle)}</h2><p><span data-task-display-name>${escapeHtml(task.workName)}</span> · ${escapeHtml(task.nodeSubtitle||category.label)}</p></div><span class="task-status ${status.className}">${status.label}</span></div><div class="task-detail-context"><span>${escapeHtml(task.projectName)}</span><span>${escapeHtml(task.planName)}</span><span>${escapeHtml(task.workflowName)} ${escapeHtml(task.workflowVersion)}</span>${task.featured?'<span class="task-featured-context">完整四节点任务</span>':''}</div></header><div class="task-detail-body"><div class="task-flow-caption"><b>任务页面进度</b><small>仅展示已到达的页面节点</small></div><div class="task-flow-path" style="--task-node-count:${nodes.length}">${steps}</div><div class="task-node-rule"><i>i</i><span>同一运行同时只允许一个进行中任务；完成当前页面操作后才生成下一节点任务，歌词和歌曲产物必须分别经过审核。</span></div>${taskNodeEditor(task)}${task.status==='terminated'?'<div class="task-termination-note">该任务已终止，并归入“已完成”任务视图；后续节点任务未生成。</div>':''}${task.status==='in_progress'?`<div class="task-detail-actions"><button class="task-return-button" type="button" data-task-action="return">打回</button><button class="task-complete-button" type="button" data-task-action="complete" ${taskNodeCanComplete(task)?'':'disabled'}>${taskNodeActionLabel(task)}</button></div>`:''}</div>`;
 }
+function taskReturnRecords(task){
+  const records=Array.isArray(task?.returnHistory)?task.returnHistory.filter(record=>record&&typeof record==='object'):[];
+  const legacy=task?.returnNote;
+  if(legacy&&!records.some(record=>record===legacy||(record.returnedAt===legacy.returnedAt&&record.remark===legacy.remark&&record.fromNodeId===legacy.fromNodeId)))records.push(legacy);
+  return records.slice().sort((a,b)=>(Date.parse(a.returnedAt)||0)-(Date.parse(b.returnedAt)||0));
+}
+function formatTaskReturnTime(value){
+  const date=new Date(value);
+  return !value||Number.isNaN(date.getTime())?'未记录':date.toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+}
 function returnProductionTaskToNode(task,targetIndex,remark=''){
   if(!task||task.status!=='in_progress'){showToast('该任务已结束，无法打回','error');return false}
   const returnRemark=String(remark??'').trim();
@@ -584,12 +594,13 @@ function returnProductionTaskToNode(task,targetIndex,remark=''){
   const context=taskContextByTask(task),nodes=context?.snapshot?.nodes||[];
   if(!context||!Number.isInteger(targetIndex)||targetIndex<0||targetIndex>task.nodeIndex||!nodes[targetIndex]){showToast('请选择当前节点或此前已到达的节点','error');return false}
   const targetNode=nodes[targetIndex],beforeTasks=productionTasks.map(item=>({...item})),beforeWork={status:context.work.status,stage:context.work.stage,updated:context.work.updated};
-  const returnNote={remark:returnRemark,fromNodeId:task.nodeId,fromNodeTitle:task.nodeTitle,returnedAt:new Date().toISOString()};
+  const returnNote={id:crypto.randomUUID(),remark:returnRemark,fromNodeId:task.nodeId,fromNodeTitle:task.nodeTitle,toNodeId:targetNode.id,toNodeTitle:targetNode.title,returnedAt:new Date().toISOString()};
   let targetTask=productionTasks.find(item=>item.projectId===task.projectId&&String(item.workId)===String(task.workId)&&item.nodeId===targetNode.id);
-  const executionCount=Math.max(1,Number(targetTask?.executionCount)||1)+1;
+  const returnHistory=[...taskReturnRecords(targetTask),returnNote];
+  const executionCount=Math.max(1,Number(targetTask?.executionCount)||1,returnHistory.length)+1;
   if(targetTask)Object.assign(targetTask,createProductionTask(context,targetNode,targetIndex,'in_progress',targetTask.createdAt));
   else targetTask=createProductionTask(context,targetNode,targetIndex,'in_progress');
-  Object.assign(targetTask,{status:'in_progress',updatedAt:Date.now(),updatedLabel:'刚刚',candidates:[],formValues:{},generationStage:'ready',returnNote,executionCount});
+  Object.assign(targetTask,{status:'in_progress',updatedAt:Date.now(),updatedLabel:'刚刚',candidates:[],formValues:{},generationStage:'ready',returnNote,returnHistory,executionCount});
   ['selectedCandidateId','selectedCandidateText','selectedOutput','reviewResult','actualSubmitter','completedAt'].forEach(key=>delete targetTask[key]);
   productionTasks=productionTasks.filter(item=>item.projectId!==task.projectId||String(item.workId)!==String(task.workId)||item.nodeIndex<targetIndex);
   productionTasks.push(targetTask);
@@ -629,15 +640,16 @@ function openTaskReturnDialog(task){
   dialog.showModal();
 }
 function renderTaskExecutionContext(task){
-  if(!task?.returnNote)return;
-  const count=Math.max(1,Number(task.executionCount)||1),badge=document.createElement('span');
+  const records=taskReturnRecords(task);if(!records.length)return;
+  const count=Math.max(records.length,(Number(task.executionCount)||1)-1),badge=document.createElement('span');
   badge.className='task-execution-count is-retry';
-  badge.textContent=`打回次数：${Math.max(1,count-1)}`;
+  badge.textContent=`打回次数：${count}`;
   const meta=taskDetailPanel.querySelector('.ref-workbench-meta');
   if(meta)meta.append(badge);else taskDetailPanel.querySelector('.task-detail-kicker')?.after(badge);
-  const remark=task.returnNote.remark||'未填写打回备注。';
-  const note=document.createElement('section');note.className='task-return-feedback';note.setAttribute('aria-label','打回原因');
-  note.innerHTML=`<strong>打回原因</strong><p>${escapeHtml(remark)}</p>`;
+  const note=document.createElement('section');note.className='task-return-feedback';note.setAttribute('aria-label','打回记录');
+  const latestFirst=records.slice().reverse();
+  const renderRecord=(record,index)=>`<li><div class="task-return-history-meta"><strong>第 ${count-index} 次打回</strong><span>打回时间：<time${record.returnedAt&&!Number.isNaN(Date.parse(record.returnedAt))?` datetime="${escapeHtml(new Date(record.returnedAt).toISOString())}"`:''}>${escapeHtml(formatTaskReturnTime(record.returnedAt))}</time></span></div><p><b>打回原因：</b>${escapeHtml(record.remark||'未填写打回备注。')}</p></li>`;
+  note.innerHTML=`<div class="task-return-history-heading"><strong>最新打回记录</strong><small>北京时间</small></div><ol class="task-return-history-list">${renderRecord(latestFirst[0],0)}</ol>${latestFirst.length>1?`<details class="task-return-history-disclosure"><summary><span class="task-return-history-expand">展开历史记录（${latestFirst.length-1} 条）</span><span class="task-return-history-collapse">收起历史记录</span></summary><ol class="task-return-history-list">${latestFirst.slice(1).map((record,index)=>renderRecord(record,index+1)).join('')}</ol></details>`:''}`;
   taskDetailPanel.querySelector('.ref-workbench-header,.task-detail-header')?.after(note);
 }
 function updateTaskFieldTooltip(control){

@@ -17,6 +17,24 @@
   else delete task.returnNote;
   run.stage=node.title;run.startedAt||=new Date().toISOString();delete run.waitingNodeIndex;
  });
+ // An additional card demonstrates several returns without replacing the single-return example.
+ const returnedRun=project.runs.find(run=>run.id==='DEMO-ALLOCATION-006');
+ const returnedContext=returnedRun&&resolveTaskWorkflowContext(project,returnedRun),returnedNode=returnedContext?.snapshot.nodes[0];
+ if(returnedNode&&!modelDone(returnedRun)){
+  returnedRun.name='多次打回示例';returnedRun.nodeAssignments||={};
+  returnedRun.nodeAssignments[projectWorkAssignmentKey(returnedContext,returnedNode.id)]={workflowId:returnedContext.plan.workflowId,workflowVersion:returnedContext.plan.workflowVersion,nodeId:returnedNode.id,nodeName:returnedNode.title,memberId:member.id,memberName:member.name,assignedAt:seedTime};
+  const id=productionTaskId(project,returnedRun,returnedNode);
+  let task=productionTasks.find(item=>item.id===id);
+  if(!task){task=createProductionTask(returnedContext,returnedNode,0,'in_progress');productionTasks.push(task)}
+  let history=taskReturnRecords(task);
+  if(!history.length)history=[
+   '主歌内容与参考主题不一致，请围绕“重逢”重新调整歌词。',
+   '副歌韵脚不统一，部分句子过长，请统一韵脚并精简句子。',
+   '副歌情绪仍不够突出，请增强情绪递进，并保留已确认的主歌内容。'
+  ].map((remark,index)=>({id:`multiple-return-demo-${index+1}`,remark,fromNodeId:returnedContext.snapshot.nodes[1]?.id||returnedNode.id,fromNodeTitle:returnedContext.snapshot.nodes[1]?.title||returnedNode.title,toNodeId:returnedNode.id,toNodeTitle:returnedNode.title,returnedAt:new Date(seedTime-(3-index)*40*60*1000).toISOString()}));
+  Object.assign(task,{workName:returnedRun.name,status:'in_progress',requiresHuman:true,executionMode:'manual',participationDemo:true,assignmentCreated:true,returnHistory:history,returnNote:history[history.length-1],executionCount:Math.max(history.length+1,Number(task.executionCount)||1),updatedAt:seedTime+5,updatedLabel:'刚刚'});
+  returnedRun.status='制作中';returnedRun.stage=returnedNode.title;returnedRun.startedAt||=new Date(seedTime).toISOString();delete returnedRun.waitingNodeIndex;
+ }
  // Reuse one pending example run, keeping its workflow and production number intact.
  const songRun=project.runs.find(run=>run.id==='DEMO-ALLOCATION-007');
  const songContext=songRun&&resolveTaskWorkflowContext(project,songRun);

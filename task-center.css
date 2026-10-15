@@ -318,6 +318,21 @@ body.task-mode .task-detail-actions button { min-height: 42px; font-size: 12px; 
 .task-return-feedback { margin: 14px 20px 0; padding: 12px 14px; border: 1px solid color-mix(in srgb,#d94f5f 30%,var(--line)); border-radius: 10px; background: color-mix(in srgb,#d94f5f 6%,var(--surface)); }
 .task-return-feedback strong { color: #e97681; font-size: 12px; }
 .task-return-feedback p { margin: 6px 0 0; color: #e97681; font-size: 13px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-return-history-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.task-return-history-heading small { color: var(--muted); font-size: 11px; }
+.task-return-history-list { margin: 0; padding: 0; list-style: none; max-height: 280px; overflow-y: auto; scrollbar-width: thin; }
+.task-return-history-list li { padding: 12px 0; border-top: 1px solid color-mix(in srgb,#d94f5f 20%,var(--line)); }
+.task-return-history-list li:last-child { padding-bottom: 0; }
+.task-return-history-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; }
+.task-return-history-meta span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.task-return-history-meta time { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.task-return-history-disclosure { margin-top: 12px; }
+.task-return-history-disclosure > summary { width: fit-content; padding: 4px 0; color: var(--muted); font-size: 12px; cursor: pointer; }
+.task-return-history-disclosure > summary:hover { color: var(--text); }
+.task-return-history-disclosure > summary:focus-visible { outline: 2px solid var(--muted); outline-offset: 4px; border-radius: 3px; }
+.task-return-history-disclosure > .task-return-history-list { margin-top: 8px; }
+.task-return-history-collapse,.task-return-history-disclosure[open] .task-return-history-expand { display: none; }
+.task-return-history-disclosure[open] .task-return-history-collapse { display: inline; }
 .task-execution-count { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 8px; color: var(--muted); background: var(--surface-2); font-size: 11px; line-height: 1.5; white-space: nowrap; }
 .task-execution-count.is-retry { color: #e97681; background: #d94f5f1a; }
 .task-detail-header > .task-execution-count { margin-left: 8px; }
