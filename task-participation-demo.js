@@ -1,4 +1,4 @@
-/* Three repeatable examples: manual, automatic, and returned for rework. */
+/* Repeatable examples: manual, automatic, returned, and reference-song generation. */
 (()=>{
  function initializeParticipationDemos(){
  const project=projectData.find(p=>p.id==='orchestra-theme-album');if(!project)return;
@@ -17,9 +17,33 @@
   else delete task.returnNote;
   run.stage=node.title;run.startedAt||=new Date().toISOString();delete run.waitingNodeIndex;
  });
+ // Reuse one pending example run, keeping its workflow and production number intact.
+ const songRun=project.runs.find(run=>run.id==='DEMO-ALLOCATION-007');
+ const songContext=songRun&&resolveTaskWorkflowContext(project,songRun);
+ const songIndex=songContext?.snapshot.nodes.findIndex(node=>node.type==='refSong')??-1;
+ if(songContext&&songIndex>=0&&window.orchestraReferenceSongTask&&!modelDone(songRun)){
+  songRun.name='基于参考生成歌曲示例';songRun.referenceSongDemo=true;
+  songRun.nodeAssignments||={};
+  songContext.snapshot.nodes.slice(0,songIndex+2).forEach(node=>{
+   songRun.nodeAssignments[projectWorkAssignmentKey(songContext,node.id)]={workflowId:songContext.plan.workflowId,workflowVersion:songContext.plan.workflowVersion,nodeId:node.id,nodeName:node.title,memberId:member.id,memberName:member.name,assignedAt:seedTime};
+  });
+  productionTasks=productionTasks.filter(task=>task.projectId!==project.id||String(task.workId)!==String(songRun.id));
+  songContext.snapshot.nodes.slice(0,songIndex+1).forEach((node,index)=>{
+   const task=createProductionTask(songContext,node,index,index===songIndex?'in_progress':'completed',seedTime-1000+index);
+   Object.assign(task,{assignmentCreated:true,updatedAt:index===songIndex?seedTime+4:seedTime-1000+index,updatedLabel:'刚刚'});
+   if(index===songIndex)Object.assign(task,{nodeTitle:'基于参考生成歌曲',referenceSongDemo:true,requiresHuman:true,executionMode:'manual',generationStage:'generated',formValues:{lyrics:window.orchestraReferenceSongTask.lyrics,count:'2'},candidates:window.orchestraReferenceSongTask.candidates()});
+   else{
+    task.completedAt=new Date(seedTime-1000+index).toISOString();task.actualSubmitter=member.name;
+    if(node.type==='refLyrics')Object.assign(task,{selectedCandidateId:'reference-song-lyrics',selectedCandidateText:window.orchestraReferenceSongTask.lyrics,selectedOutput:{type:'lyrics',candidateId:'reference-song-lyrics',content:window.orchestraReferenceSongTask.lyrics}});
+    if(node.type==='lyricsReview')task.reviewResult='approved';
+   }
+   productionTasks.push(task);
+  });
+  songRun.status='制作中';songRun.stage='基于参考生成歌曲';songRun.startedAt||=new Date(seedTime).toISOString();delete songRun.waitingNodeIndex;
+ }
  persistProductionTasks();persistProjectWorkAssignments();modelPersist();renderTaskCenter();
  }
- // All examples use the same node workspace.
+ // Initialize after the task center so each example keeps its node state.
  if(document.readyState==='complete')initializeParticipationDemos();
  else window.addEventListener('load',initializeParticipationDemos,{once:true});
 })();

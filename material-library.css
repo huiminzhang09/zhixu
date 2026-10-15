@@ -1,0 +1,7 @@
+.material-library-table th:nth-child(3),.material-library-table td:nth-child(3) { min-width: 280px; }
+.material-library-table audio { width: 280px; min-width: 280px; height: 40px; }
+.material-library-table a { color: #b99af5; text-decoration: none; white-space: nowrap; }
+.material-library-table a:hover { text-decoration: underline; }
+.material-library-table a:focus-visible { outline: 2px solid #ac8cf7; outline-offset: 4px; }
+.song-studio-result-toolbar .song-studio-save-material { color: #b99af5; border-color: #9774e766; background: #8058e714; }
+.song-studio-result-toolbar .song-studio-save-material.is-saved:disabled { color: #6ac9a1; border-color: #6ac9a144; background: #6ac9a10a; opacity: 1; cursor: default; }
