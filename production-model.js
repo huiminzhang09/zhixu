@@ -100,7 +100,7 @@ function modelApplyDatePreset(state,preset,now=new Date()){
  else {state.from=preset==='month'?today.slice(0,7)+'-01':today;state.rangeStart=new Date(state.from+'T00:00:00+08:00').getTime();state.rangeEnd=now.getTime()}
  return state;
 }
-function modelStatsState(project){const state=statisticsState[project.id]||=modelApplyDatePreset({person:'all',plan:'all',api:'all',node:'all',period:'day',dimension:'task',view:'overview',expandedPeople:[]},'today');state.view||='overview';state.expandedPeople||=[];return state}
+function modelStatsState(project){const state=statisticsState[project.id]||=modelApplyDatePreset({person:'all',plan:'all',api:'all',node:'all',period:'day',dimension:'task',view:'overview',expandedPeople:[]},'today');state.view||='overview';state.expandedPeople||=[];if(state.datePreset&&state.datePreset!=='custom')modelApplyDatePreset(state,state.datePreset);return state}
 function modelCallPerson(call){return call.person?.trim()||'系统／未归属'}
 function modelInPeriod(value,state){
  if(!value)return false;const timestamp=new Date(value).getTime();if(!Number.isFinite(timestamp))return false;
@@ -115,7 +115,7 @@ function modelStatsFilters(project,state,kind,view='overview'){
  const nodeOptions=[...new Set((project.calls||[]).map(c=>c.node).filter(node=>node&&!hiddenNodes.has(node)))];
  if(!nodeOptions.includes('svc音色转换'))nodeOptions.push('svc音色转换');
  if(state.node!=='all'&&!nodeOptions.includes(state.node))state.node='all';
- const people=[...new Set([...(project.calls||[]).map(modelCallPerson),...(kind==='efficiency'?(project.metricTasks||[]).map(t=>t.person):[]),...(kind==='efficiency'?(project.works||[]).map(w=>w.creator):[])].filter(Boolean))];
+ const people=[...new Set([...(project.calls||[]).map(modelCallPerson),...(kind==='efficiency'?modelEfficiencyTasks(project).map(t=>t.person):[]),...(kind==='efficiency'?(project.works||[]).map(w=>w.creator):[])].filter(Boolean))];
  const personFilter=`<label>人员 <select data-stat="person">${options(people,state.person)}</select></label>`;
  const callFilter=kind==='consumption'?`<label>节点 <select data-stat="node">${options(nodeOptions,state.node)}</select></label>`:'';
  const periodFilter=kind==='consumption'&&view==='overview'?`<label>统计周期 <select data-stat="period">${[['day','天'],['week','周'],['month','月']].map(([value,label])=>`<option value="${value}" ${state.period===value?'selected':''}>${label}</option>`).join('')}</select></label>`:'';
@@ -156,6 +156,83 @@ function modelPeopleRunSummary(project,calls,state){
  }).join('');
  return `<div class="model-table-scroll"><table class="model-table run-stat-people-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows||`<tr><td colspan="${headers.length}" class="model-empty">暂无符合条件的记录</td></tr>`}</tbody></table></div>`;
 }
+function modelEfficiencyReturns(...sources){
+ const records=new Map();
+ for(const source of sources){
+  const history=taskReturnRecords(source);
+  if(source?.firstReview==='未通过'&&source.reviewAt)history.push({returnedAt:source.reviewAt,remark:'审核未通过，已退回修改'});
+  for(const record of history){
+   const key=record.id||JSON.stringify([record.returnedAt,record.remark,record.fromNodeId]);
+   records.set(key,record);
+  }
+ }
+ return [...records.values()].sort((a,b)=>(Date.parse(a.returnedAt)||0)-(Date.parse(b.returnedAt)||0));
+}
+function modelEfficiencyTasks(project){
+ const tasks=new Map();
+ for(const task of project.metricTasks||[]){
+  if(!task.id)continue;
+  const previous=tasks.get(String(task.id));
+  tasks.set(String(task.id),{...previous,...task,returnHistory:modelEfficiencyReturns(previous,task)});
+ }
+ for(const task of productionTasks.filter(task=>task.projectId===project.id)){
+  const previous=tasks.get(String(task.id));
+  tasks.set(String(task.id),{
+   ...previous,id:task.id,person:task.actualSubmitter||task.assigneeName||previous?.person,
+   planId:task.planId,runId:task.workId,nodeTitle:task.nodeTitle,status:task.status,
+   assignedAt:previous?.assignedAt||task.assignedAt||task.createdAt,
+   completedAt:task.completedAt||previous?.completedAt||null,
+   returnHistory:modelEfficiencyReturns(previous,task)
+  });
+ }
+ return [...tasks.values()].map(task=>({...task,person:task.person?.trim()||'系统／未归属'}));
+}
+function modelEfficiencyUnits(project,state){
+ const end=state.datePreset&&state.datePreset!=='custom'?state.rangeEnd:new Date((state.to||'9999-12-31')+'T23:59:59.999+08:00').getTime();
+ const beforeEnd=value=>value!=null&&Number.isFinite(new Date(value).getTime())&&new Date(value).getTime()<=end;
+ const tasks=modelEfficiencyTasks(project).filter(task=>modelInPeriod(task.assignedAt,state)&&(state.plan==='all'||String(task.planId)===String(state.plan)));
+ const units=new Map();
+ for(const task of tasks){
+  const key=JSON.stringify([task.person,state.dimension==='flow'?(task.runId||task.id):task.id]);
+  if(!units.has(key))units.set(key,{id:state.dimension==='flow'?(task.runId||task.id):task.id,person:task.person,tasks:[]});
+  units.get(key).tasks.push(task);
+ }
+ return [...units.values()].map(unit=>{
+  const history=modelEfficiencyReturns(...unit.tasks).filter(record=>beforeEnd(record.returnedAt));
+  const latestReturn=history[history.length-1];
+  const run=project.runs?.find(run=>String(run.id)===String(unit.tasks[0].runId));
+  const completedAt=state.dimension==='flow'?run?.completedAt:unit.tasks[0].completedAt;
+  const completed=(state.dimension!=='flow'||Boolean(run&&modelDone(run)))&&beforeEnd(completedAt)&&(!latestReturn||new Date(latestReturn.returnedAt)<=new Date(completedAt));
+  return {...unit,completedAt,completed,returned:history.length>0,latestReturn,run,history};
+ });
+}
+function modelEfficiencyHelp(label,description){
+ return `${label} <span class="completion-rate-help" tabindex="0" role="img" aria-label="${escapeHtml(description)}" title="${escapeHtml(description)}" data-tooltip="${escapeHtml(description)}"><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M7.8 7.2a2.25 2.25 0 0 1 4.4.6c0 1.5-2.2 1.8-2.2 3.3" stroke-linecap="round"/><circle cx="10" cy="13.6" r=".75" fill="currentColor" stroke="none"/></svg></span>`;
+}
+function modelEfficiencyRate(count,total){return total?`${(count/total*100).toFixed(1)}%（${count}/${total}）`:'—（分母为 0）'}
+function modelEfficiencyTable(project,state,calls){
+ const units=modelEfficiencyUnits(project,state);
+ const people=[...new Set([...units.map(unit=>unit.person),...calls.map(modelCallPerson),...(project.works||[]).map(work=>work.creator)].filter(Boolean))].filter(person=>state.person==='all'||person===state.person);
+ const headers=['人员','总数量','已完成数量',
+  modelEfficiencyHelp('打回数量','当前统计范围内被打回过的任务或运行数量。同一任务多次打回只计 1 个；运行维度按人员和运行去重，只统计该人员参与的任务被打回的运行。'),
+  modelEfficiencyHelp('完成率','完成率 =（已完成数量 ÷ 总数量）× 100%'),
+  modelEfficiencyHelp('打回率','打回率 =（打回数量 ÷ 总数量）× 100%。打回后完成的任务或运行仍计入打回数量；总数量为 0 时显示“—”。')];
+ const metric=(person,type,value)=>`<button type="button" data-efficiency-person="${escapeHtml(person)}" data-efficiency-type="${type}">${escapeHtml(value)}</button>`;
+ return modelTable(headers,people.map(person=>{
+  const cohort=units.filter(unit=>unit.person===person),total=cohort.length,completed=cohort.filter(unit=>unit.completed).length,returned=cohort.filter(unit=>unit.returned).length;
+  return [modelButton('data-stat-person',person,person),metric(person,'all',String(total)),metric(person,'completed',String(completed)),metric(person,'returned',String(returned)),metric(person,'all',modelEfficiencyRate(completed,total)),metric(person,'returned',modelEfficiencyRate(returned,total))];
+ }),'efficiency-summary-table');
+}
+function modelEfficiencyDetails(project,state,person,type){
+ const units=modelEfficiencyUnits(project,state).filter(unit=>unit.person===person&&(type==='returned'?unit.returned:type==='completed'?unit.completed:true));
+ const flow=state.dimension==='flow',unitName=flow?'运行':'任务';
+ const headers=[`${unitName}编号`,flow?'参与节点数':'节点','人员','完成时间','是否被打回','最近打回时间','最近打回原因'];
+ const rows=units.map(unit=>[
+  escapeHtml(flow?(unit.run?.serial||unit.id):unit.id),flow?unit.tasks.length:escapeHtml(unit.tasks[0].nodeTitle||'—'),escapeHtml(person),unit.completed?modelTime(unit.completedAt):'—',unit.returned?'是':'否',unit.latestReturn?modelTime(unit.latestReturn.returnedAt):'—',escapeHtml(unit.latestReturn?.remark||'—')
+ ]);
+ const note=`按筛选期间分配的${flow?'参与任务对应的运行':'节点任务'}统计截至结束时间的结果。同一人同一${unitName}只计 1 个，多次打回不重复计数。打回率 =（打回数量 ÷ 总数量）× 100%；打回后完成仍计入打回数量。`;
+ modelDialog(`${type==='returned'?'打回':type==='completed'?'已完成':'计算'}明细 · ${person}`,`<p>${note}</p>${modelTable(headers,rows,'efficiency-detail-table')}`);
+}
 function renderModelStats(project,kind){
  if(kind==='consumption')modelEnsureDemoNodeCalls(project);
  const state=modelStatsState(project),root=document.querySelector(kind==='consumption'?'#consumptionPanel':'#projectEfficiencyPanel'),calls=modelFilteredCalls(project,state,kind);
@@ -174,13 +251,7 @@ function renderModelStats(project,kind){
    html+='<div class="run-stat-table-heading"><h3>周期统计</h3></div>'+modelTable(['日期','运行总次数','成功次数','失败次数'],groupedRows,'run-stat-period-table');
   }
  }else{
-  const tasks=(project.metricTasks||[]).filter(t=>modelInPeriod(t.assignedAt,state)&&(state.plan==='all'||t.planId===state.plan));
-  const people=[...new Set([...tasks.map(t=>t.person),...calls.map(c=>c.person),...(project.works||[]).map(w=>w.creator)])].filter(p=>state.person==='all'||p===state.person);
-  html+=modelTable(['人员','总数量','已完成数量','完成率 <span class="completion-rate-help" tabindex="0" role="img" aria-label="完成率 =（已完成数量 ÷ 总数量）× 100%" data-tooltip="完成率 =（已完成数量 ÷ 总数量）× 100%"><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M7.8 7.2a2.25 2.25 0 0 1 4.4.6c0 1.5-2.2 1.8-2.2 3.3" stroke-linecap="round"/><circle cx="10" cy="13.6" r=".75" fill="currentColor" stroke="none"/></svg></span>'],people.map(person=>{
-   const cohort=tasks.filter(t=>t.person===person),end=state.to||'9999-12-31',done=cohort.filter(t=>t.completedAt&&modelDate(t.completedAt)<=end);
-   const rate=(n,d)=>d?`${(n/d*100).toFixed(1)}%（${n}/${d}）`:'—（分母为 0）';
-   return [modelButton('data-stat-person',person,person),modelButton('data-metric-detail',person+'|assigned',String(cohort.length)),modelButton('data-metric-detail',person+'|completed',String(done.length)),modelButton('data-metric-detail',person+'|cohort',rate(done.length,cohort.length))];
-  }));
+  html+=modelEfficiencyTable(project,state,calls);
  }
  root.innerHTML=html;
  root.querySelectorAll('[data-stat-subtab]').forEach(button=>button.onclick=()=>{state.view=button.dataset.statSubtab;renderModelStats(project,kind)});
@@ -191,17 +262,8 @@ function renderModelStats(project,kind){
  root.querySelectorAll('[data-stat-result]').forEach(b=>b.onclick=()=>modelCallDetails(project,{...state,result:b.dataset.statResult||undefined},undefined,kind));
  root.querySelectorAll('[data-run-detail]').forEach(b=>b.onclick=()=>{const next={...state,person:b.dataset.person||state.person,node:b.dataset.node||state.node,result:b.dataset.result||state.result};modelCallDetails(project,next,undefined,kind)});
  root.querySelectorAll('[data-run-expand]').forEach(b=>b.onclick=()=>{const person=b.dataset.runExpand,detail=b.closest('tr')?.nextElementSibling,open=b.getAttribute('aria-expanded')!=='true';if(open&&!state.expandedPeople.includes(person))state.expandedPeople.push(person);if(!open)state.expandedPeople=state.expandedPeople.filter(value=>value!==person);b.setAttribute('aria-expanded',String(open));b.setAttribute('aria-label',`${open?'收起':'展开'}${person}的节点统计`);if(detail?.matches('[data-person-detail]'))detail.hidden=!open});
- root.querySelectorAll('[data-stat-person]').forEach(b=>b.onclick=()=>{state.person=b.dataset.statPerson;renderModelStats(project,kind);modelCallDetails(project,state,state.person,kind)});
- root.querySelectorAll('[data-metric-detail]').forEach(b=>b.onclick=()=>{
-  const [person,type]=b.dataset.metricDetail.split('|'),byPlan=x=>state.plan==='all'||x.planId===state.plan,end=state.to||'9999-12-31';let body='';
-  if(type==='works')body=modelTable(['作品编号','作品名称','保存时间'],(project.works||[]).filter(w=>w.creator===person&&byPlan(w)&&modelInPeriod(w.createdAt,state)).map(w=>[escapeHtml(w.id),escapeHtml(w.name),modelTime(w.createdAt)]));
-  else {
-   const status=t=>t.completedAt&&modelDate(t.completedAt)<=end?'已完成':t.status==='terminated'&&(!t.terminatedAt||modelDate(t.terminatedAt)<=end)?'已终止':'进行中';
-   const rows=(project.metricTasks||[]).filter(t=>t.person===person&&byPlan(t)&&modelInPeriod(t.assignedAt,state)).filter(t=>type==='active'?status(t)==='进行中':type==='completed'?status(t)==='已完成':true);
-   body=modelTable(['任务编号','人员','分配时间','完成时间','期末状态'],rows.map(t=>[escapeHtml(t.id),escapeHtml(t.person),modelTime(t.assignedAt),status(t)==='已完成'?modelTime(t.completedAt):'—',status(t)]));
-  }
-  modelDialog('计算明细 · '+person,`<p>建议口径演示；关闭后保留筛选。按统计期间分配的同一批任务统计期末状态，任务完成率 = 已完成任务数 ÷ 已分配任务数。</p>${body}`);
- });
+ root.querySelectorAll('[data-stat-person]').forEach(b=>b.onclick=()=>{state.person=b.dataset.statPerson;renderModelStats(project,kind);if(kind==='efficiency')modelEfficiencyDetails(project,state,state.person,'all');else modelCallDetails(project,state,state.person,kind)});
+ root.querySelectorAll('[data-efficiency-person]').forEach(button=>button.onclick=()=>modelEfficiencyDetails(project,state,button.dataset.efficiencyPerson,button.dataset.efficiencyType));
 }
 const modelOriginalDetail=renderProjectDetail;
 renderProjectDetail=function(){const p=modelProject();if(!p)return;modelOriginalDetail();document.querySelector('#projectDetailDescription').textContent=`客户：${p.customer||'未填写'}　　负责人：${p.owner||'未填写'}`;renderModelStats(p,'consumption');renderModelStats(p,'efficiency')};

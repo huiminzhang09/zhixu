@@ -231,6 +231,13 @@
 .completion-rate-help:focus-visible { outline: 2px solid var(--production-accent); outline-offset: 3px; }
 .completion-rate-help::after { position: absolute; z-index: 40; top: calc(100% + 8px); right: 0; width: max-content; max-width: min(290px,80vw); padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--surface-2); box-shadow: var(--shadow); content: attr(data-tooltip); font-size: 12px; font-weight: 500; line-height: 1.5; white-space: nowrap; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-3px); transition: opacity .16s,transform .16s,visibility .16s; }
 .completion-rate-help:hover::after, .completion-rate-help:focus-visible::after { opacity: 1; visibility: visible; transform: translateY(0); }
+.efficiency-summary-table { table-layout: fixed; min-width: 960px; }
+.efficiency-summary-table th,.efficiency-summary-table td { width: 16.6667%; min-width: 0; max-width: none; text-align: center; }
+.efficiency-summary-table td:first-child,.efficiency-summary-table td:last-child { min-width: 0; white-space: normal; }
+.efficiency-summary-table .completion-rate-help::after { width: 260px; white-space: normal; text-align: left; }
+.efficiency-summary-table [data-efficiency-type="returned"] { color: #e97681; border-color: #e9768144; background: #e976810a; }
+.efficiency-detail-table { min-width: 900px; }
+.efficiency-detail-table td:last-child { min-width: 220px; max-width: 360px; white-space: normal; overflow-wrap: anywhere; }
 #consumptionPanel .model-person-summary-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 16px; margin: 24px 0 12px; }
 #consumptionPanel .model-person-summary-heading h3 { margin: 0; }
 #consumptionPanel .model-person-summary-heading button { flex: none; margin-left: auto; }
