@@ -1,0 +1,41 @@
+.task-audio-picker { width: min(680px,calc(100vw - 32px)); max-height: min(760px,calc(100dvh - 40px)); padding: 0; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--text); box-shadow: 0 24px 80px #0007; }
+.task-audio-picker::backdrop { background: #0009; }
+.task-audio-picker form { display: flex; flex-direction: column; max-height: min(758px,calc(100dvh - 42px)); }
+.task-audio-picker header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 22px 24px 16px; }
+.task-audio-picker h2 { margin: 0; font-size: 19px; }
+.task-audio-picker header p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.task-audio-picker header > button { border: 0; background: transparent; color: var(--muted); font-size: 26px; cursor: pointer; }
+.task-audio-picker-tabs { display: flex; gap: 22px; padding: 0 24px; border-bottom: 1px solid var(--line); }
+.task-audio-picker-tabs button { padding: 14px 2px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
+.task-audio-picker-tabs button[aria-selected="true"] { border-bottom-color: #a47bff; color: #b797ff; }
+.task-audio-picker-body { padding: 20px 24px; overflow: auto; min-height: 260px; }
+.task-audio-picker-filters { display: flex; gap: 12px; margin-bottom: 16px; }
+.task-audio-picker-filters :is(input,select) { min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); padding: 10px 12px; font: inherit; font-size: 13px; }
+.task-audio-picker-filters input { flex: 1; }
+.task-audio-picker-list { display: grid; gap: 10px; }
+.task-audio-picker-list article { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.task-audio-picker-list label { display: flex; align-items: center; gap: 10px; min-width: 0; cursor: pointer; }
+.task-audio-picker-list input { flex-shrink: 0; accent-color: #a47bff; width: 16px; height: 16px; }
+.task-audio-picker-list label span { min-width: 0; }
+.task-audio-picker-list b { display: block; font-size: 13px; overflow-wrap: anywhere; }
+.task-audio-picker-list small { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.task-audio-picker-list button { align-self: center; padding: 6px 10px; border: 1px solid #a47bff55; border-radius: 6px; color: #b797ff; background: #a47bff0e; cursor: pointer; }
+.task-audio-picker-list [data-audio-preview-player] { grid-column: 1 / -1; }
+.task-audio-picker-list [data-audio-preview-player]:empty { display: none; }
+.task-audio-picker-list audio { width: 100%; height: 36px; }
+.task-audio-picker-empty { padding: 32px 8px; text-align: center; color: var(--muted); font-size: 13px; }
+.task-audio-upload-zone { display: grid; justify-items: center; gap: 12px; padding: 28px 18px; border: 1px dashed #a47bff66; border-radius: 12px; background: #a47bff08; cursor: pointer; }
+.task-audio-upload-zone > span { font-size: 28px; color: #b797ff; }
+.task-audio-upload-zone b { font-size: 14px; }
+.task-audio-upload-zone small { color: var(--muted); font-size: 12px; }
+.task-audio-upload-zone input { max-width: 100%; color: var(--muted); font-size: 12px; }
+.task-audio-local-files { display: grid; gap: 10px; margin-top: 16px; }
+.task-audio-local-files > div { display: flex; gap: 16px; justify-content: space-between; font-size: 13px; }
+.task-audio-local-files span { overflow-wrap: anywhere; }
+.task-audio-local-files small { flex-shrink: 0; color: var(--muted); }
+.task-audio-picker-error { margin: 14px 0 0; color: #f07888; font-size: 13px; }
+.task-audio-picker footer { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px; border-top: 1px solid var(--line); }
+.task-audio-picker footer > span { color: var(--muted); font-size: 12px; }
+.task-audio-picker footer > div { display: flex; gap: 10px; }
+.task-audio-picker button:disabled { opacity: .45; cursor: not-allowed; }
+.task-audio-picker :is(button,input,select):focus-visible { outline: 2px solid #a47bff; outline-offset: 2px; }

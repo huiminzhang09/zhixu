@@ -82,9 +82,10 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
     }
     for(const task of tasks){
       const output=task.selectedOutput,selectedId=task.selectedCandidateId||(task.status==='completed'?output?.candidateId:'');
-      const candidates=task.candidates||[];
+      const candidates=task.candidates||[],backups=new Set(Array.isArray(task.backupCandidateIds)?task.backupCandidateIds:[]);
       for(const candidate of candidates){
         const selected=Boolean(selectedId&&candidate.id===selectedId),payload={...candidate};
+        if(!selected&&!backups.has(candidate.id))continue;
         if(selected&&output&&(!output.candidateId||output.candidateId===candidate.id))Object.assign(payload,output);
         if(selected&&typeof candidate.content==='string'&&task.selectedCandidateText)payload.content=task.selectedCandidateText;
         taskResource(task,payload,selected,candidate);

@@ -30,7 +30,8 @@
   <link rel="stylesheet" href="./no-organization.css?v=20261013">
   <script>try{const teams=JSON.parse(localStorage.getItem('orchestra-login-organizations')||'null');if(Array.isArray(teams)&&teams.length===0){window.noOrganizationMode=true;document.documentElement.classList.add('no-organization')}}catch{}</script>
   <link rel="stylesheet" href="./task-participation.css?v=20261014-task-card">
-  <link rel="stylesheet" href="./reference-song-task.css?v=20261021-inline-actions">
+  <link rel="stylesheet" href="./reference-song-task.css?v=20261021-reference-picker">
+  <link rel="stylesheet" href="./task-audio-picker.css?v=20261021">
   <link rel="stylesheet" href="./material-library.css?v=20261021-no-folder-checkbox">
   <link rel="stylesheet" href="./finished-library.css?v=20261021-workflow-resources">
   <link rel="stylesheet" href="./task-material-reference.css?v=20261021">
@@ -682,13 +683,13 @@
     <div class="player-actions"><button aria-label="音量">♬</button><button aria-label="收藏">♡</button><button aria-label="评论">▢</button><button aria-label="更多">⋮</button></div>
   </footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="./script.js?v=20261021-material-menu"></script>
+  <script src="./script.js?v=20261021-reference-picker"></script>
   <script src="./production-model.js?v=20261019-return-rate"></script>
   <script src="./composition-flow.js?v=20261021-workflow-resources"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
-  <script src="./finished-library.js?v=20261021-workflow-resources"></script>
-  <script src="./workflow-editor.js?v=12"></script>
+  <script src="./finished-library.js?v=20261021-output-backups"></script>
+  <script src="./workflow-editor.js?v=20261021-playlist-demo"></script>
   <script src="./team-navigation.js?v=20261021-material-menu"></script>
   <script src="./logout.js?v=20261010-login"></script>
   <script src="./team-invites.js?v=20261014-user-lookup"></script>
@@ -696,8 +697,9 @@
   <script src="./assignee-search.js?v=20261013"></script>
   <script src="./avatar-team-entry.js?v=20261013-home-only"></script>
   <script src="./material-library.js?v=20261021-edit-text"></script>
-  <script src="./reference-song-task.js?v=20261021-inline-actions"></script>
-  <script src="./task-participation-demo.js?v=20261021-fresh-song"></script>
+  <script src="./task-audio-picker.js?v=20261021"></script>
+  <script src="./reference-song-task.js?v=20261021-reference-picker"></script>
+  <script src="./task-participation-demo.js?v=20261021-playlist-demo"></script>
   <script src="./task-material-reference.js?v=20261021"></script>
 </body>
 </html>

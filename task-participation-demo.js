@@ -35,12 +35,16 @@
   Object.assign(task,{workName:returnedRun.name,status:'in_progress',requiresHuman:true,executionMode:'manual',participationDemo:true,assignmentCreated:true,returnHistory:history,returnNote:history[history.length-1],executionCount:Math.max(history.length+1,Number(task.executionCount)||1),updatedAt:seedTime+5,updatedLabel:'刚刚'});
   returnedRun.status='制作中';returnedRun.stage=returnedNode.title;returnedRun.startedAt||=new Date(seedTime).toISOString();delete returnedRun.waitingNodeIndex;
  }
- // Reuse one pending example run, keeping its workflow and production number intact.
- const songRun=project.runs.find(run=>run.id==='DEMO-ALLOCATION-007');
+ // A separate playlist workflow keeps the four-audio example linked to a real run and review node.
+ const playlistPlanId='DEMO-PLAYLIST-PLAN',playlistRunId='DEMO-PLAYLIST-001';
+ if(!project.batches.some(plan=>plan.id===playlistPlanId))project.batches.push({id:playlistPlanId,name:'歌单生成歌曲示例',quantity:1,workflowId:'playlist-production',workflowName:'歌单生成歌曲流程',workflowVersion:'V1.0',delivery:'2026-10-31',notes:'上传或从素材库选择 1～4 个参考音频。'});
+ if(!project.runs.some(run=>run.id===playlistRunId))project.runs.push({id:playlistRunId,serial:reserveDailyProductionNumbers({flow:1})?.flow[0]||playlistRunId,name:'基于歌单生成歌曲示例',planId:playlistPlanId,planName:'歌单生成歌曲示例',status:'制作中',stage:'基于歌单生成歌曲',owner:member.name,createdAt:new Date(seedTime).toISOString(),resources:[]});
+ for(const [runId,playlist] of [['DEMO-ALLOCATION-007',false],[playlistRunId,true]]){
+ const songRun=project.runs.find(run=>run.id===runId);
  const songContext=songRun&&resolveTaskWorkflowContext(project,songRun);
- const songIndex=songContext?.snapshot.nodes.findIndex(node=>node.type==='refSong')??-1;
+ const songIndex=songContext?.snapshot.nodes.findIndex(node=>node.type===(playlist?'playlistSong':'refSong'))??-1;
  if(songContext&&songIndex>=0&&window.orchestraReferenceSongTask&&!modelDone(songRun)){
-  songRun.name='基于参考生成歌曲示例';songRun.referenceSongDemo=true;
+  songRun.name=playlist?'基于歌单生成歌曲示例':'基于参考生成歌曲示例';songRun.referenceSongDemo=true;
   songRun.nodeAssignments||={};
   songContext.snapshot.nodes.slice(0,songIndex+2).forEach(node=>{
    songRun.nodeAssignments[projectWorkAssignmentKey(songContext,node.id)]={workflowId:songContext.plan.workflowId,workflowVersion:songContext.plan.workflowVersion,nodeId:node.id,nodeName:node.title,memberId:member.id,memberName:member.name,assignedAt:seedTime};
@@ -50,7 +54,7 @@
    const task=createProductionTask(songContext,node,index,index===songIndex?'in_progress':'completed',seedTime-1000+index);
    Object.assign(task,{assignmentCreated:true,updatedAt:index===songIndex?seedTime+4:seedTime-1000+index,updatedLabel:'刚刚'});
    // Each demo initialization starts a fresh generation; previously saved materials stay intact.
-   if(index===songIndex)Object.assign(task,{nodeTitle:'基于参考生成歌曲',referenceSongDemo:true,requiresHuman:true,executionMode:'manual',generationStage:'generated',formValues:{lyrics:window.orchestraReferenceSongTask.lyrics,count:'2'},candidates:window.orchestraReferenceSongTask.candidates(true)});
+   if(index===songIndex)Object.assign(task,{nodeTitle:playlist?'基于歌单生成歌曲':'基于参考生成歌曲',referenceSongDemo:true,requiresHuman:true,executionMode:'manual',generationStage:playlist?'ready':'generated',formValues:{lyrics:window.orchestraReferenceSongTask.lyrics,count:'2'},candidates:playlist?[]:window.orchestraReferenceSongTask.candidates(true),...(playlist?{referenceAudios:[]}:{}),updatedAt:seedTime+(playlist?6:4)});
    else{
     task.completedAt=new Date(seedTime-1000+index).toISOString();task.actualSubmitter=member.name;
     if(node.type==='refLyrics')Object.assign(task,{selectedCandidateId:'reference-song-lyrics',selectedCandidateText:window.orchestraReferenceSongTask.lyrics,selectedOutput:{type:'lyrics',candidateId:'reference-song-lyrics',content:window.orchestraReferenceSongTask.lyrics}});
@@ -58,9 +62,10 @@
    }
    productionTasks.push(task);
   });
-  songRun.status='制作中';songRun.stage='基于参考生成歌曲';songRun.startedAt||=new Date(seedTime).toISOString();delete songRun.waitingNodeIndex;
+  songRun.status='制作中';songRun.stage=playlist?'基于歌单生成歌曲':'基于参考生成歌曲';songRun.startedAt||=new Date(seedTime).toISOString();delete songRun.waitingNodeIndex;
  }
- persistProductionTasks();persistProjectWorkAssignments();modelPersist();renderTaskCenter();
+ }
+ syncProjectPlanProductionProgress(project);persistProductionTasks();persistProjectWorkAssignments();modelPersist();renderTaskCenter();
  }
  // Initialize after the task center so each example keeps its node state.
  if(document.readyState==='complete')initializeParticipationDemos();

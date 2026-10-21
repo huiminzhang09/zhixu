@@ -39,6 +39,12 @@
       { id: 'reference-control-2', edgeType: 'control', from: 'reference-lyrics', to: 'reference-ai-song' },
       { id: 'reference-control-3', edgeType: 'control', from: 'reference-ai-song', to: 'reference-song' }
     ] }],
+    'playlist-production': [{ version: 'V1.0', name: '歌单生成歌曲流程', publishedAt: Date.parse('2026-10-21T09:30:00+08:00'), nodes: [
+      { id: 'playlist-reference-lyrics', type: 'refLyrics', title: '基于参考生成歌词', x: 100, y: 100 },
+      { id: 'playlist-generate-song', type: 'playlistSong', title: '基于歌单生成歌曲', x: 460, y: 100 }
+    ], edges: [
+      { id: 'playlist-control-1', edgeType: 'control', from: 'playlist-reference-lyrics', to: 'playlist-generate-song' }
+    ] }],
     'reference-production': [{ version: 'V1.0', name: '参考词曲完整流程', publishedAt: Date.parse('2026-09-08T09:30:00+08:00'), nodes: [
       { id: 'complete-reference-lyrics', type: 'refLyrics', title: '基于参考生成歌词', x: 100, y: 100 },
       { id: 'complete-reference-song', type: 'refSong', title: '基于参考曲生成歌曲', x: 460, y: 100 }

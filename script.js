@@ -301,7 +301,7 @@ function operationalWorkflowNodes(nodes){
   return [
     {id:lyricsId,type:'refLyrics',title:'基于参考生成歌词',subtitle:'配置生成歌词，选择结果后提交审核',category:'lyrics'},
     {id:`${lyricsId}--lyrics-review`,type:'lyricsReview',title:'歌词审核',subtitle:'审核歌词产物',category:'review',sourceNodeId:lyricsId},
-    {id:songId,type:'refSong',title:'基于参考曲生成歌曲',subtitle:'配置生成歌曲，选择结果后提交审核',category:'song'},
+    {id:songId,type:song?.type==='playlistSong'?'playlistSong':'refSong',title:song?.type==='playlistSong'?'基于歌单生成歌曲':'基于参考曲生成歌曲',subtitle:'配置生成歌曲，选择结果后提交审核',category:'song'},
     {id:`${songId}--song-review`,type:'songReview',title:'歌曲审核',subtitle:'审核歌曲产物',category:'review',sourceNodeId:songId}
   ];
 }
@@ -336,7 +336,7 @@ function createProductionTask(context,node,nodeIndex,status,createdAt=Date.now()
     workflowId:context.plan.workflowId,workflowName:context.plan.workflowName,workflowVersion:context.plan.workflowVersion,
     nodeId:node.id,nodeType:node.type,nodeTitle:node.title,nodeSubtitle:node.subtitle,nodeCategory:node.category||'song',sourceNodeId:node.sourceNodeId||'',
     requiresHuman:node.requiresHuman!==false&&node.executionMode!=='automatic',executionMode:node.executionMode||'manual',executionCount:1,
-    referenceSongDemo:Boolean(context.work.referenceSongDemo&&node.type==='refSong'),
+    referenceSongDemo:Boolean(context.work.referenceSongDemo&&['refSong','playlistSong'].includes(node.type)),
     nodeIndex,nodeCount:context.snapshot.nodes.length,status,featured:Boolean(context.work.taskFeatured),assigneeId:assignee.id,assigneeName:assignee.name,
     createdAt,updatedAt:createdAt,updatedLabel:status==='in_progress'?'今天 10:24':'09-07 18:40'
   };
@@ -403,7 +403,7 @@ function loadProductionTasks(){
       productionTasks=productionTasks.filter(task=>task.projectId!==context.project.id||String(task.workId)!==String(context.work.id)||task.id===firstId);
       let firstTask=productionTasks.find(task=>task.id===firstId);
       if(!firstTask){firstTask=createProductionTask(context,firstNode,0,'in_progress');productionTasks.push(firstTask)}
-      Object.assign(firstTask,{status:'in_progress',generationStage:'idle',candidates:[],selectedCandidateId:'',selectedCandidateText:'',selectedOutput:null,formValues:{},updatedAt:Date.now(),updatedLabel:'刚刚'});
+      Object.assign(firstTask,{status:'in_progress',generationStage:'idle',candidates:[],selectedCandidateId:'',backupCandidateIds:[],selectedCandidateText:'',selectedOutput:null,formValues:{},updatedAt:Date.now(),updatedLabel:'刚刚'});
       context.work.status='制作中';context.work.stage=firstNode.title;context.work.updated=new Date().toISOString();
     }
   }
@@ -489,7 +489,7 @@ function applyTaskCreationConfiguration(task,configurationId){
   if(!configuration)return false;
   task.formValues={...(task.formValues||{}),...configuration,config:configurationId};
   if(kind==='song'&&!task.formValues.title)task.formValues.title=task.workName;
-  task.generationStage='';task.candidates=[];task.selectedCandidateId='';task.selectedCandidateText='';task.updatedAt=Date.now();task.updatedLabel='刚刚';
+  task.generationStage='';task.candidates=[];task.selectedCandidateId='';task.backupCandidateIds=[];task.selectedCandidateText='';task.selectedOutput=null;task.updatedAt=Date.now();task.updatedLabel='刚刚';
   return true;
 }
 function taskCandidateCards(task,kind){
@@ -563,7 +563,7 @@ function taskNodeCanComplete(task){return !['aiLyrics','refLyrics','aiSong','ref
 function renderProductionTaskDetail(task){
   window.orchestraReferenceSongTask?.stopAudio();
   const isReferenceLyrics=Boolean(task&&(task.nodeType==='refLyrics'||task.nodeTitle==='基于参考生成歌词'));
-  const isReferenceSong=Boolean(task&&(task.nodeType==='refSong'||task.nodeTitle==='基于参考曲生成歌曲'||task.nodeTitle==='基于参考生成歌曲'));
+  const isReferenceSong=Boolean(task&&(task.nodeType==='refSong'||(task.nodeType==='playlistSong'&&task.referenceSongDemo)||task.nodeTitle==='基于参考曲生成歌曲'||task.nodeTitle==='基于参考生成歌曲'));
   taskDetailPanel.classList.toggle('is-reference-lyrics',isReferenceLyrics);
   taskDetailPanel.classList.toggle('is-reference-song',isReferenceSong);
   taskDetailPanel.classList.toggle('task-reference-workspace',isReferenceLyrics||isReferenceSong);
@@ -601,7 +601,7 @@ function returnProductionTaskToNode(task,targetIndex,remark=''){
   if(targetTask)Object.assign(targetTask,createProductionTask(context,targetNode,targetIndex,'in_progress',targetTask.createdAt));
   else targetTask=createProductionTask(context,targetNode,targetIndex,'in_progress');
   Object.assign(targetTask,{status:'in_progress',updatedAt:Date.now(),updatedLabel:'刚刚',candidates:[],formValues:{},generationStage:'ready',returnNote,returnHistory,executionCount});
-  ['selectedCandidateId','selectedCandidateText','selectedOutput','reviewResult','actualSubmitter','completedAt'].forEach(key=>delete targetTask[key]);
+  ['selectedCandidateId','backupCandidateIds','selectedCandidateText','selectedOutput','reviewResult','actualSubmitter','completedAt'].forEach(key=>delete targetTask[key]);
   productionTasks=productionTasks.filter(item=>item.projectId!==task.projectId||String(item.workId)!==String(task.workId)||item.nodeIndex<targetIndex);
   productionTasks.push(targetTask);
   context.work.status='制作中';context.work.stage=targetNode.title;context.work.updated=new Date().toISOString();selectedTaskId=targetTask.id;
@@ -747,16 +747,34 @@ function generateTaskCandidates(task,kind){
   if(!validateTaskControls('[data-generation-required]'))return;
   const count=Math.max(1,Math.min(3,Number(task.formValues?.count)||(task.referenceSongDemo?2:3)));
   const candidates=kind==='song'&&task.referenceSongDemo&&window.orchestraReferenceSongTask?window.orchestraReferenceSongTask.candidates(true):taskGeneratedCandidates(kind);
-  task.candidates=candidates.slice(0,count);task.generationStage='generated';task.selectedCandidateId='';task.selectedCandidateText='';task.updatedAt=Date.now();task.updatedLabel='刚刚';
-  if(!persistProductionTasks()){showToast('生成结果保存失败，请稍后重试','error');return}
+  const before={...task};
+  task.candidates=candidates.slice(0,count);task.generationStage='generated';task.selectedCandidateId='';task.backupCandidateIds=[];task.selectedCandidateText='';task.selectedOutput=null;task.updatedAt=Date.now();task.updatedLabel='刚刚';
+  if(!persistProductionTasks()){for(const key of Object.keys(task)){if(!Object.prototype.hasOwnProperty.call(before,key))delete task[key]}Object.assign(task,before);showToast('生成结果保存失败，请稍后重试','error');return}
   renderTaskCenter();showToast(kind==='lyrics'?`AI 已生成 ${task.candidates.length} 份候选歌词，请选择并编辑`:`已生成 ${task.candidates.length} 个歌曲版本，请试听选择`);
 }
-function selectTaskCandidate(task,candidateId){
+function setTaskCandidateSelection(task,candidateId,asBackup=false){
   const candidate=task?.candidates?.find(item=>item.id===candidateId);if(!task||task.status!=='in_progress'||!candidate)return;
+  if(!asBackup&&task.selectedCandidateId===candidateId)return;
+  saveTaskPageValues(task);
+  const before={...task},validIds=new Set(task.candidates.map(item=>item.id));
+  const backups=new Set((Array.isArray(task.backupCandidateIds)?task.backupCandidateIds:[]).filter(id=>validIds.has(id)&&id!==task.selectedCandidateId));
+  if(asBackup){
+    if(backups.has(candidateId))backups.delete(candidateId);else backups.add(candidateId);
+    if(task.selectedCandidateId===candidateId){task.selectedCandidateId='';task.selectedCandidateText='';task.selectedOutput=null;}
+  }else{
+    task.selectedCandidateId=candidate.id;task.selectedCandidateText=candidate.content||'';task.selectedOutput=null;
+    backups.delete(candidateId);
+  }
+  task.backupCandidateIds=[...backups];task.updatedAt=Date.now();task.updatedLabel='刚刚';
+  if(!persistProductionTasks()){
+    for(const key of Object.keys(task)){if(!Object.prototype.hasOwnProperty.call(before,key))delete task[key]}
+    Object.assign(task,before);showToast('资源选择保存失败，请稍后重试','error');return;
+  }
   stopTaskSongPreview();
-  task.selectedCandidateId=candidate.id;task.selectedCandidateText=candidate.content||'';task.updatedAt=Date.now();task.updatedLabel='刚刚';
-  persistProductionTasks();renderTaskCenter();
+  renderTaskCenter();
 }
+function selectTaskCandidate(task,candidateId){setTaskCandidateSelection(task,candidateId)}
+function toggleTaskBackup(task,candidateId){setTaskCandidateSelection(task,candidateId,true)}
 function advanceProductionTask(task,outcome){
   if(!task||task.status!=='in_progress'){showToast('该任务已结束，无法重复处理','error');return}
   if(outcome==='complete'&&task.referenceSongDemo&&window.orchestraReferenceSongTask&&!window.orchestraReferenceSongTask.validateReference(task))return;
@@ -856,6 +874,7 @@ taskDetailPanel.addEventListener('click',event=>{
   const songPlay=event.target.closest('[data-task-song-play]');if(songPlay){toggleTaskSongPreview(songPlay);return}
   const generate=event.target.closest('[data-task-generate]');if(generate){generateTaskCandidates(task,generate.dataset.taskGenerate);return}
   const candidate=event.target.closest('[data-task-candidate]');if(candidate){selectTaskCandidate(task,candidate.dataset.taskCandidate);return}
+  const backup=event.target.closest('[data-task-backup]');if(backup){toggleTaskBackup(task,backup.dataset.taskBackup);return}
   const action=event.target.closest('[data-task-action]');if(action)advanceProductionTask(task,action.dataset.taskAction);
 });
 taskDetailPanel.addEventListener('input',event=>{event.target.removeAttribute?.('aria-invalid');updateTaskFieldTooltip(event.target);const task=productionTasks.find(item=>item.id===selectedTaskId);saveTaskPageValues(task);persistProductionTasks()});
