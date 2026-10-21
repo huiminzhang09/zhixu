@@ -49,7 +49,8 @@
   songContext.snapshot.nodes.slice(0,songIndex+1).forEach((node,index)=>{
    const task=createProductionTask(songContext,node,index,index===songIndex?'in_progress':'completed',seedTime-1000+index);
    Object.assign(task,{assignmentCreated:true,updatedAt:index===songIndex?seedTime+4:seedTime-1000+index,updatedLabel:'刚刚'});
-   if(index===songIndex)Object.assign(task,{nodeTitle:'基于参考生成歌曲',referenceSongDemo:true,requiresHuman:true,executionMode:'manual',generationStage:'generated',formValues:{lyrics:window.orchestraReferenceSongTask.lyrics,count:'2'},candidates:window.orchestraReferenceSongTask.candidates()});
+   // Each demo initialization starts a fresh generation; previously saved materials stay intact.
+   if(index===songIndex)Object.assign(task,{nodeTitle:'基于参考生成歌曲',referenceSongDemo:true,requiresHuman:true,executionMode:'manual',generationStage:'generated',formValues:{lyrics:window.orchestraReferenceSongTask.lyrics,count:'2'},candidates:window.orchestraReferenceSongTask.candidates(true)});
    else{
     task.completedAt=new Date(seedTime-1000+index).toISOString();task.actualSubmitter=member.name;
     if(node.type==='refLyrics')Object.assign(task,{selectedCandidateId:'reference-song-lyrics',selectedCandidateText:window.orchestraReferenceSongTask.lyrics,selectedOutput:{type:'lyrics',candidateId:'reference-song-lyrics',content:window.orchestraReferenceSongTask.lyrics}});

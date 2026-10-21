@@ -128,14 +128,15 @@ function commitRunComposition(project,run,drafts){
 {
  const project=projectData.find(p=>p.id==='orchestra-theme-album');
  if(project){
+  const retainedFinishedEdits=(project.works||[]).filter(work=>work.finishedEditedAt).map(modelClone);
   const previousSerials=new Map((project.runs||[]).filter(run=>/^DEMO-(?:STATE-00[1-4]|ALLOCATION-\d{3})$/.test(run.id)).map(run=>[run.id,run.serial]));
   const planId='DEMO-FOUR-STATES',planName='四种资源组合状态示例',now=new Date().toISOString();
   const source=project.runs.find(r=>r.resources?.some(x=>x.kind==='歌词')&&r.resources?.some(x=>x.kind==='音频'));
   const resourceTemplates=source?.resources||[];
   const lyricsTemplates=resourceTemplates.filter(resource=>resource.kind==='歌词'),audioTemplates=resourceTemplates.filter(resource=>resource.kind==='音频');
   const resourcesFor=(id,lyricCount,audioCount)=>[
-   ...lyricsTemplates.slice(0,lyricCount).map((resource,index)=>({...modelClone(resource),id:`${id}-LYRIC-${index+1}`,runId:id,planId})),
-   ...audioTemplates.slice(0,audioCount).map((resource,index)=>({...modelClone(resource),id:`${id}-AUDIO-${index+1}`,runId:id,planId}))
+   ...lyricsTemplates.slice(0,lyricCount).map((resource,index)=>({...modelClone(resource),id:`${id}-LYRIC-${index+1}`,selectionState:index===0?'selected':'backup',runId:id,planId})),
+   ...audioTemplates.slice(0,audioCount).map((resource,index)=>({...modelClone(resource),id:`${id}-AUDIO-${index+1}`,selectionState:index===0?'selected':'backup',runId:id,planId}))
   ];
   project.batches=[{id:planId,name:planName,quantity:14,workflowId:'reference-production',workflowName:'参考词曲完整流程',workflowVersion:'V1.0',delivery:'2026-09-30',notes:'001 进行中，仅分配人员；002 已完成，资源未组合；003 已组合且资源用完；004 已组合并保留可继续组合的资源；另有 10 条进行中运行用于批量分配人员。'}];
   project.runs=[1,2,3,4].map(index=>{
@@ -154,6 +155,7 @@ function commitRunComposition(project,run,drafts){
    {id:'DEMO-CONFIRMED-WORK-03',name:'晚风与星光 · 资源用尽示例',planId,runId:fullyUsed.id,projectId:project.id,resources:modelClone([usedLyrics,usedAudio].filter(Boolean)),creator:'张三',createdAt:now,compositionBatchId:'DEMO-CONFIRMED-BATCH-03'},
    {id:'DEMO-CONFIRMED-WORK-04',name:'晨光与远方 · 剩余资源示例',planId,runId:residual.id,projectId:project.id,resources:modelClone([residualLyrics,residualAudio].filter(Boolean)),creator:'李四',createdAt:now,compositionBatchId:'DEMO-CONFIRMED-BATCH-04'}
   ];
+  for(const edited of retainedFinishedEdits){const index=project.works.findIndex(work=>work.id===edited.id);if(index>=0)project.works[index]=edited;else project.works.push(edited)}
   fullyUsed.composition={batchId:'DEMO-CONFIRMED-BATCH-03',committedAt:now,workIds:['DEMO-CONFIRMED-WORK-03']};
   residual.composition={batchId:'DEMO-CONFIRMED-BATCH-04',committedAt:now,workIds:['DEMO-CONFIRMED-WORK-04']};
   project.calls=[];project.metricTasks=[];project.demoScenarioVersion=4;

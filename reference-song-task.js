@@ -47,7 +47,12 @@
     const outputs = results.length ? results.map((candidate, index) => {
       const selected = candidate.id === task.selectedCandidateId;
       const saved = window.orchestraMaterialLibrary?.hasSaved(task, candidate) || false;
-      return `<article class="song-studio-result${selected ? ' is-selected' : ''}" aria-label="${escapeHtml(candidate.title)}"><div class="song-studio-result-toolbar"><span class="song-studio-result-number">${index + 1}</span><a href="${escapeHtml(candidate.url)}" download="${escapeHtml(candidate.title)}.wav" title="下载${escapeHtml(candidate.title)}（演示音频）">${transferIcon(true)}<span>下载</span></a><button type="button" data-task-candidate="${escapeHtml(candidate.id)}" aria-pressed="${selected}" ${disabled}>✓ ${selected ? '已设为输出' : '设为输出'}</button><button type="button" class="song-studio-save-material${saved ? ' is-saved' : ''}" data-save-song-material="${escapeHtml(candidate.id)}" aria-label="${escapeHtml(candidate.title)}${saved ? '已保存至素材库' : '保存至素材库'}" title="${saved ? '已保存至素材库，可在「资产 → 素材库」查看' : '将该歌曲保存至素材库'}" ${saved ? 'disabled' : ''}>${saved ? '✓ 已保存' : '保存至素材库'}</button></div>${player(candidate, false, index + 1)}</article>`;
+      return `<article class="song-studio-result${selected ? ' is-selected' : ''}" aria-label="${escapeHtml(candidate.title)}">
+        <div class="song-studio-result-toolbar"><span class="song-studio-result-number">${index + 1}</span><strong class="song-studio-result-title" title="${escapeHtml(candidate.title)}">${escapeHtml(candidate.title)}</strong><div class="song-studio-result-actions" role="group" aria-label="${escapeHtml(candidate.title)}的操作">
+          <a href="${escapeHtml(candidate.url)}" download="${escapeHtml(candidate.title)}.wav" aria-label="下载${escapeHtml(candidate.title)}" title="下载${escapeHtml(candidate.title)}（演示音频）">${transferIcon(true)}<span>下载</span></a>
+          <button type="button" class="song-studio-save-material${saved ? ' is-saved' : ''}" data-save-song-material="${escapeHtml(candidate.id)}" aria-label="${escapeHtml(candidate.title)}${saved ? '已保存至素材库' : '保存素材'}" title="${saved ? '已保存至素材库，可在「素材」查看' : '选择素材库及文件夹后保存'}" ${saved ? 'disabled' : ''}>${saved ? '✓ 已保存' : '保存素材'}</button>
+        </div><button type="button" data-task-candidate="${escapeHtml(candidate.id)}" aria-pressed="${selected}" ${disabled}>✓ ${selected ? '已设为输出' : '设为输出'}</button></div>
+        <div class="song-studio-result-body">${player(candidate, false, index + 1)}</div></article>`;
     }).join('') : '<div class="ref-output-empty"><i>♫</i><b>暂无生成歌曲</b><small>确认左侧输入后，点击“开始运行”。</small></div>';
     return `<div class="reference-song-studio ref-song-workbench">
       <header class="song-studio-header ref-workbench-header"><div class="ref-workbench-meta"><i class="song-studio-node-icon" aria-hidden="true">♫</i><h2>基于参考生成歌曲</h2></div><span class="task-status ${status.className}">• ${status.label}</span></header>
@@ -139,18 +144,26 @@
       if (task.id === selectedTaskId) renderTaskCenter();
     }
   }
-  taskDetailPanel.addEventListener('click', event => {
+  taskDetailPanel.addEventListener('click', async event => {
     const button = event.target.closest('[data-save-song-material]');
     if (!button || button.disabled) return;
     const task = productionTasks.find(item => item.id === selectedTaskId);
     const candidate = task?.candidates?.find(item => item.id === button.dataset.saveSongMaterial);
     if (!candidate) return;
     if (!window.orchestraMaterialLibrary) { showToast('素材库暂时不可用，请刷新后重试', 'error'); return; }
-    if (window.orchestraMaterialLibrary.save(task, candidate)) {
-      button.disabled = true;
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    let saved = false;
+    try {
+      saved = await window.orchestraMaterialLibrary.save(task, candidate);
+    } finally {
+      button.removeAttribute('aria-busy');
+      button.disabled = saved;
+    }
+    if (saved) {
       button.classList.add('is-saved');
       button.textContent = '✓ 已保存';
-      button.title = '已保存至素材库，可在「资产 → 素材库」查看';
+      button.title = '已保存至素材库，可在「素材」查看';
       button.setAttribute('aria-label', `${candidate.title}已保存至素材库`);
     }
   });

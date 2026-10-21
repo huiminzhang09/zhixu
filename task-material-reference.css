@@ -1,0 +1,21 @@
+.task-material-reference { position: fixed; z-index: 3200; display: flex; flex-direction: column; overflow: hidden; width: 420px; border: 1px solid var(--line); border-radius: 12px; color: var(--text); background: var(--surface); box-shadow: 0 12px 40px #0005; }
+.task-material-reference[hidden] { display: none; }
+.task-material-reference > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 14px 16px 10px; flex-shrink: 0; }
+.task-material-reference header b { display: block; font-size: 14px; font-weight: 650; }
+.task-material-reference header small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+.task-material-reference header button { padding: 0; width: 24px; height: 24px; border: 0; border-radius: 5px; color: var(--muted); background: transparent; font-size: 21px; cursor: pointer; }
+.task-material-reference-libraries { display: flex; flex-shrink: 0; gap: 6px; padding: 0 12px 10px; border-bottom: 1px solid var(--line); }
+.task-material-reference-libraries button { padding: 5px 10px; border: 1px solid transparent; border-radius: 6px; color: var(--muted); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
+.task-material-reference-libraries button[aria-pressed="true"] { color: #ae87f7; border-color: #8559e844; background: #8559e81c; }
+.task-material-reference-status { flex-shrink: 0; margin: 0; padding: 9px 16px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.task-material-reference-options { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 6px 6px; scrollbar-width: thin; }
+.task-material-reference-options > button { display: block; width: 100%; padding: 10px; margin: 0; border: 1px solid transparent; border-radius: 7px; text-align: left; color: var(--text); background: transparent; font: inherit; cursor: pointer; }
+.task-material-reference-options > button:hover { background: var(--surface-2); }
+.task-material-reference-options > button[aria-selected="true"] { border-color: #8559e844; background: #8559e81c; }
+.task-material-reference-option-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.task-material-reference-option-title b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
+.task-material-reference-option-title small { flex-shrink: 0; padding: 2px 5px; border-radius: 4px; font-size: 10px; color: var(--muted); background: var(--surface-2); }
+.task-material-reference-path { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-material-reference-preview { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: 7px; color: var(--muted); font-size: 12px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-material-reference > footer { flex-shrink: 0; padding: 10px 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+.task-material-reference button:focus-visible { outline: 2px solid #9774e7; outline-offset: -2px; }

@@ -1,5 +1,7 @@
 .workflows-page { animation: pageIn .32s ease both; }
-body:has(#assetsPage.active) .player { display: none; }
+body:has(.library-page.active) .player { display: none; }
+.library-page-heading { display: flex; align-items: center; min-height: 48px; border-bottom: 1px solid var(--line); }
+.library-page-heading h1 { margin: 0; font-size: 18px; line-height: 1.4; font-weight: 660; color: var(--text); }
 .asset-tabs { display: flex; gap: 29px; margin-top: 0; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
 .asset-tabs::-webkit-scrollbar { display: none; }
 .asset-tabs button { height: 48px; position: relative; flex-shrink: 0; padding: 0 3px; border: 0; background: transparent; color: var(--muted); font-size: 14px; font-weight: 660; cursor: pointer; }

@@ -1,4 +1,4 @@
-body.task-mode main, body:has(#assetsPage.active) main {
+body.task-mode main, body:has(.library-page.active) main {
   max-width: none;
   padding-top: 80px;
   padding-left: clamp(18px, 1.5vw, 28px);
@@ -454,13 +454,13 @@ body.task-mode .player { transform: translateY(110%); opacity: 0; pointer-events
   .task-candidate-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 900px) {
-  body.task-mode main, body:has(#assetsPage.active) main { padding-top: 80px; padding-left: 20px; padding-right: 20px; }
+  body.task-mode main, body:has(.library-page.active) main { padding-top: 80px; padding-left: 20px; padding-right: 20px; }
   .task-workspace { grid-template-columns: 1fr; }
   .task-detail-shell { min-height: 0; }
   .task-detail-empty { min-height: 260px; }
 }
 @media (max-width: 560px) {
-  body.task-mode main, body:has(#assetsPage.active) main { padding: 70px 14px 116px; }
+  body.task-mode main, body:has(.library-page.active) main { padding: 70px 14px 116px; }
   .task-tabs > div { gap: 20px; }
   .task-list-shell { padding: 12px; }
   .task-item-head { grid-template-columns: 32px minmax(0,1fr); }

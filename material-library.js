@@ -13,7 +13,7 @@
   const failedExampleSeeds = new Set();
   const locations = new Map(), previewUrls = new Set();
   const q = selector => panel.querySelector(selector);
-  const libraryName = library => library === 'personal' ? '个人资产库' : '团队资产库';
+  const libraryName = library => library === 'personal' ? '个人素材库' : '团队素材库';
   const allowsRootMaterials = context => ['personal', 'team'].includes(context.library);
   const activeTeam = () => document.querySelector('.workspace-option.active')?.dataset.workspaceId || 'orchestra-studio';
   const currentAccount = () => localStorage.getItem('orchestra-demo-account') || 'demo-user';
@@ -118,7 +118,7 @@
       if (record.deletedIn?.includes(scopeKey(context))) return false;
       if (record.library && record.library !== context.library) return false;
       return context.library === 'team' || record.savedBy === context.account;
-    }).map(record => ({ ...record, title: record.namesByLibrary?.[scopeKey(context)] || record.title }));
+    }).map(record => ({ ...record, title: record.namesByLibrary?.[scopeKey(context)] || record.title, content: record.contentsByLibrary?.[scopeKey(context)] ?? record.content }));
   }
   function folderPath(context, folders = foldersFor(context)) {
     const path = [], visited = new Set();
@@ -134,11 +134,10 @@
     const id = record.folderIds?.[scopeKey(context)];
     return folders.some(folder => folder.id === id) ? id : null;
   }
-  function titleValue(value, max = 100) {
+  function titleValue(value) {
     const title = value.trim();
     if (!title) throw new Error('请输入名称');
-    if (Array.from(title).length > max) throw new Error(`名称最多 ${max} 个字`);
-    if (/[\u0000-\u001f\u007f/\\]/.test(title)) throw new Error('名称不能包含换行、斜杠或反斜杠');
+    if (Array.from(title).length > 20) throw new Error('名称不能超过 20 个字符');
     return title;
   }
   function persist(key, value) {
@@ -146,7 +145,7 @@
     catch { throw new Error('保存失败，浏览器存储空间不足或不可用，请重试'); }
   }
   function createFolder(context, value) {
-    const title = titleValue(value, 40), folders = foldersFor(context);
+    const title = titleValue(value), folders = foldersFor(context);
     if (folderPath(context, folders).length >= 2) throw new Error('最多支持 2 层文件夹，不能继续新建子文件夹');
     if (folders.some(folder => folder.parentId === context.folderId && folder.title.toLocaleLowerCase() === title.toLocaleLowerCase())) throw new Error('当前目录已有同名文件夹，请更换名称');
     const folder = { id: crypto.randomUUID(), title, parentId: context.folderId, library: context.library, savedBy: context.account, createdAt: new Date().toISOString() };
@@ -218,7 +217,7 @@
     persist(folderStorageKey(context.team), readFolders(context.team).map(folder => folder.id === id ? { ...folder, parentId: targetId || null } : folder));
   }
   function renameItem(context, kind, id, value) {
-    const item = getItem(context, kind, id), title = titleValue(value, kind === 'folder' ? 40 : 100);
+    const item = getItem(context, kind, id), title = titleValue(value);
     if (kind === 'folder') {
       if (foldersFor(context).some(folder => folder.id !== id && folder.parentId === item.parentId && folder.title.toLocaleLowerCase() === title.toLocaleLowerCase())) throw new Error('同一目录下已有同名文件夹');
       persist(folderStorageKey(context.team), readFolders(context.team).map(folder => folder.id === id ? { ...folder, title } : folder));
@@ -280,29 +279,138 @@
     catch (error) { await fileOperation('delete', blobId).catch(() => {}); throw error; }
   }
   function hasSaved(task, candidate) {
-    try { return read(taskTeam(task)).some(record => record.id === recordId(task, candidate) && (!record.deletedIn?.includes('team') || (record.savedBy === currentAccount() && !record.deletedIn?.includes('personal:' + currentAccount())))); }
+    try {
+      const context = { team: taskTeam(task), account: currentAccount() }, sourceId = recordId(task, candidate);
+      return ['personal', 'team'].some(library => visibleRecords({ ...context, library }).some(record => (record.sourceId || record.id) === sourceId));
+    }
     catch { return false; }
   }
-  function save(task, candidate) {
+  const saveLibraryName = library => library === 'personal' ? '个人素材库' : '团队素材库';
+  function saveDestinationLabel(context) {
+    return [saveLibraryName(context.library), ...folderPath(context).map(folder => folder.title)].join(' / ');
+  }
+  function saveFolderPickerMarkup(context) {
+    return ['personal', 'team'].map(library => {
+      const root = { ...context, library }, folders = foldersFor(root), expanded = context.library === library;
+      const children = (parentId, depth = 0) => {
+        if (depth >= 2) return '';
+        return folders.filter(folder => folder.parentId === parentId).sort((a, b) => a.title.localeCompare(b.title, 'zh-CN')).map(folder => {
+          const selected = expanded && context.folderId === folder.id;
+          const nested = children(folder.id, depth + 1);
+          return `<li><label class="material-save-folder-option"><input type="radio" name="saveDestination" value="${escapeHtml(folder.id)}" data-save-folder data-save-library="${library}" ${selected ? 'checked' : ''}><span class="material-save-folder-icon" aria-hidden="true">${folderIcon}</span><span>${escapeHtml(folder.title)}</span></label>${nested ? `<ul>${nested}</ul>` : ''}</li>`;
+        }).join('');
+      };
+      const contents = children(null);
+      return `<section class="material-save-library"><button type="button" class="material-save-library-root" data-save-library-switch="${library}" aria-expanded="${expanded}" aria-controls="materialSaveFolders-${library}"><span aria-hidden="true">${expanded ? '⌄' : '›'}</span><span class="material-save-folder-icon" aria-hidden="true">${folderIcon}</span>${saveLibraryName(library)}</button><div id="materialSaveFolders-${library}" class="material-save-library-folders" ${expanded ? '' : 'hidden'}>${contents ? `<ul>${contents}</ul>` : '<p class="material-dialog-hint">暂无文件夹，请点击上方“新建文件夹”。</p>'}</div></section>`;
+    }).join('');
+  }
+  function saveSongToFolder(task, candidate, context, value) {
+    if (context.account !== currentAccount() || context.team !== activeTeam() || context.team !== taskTeam(task)) throw new Error('当前账号或团队已变更，请关闭弹窗后重试');
+    if (!task?.referenceSongDemo || !task.candidates?.includes(candidate) || !candidate?.url) throw new Error('该歌曲已更新，请关闭弹窗后重新选择');
+    if (!['personal', 'team'].includes(context.library)) throw new Error('请选择素材库');
+    if (!context.folderId) throw new Error('请选择具体的保存文件夹');
+    const title = value.trim();
+    if (Array.from(title).length > 20) throw new Error('素材名称不能超过 20 个字符');
+    titleValue(title);
+    requireMaterialLocation(context);
+    if (hasSaved(task, candidate)) throw new Error('该歌曲已保存至素材库，请关闭弹窗后查看');
+    return addMaterial(context, {
+      sourceId: recordId(task, candidate), title, url: candidate.url, durationSeconds: candidate.durationSeconds,
+      taskId: task.id, runId: task.workId, projectId: task.projectId,
+      projectName: task.projectName, planName: task.planName, nodeTitle: task.nodeTitle, type: 'audio'
+    });
+  }
+  async function save(task, candidate) {
     if (!task?.referenceSongDemo || !task.candidates?.includes(candidate) || !candidate?.url) return false;
     try {
-      const team = taskTeam(task), records = read(team), id = recordId(task, candidate);
       if (hasSaved(task, candidate)) { showToast('该歌曲已保存至素材库'); return true; }
-      const account = currentAccount();
-      const personal = { team, account, library: 'personal', folderId: null }, shared = { ...personal, library: 'team' };
-      const personalFolder = defaultFolder(personal), teamFolder = defaultFolder(shared);
-      const material = {
-        id, title: candidate.title, url: candidate.url, durationSeconds: candidate.durationSeconds,
-        taskId: task.id, runId: task.workId, projectId: task.projectId,
-        projectName: task.projectName, planName: task.planName, nodeTitle: task.nodeTitle,
-        createdAt: new Date().toISOString(), savedBy: account, type: 'audio',
-        folderIds: { [scopeKey(personal)]: personalFolder.id, [scopeKey(shared)]: teamFolder.id }
-      };
-      localStorage.setItem(storageKey(team), JSON.stringify([material, ...records.filter(record => record.id !== id)]));
-    } catch { showToast('保存失败，请检查浏览器存储空间后重试', 'error'); return false; }
-    render();
-    showToast('已保存至「资产 → 素材库 → 未分类素材」');
-    return true;
+      const base = { team: taskTeam(task), account: currentAccount(), folderId: null };
+      return await new Promise(resolve => {
+        let saved = false;
+        const dialog = openDialog('保存至素材库', `
+          <p class="material-dialog-hint">选择保存位置，并为这首歌曲命名。</p>
+          <input type="hidden" name="library" value="personal"><input type="hidden" name="folderId" value="">
+          <div class="material-save-folder-heading"><span id="materialSaveLocationTitle">保存位置 <em>*</em></span><button type="button" data-new-save-folder aria-expanded="false">＋ 新建文件夹</button></div>
+          <div class="material-save-tree" data-save-folder-tree role="group" aria-labelledby="materialSaveLocationTitle" aria-describedby="materialSavePath"></div>
+          <div class="material-save-new-folder" data-save-new-folder hidden>
+            <label>新文件夹名称<input name="newFolderName" maxlength="40" placeholder="请输入文件夹名称" disabled></label>
+            <p class="material-dialog-hint" data-new-save-folder-hint></p>
+            <button type="button" data-confirm-save-folder>创建文件夹</button>
+          </div>
+          <p id="materialSavePath" class="material-dialog-hint" role="status"></p>
+          <label>素材名称 <span>*</span><input name="title" required maxlength="40" autocomplete="off" placeholder="请输入素材名称" aria-describedby="materialSaveNameHint"></label>
+          <p id="materialSaveNameHint" class="material-save-name-hint"><span>不超过 20 个字符，支持特殊符号</span><span data-save-name-count aria-live="polite">0 / 20</span></p>`, '确认保存', form => {
+          const context = { ...base, library: form.elements.library.value, folderId: form.elements.folderId.value };
+          saveSongToFolder(task, candidate, context, form.elements.title.value);
+          saved = true;
+          showToast(`已保存至「${saveDestinationLabel(context)}」`);
+        });
+        dialog.addEventListener('close', () => resolve(saved), { once: true });
+        const form = dialog.querySelector('form'), { library, folderId, title, newFolderName } = form.elements;
+        const error = dialog.querySelector('.material-dialog-error'), tree = dialog.querySelector('[data-save-folder-tree]');
+        const context = () => ({ ...base, library: library.value, folderId: folderId.value || null });
+        const updatePath = () => {
+          dialog.querySelector('#materialSavePath').textContent = folderId.value
+            ? `保存至：${saveDestinationLabel(context())}` : `请在${saveLibraryName(library.value)}中选择具体文件夹。`;
+        };
+        const updateFolders = (selected = '') => {
+          const folders = foldersFor(context());
+          folderId.value = folders.some(folder => folder.id === selected) ? selected : '';
+          tree.innerHTML = saveFolderPickerMarkup(context());
+          dialog.querySelector('[data-new-save-folder-hint]').textContent = `名称不超过 20 个字符，支持特殊符号。在${saveLibraryName(library.value)}下新建一级文件夹。`;
+          updatePath();
+        };
+        const closeFolderEditor = () => {
+          dialog.querySelector('[data-save-new-folder]').hidden = true;
+          dialog.querySelector('[data-new-save-folder]').setAttribute('aria-expanded', 'false');
+          newFolderName.disabled = true; newFolderName.value = '';
+        };
+        const changeLocation = action => {
+          error.textContent = '';
+          try { action(); } catch (failure) { error.textContent = failure.message; }
+        };
+        tree.addEventListener('click', event => {
+          const button = event.target.closest('[data-save-library-switch]');
+          if (!button) return;
+          changeLocation(() => {
+            const selected = library.value === button.dataset.saveLibrarySwitch ? folderId.value : '';
+            library.value = button.dataset.saveLibrarySwitch;
+            closeFolderEditor(); updateFolders(selected);
+            tree.querySelector(`[data-save-library-switch="${library.value}"]`)?.focus();
+          });
+        });
+        tree.addEventListener('change', event => {
+          const choice = event.target.closest('[data-save-folder]');
+          if (!choice?.checked || choice.dataset.saveLibrary !== library.value) return;
+          changeLocation(() => { folderId.value = choice.value; updatePath(); });
+        });
+        dialog.querySelector('[data-new-save-folder]').addEventListener('click', () => {
+          const editor = dialog.querySelector('[data-save-new-folder]');
+          if (!editor.hidden) { closeFolderEditor(); return; }
+          editor.hidden = false; newFolderName.disabled = false;
+          dialog.querySelector('[data-new-save-folder]').setAttribute('aria-expanded', 'true');
+          newFolderName.focus();
+        });
+        const createDestinationFolder = () => changeLocation(() => {
+          if (base.account !== currentAccount() || base.team !== activeTeam()) throw new Error('当前账号或团队已变更，请关闭弹窗后重试');
+          const folder = createFolder({ ...context(), folderId: null }, newFolderName.value);
+          updateFolders(folder.id); closeFolderEditor();
+        });
+        dialog.querySelector('[data-confirm-save-folder]').addEventListener('click', createDestinationFolder);
+        newFolderName.addEventListener('keydown', event => {
+          if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); createDestinationFolder(); }
+        });
+        const updateName = () => {
+          const length = Array.from(title.value).length;
+          title.setCustomValidity(length > 20 ? '素材名称不能超过 20 个字符' : '');
+          dialog.querySelector('[data-save-name-count]').textContent = `${length} / 20`;
+          dialog.querySelector('[data-save-name-count]').classList.toggle('is-over-limit', length > 20);
+        };
+        title.value = Array.from(candidate.title?.trim() || '').slice(0, 20).join('');
+        title.addEventListener('input', updateName);
+        updateName(); changeLocation(updateFolders);
+      });
+    } catch (error) { showToast(error.message || '保存失败，请重试', 'error'); return false; }
   }
   function stopAudio() { panel.querySelectorAll('audio').forEach(audio => audio.pause()); }
   function releasePreviews() {
@@ -324,7 +432,7 @@
   }
   function previewMarkup(record) {
     const id = escapeHtml(record.id), title = escapeHtml(record.title);
-    if (record.type === 'text') return `<button type="button" class="material-text-preview" data-preview-material="${id}" aria-label="查看文字：${title}"><span class="material-text-format" aria-hidden="true">TXT</span><svg class="material-document-symbol" viewBox="0 0 128 128" fill="none" aria-hidden="true"><path d="M51 31h6l4 4v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V32a1 1 0 0 1 1-1Z M57 31v4h4 M53 38h5 M53 41h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M37 83h53 M37 90h41 M37 97h47" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>`;
+    if (record.type === 'text') return `<button type="button" class="material-text-preview" data-preview-material="${id}" aria-label="编辑文本：${title}"><span class="material-text-format" aria-hidden="true">TXT</span><svg class="material-document-symbol" viewBox="0 0 128 128" fill="none" aria-hidden="true"><path d="M51 31h6l4 4v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V32a1 1 0 0 1 1-1Z M57 31v4h4 M53 38h5 M53 41h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M37 83h53 M37 90h41 M37 97h47" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>`;
     const source = record.blobId ? `data-blob-preview="${escapeHtml(record.blobId)}"` : `src="${escapeHtml(record.url || '')}"`;
     if (record.type === 'image') return `<button type="button" class="material-image-preview" data-preview-material="${id}" aria-label="查看图片：${title}"><img ${source} alt="${title}" draggable="false"></button>`;
     return `<button type="button" class="material-audio-preview" data-preview-material="${id}" aria-label="试听音频：${title}">${audioSymbol()}</button>`;
@@ -357,10 +465,10 @@
       const children = folders.filter(folder => folder.parentId === context.folderId);
       const allRecords = visibleRecords(context), records = allRecords.filter(record => recordFolder(record, context, folders) === context.folderId);
       q('#materialBreadcrumb').innerHTML = [{ id: '', title: libraryName(context.library) }, ...path].map((folder, index) => `${index ? '<span aria-hidden="true">/</span>' : ''}${index === path.length ? `<span aria-current="page">${escapeHtml(folder.title)}</span>` : `<button type="button" data-open-material-folder="${escapeHtml(folder.id)}">${escapeHtml(folder.title)}</button>`}`).join('');
-      q('#materialFolderHint').textContent = !path.length ? (allowsRootMaterials(context) ? '可直接新建文件夹、新建文本或上传资产；文件夹最多支持 2 层。' : '素材按文件夹存放，点击文件夹查看内容；最多支持 2 层文件夹。') : path.length >= 2 ? '已达第 2 层，可添加文字、图片和音频；如需新建文件夹，请返回上级。' : '可添加文字、图片和音频，或新建第二层文件夹。';
+      q('#materialFolderHint').textContent = !path.length ? (allowsRootMaterials(context) ? '可直接新建文件夹或添加资产；支持文本、图片和音频，文件夹最多支持 2 层。' : '素材按文件夹存放，点击文件夹查看内容；最多支持 2 层文件夹。') : path.length >= 2 ? '已达第 2 层，可添加文本、图片和音频；如需新建文件夹，请返回上级。' : '可添加文本、图片和音频，或新建第二层文件夹。';
       q('#materialFolders').innerHTML = children.map(folder => {
         const title = escapeHtml(folder.title), date = materialDate(folder.createdAt);
-        return `<div role="listitem" class="material-folder-item" data-drop-material-folder="${escapeHtml(folder.id)}"><button class="material-folder-card" type="button" data-open-material-folder="${escapeHtml(folder.id)}" aria-label="打开文件夹：${title}"><span class="material-folder-cover"><img src="./assets/material-folder.svg" alt="" draggable="false"></span><span class="material-folder-info"><strong title="${title}">${title}</strong><time datetime="${escapeHtml(folder.createdAt)}">${escapeHtml(date)}</time></span></button><input type="checkbox" class="material-folder-select" aria-label="选择文件夹：${title}">${menuTrigger('folder', folder)}</div>`;
+        return `<div role="listitem" class="material-folder-item" data-drop-material-folder="${escapeHtml(folder.id)}"><button class="material-folder-card" type="button" data-open-material-folder="${escapeHtml(folder.id)}" aria-label="打开文件夹：${title}"><span class="material-folder-cover"><img src="./assets/material-folder.svg" alt="" draggable="false"></span><span class="material-folder-info"><strong title="${title}">${title}</strong><time datetime="${escapeHtml(folder.createdAt)}">${escapeHtml(date)}</time></span></button>${menuTrigger('folder', folder)}</div>`;
       }).join('');
       q('#materialFolders').hidden = !children.length;
       q('#materialLibraryDescription').textContent = !context.folderId ? `共 ${allRecords.length} 个素材${allowsRootMaterials(context) ? '（含子文件夹）' : '，按文件夹存放'}` : `${libraryName(context.library)} · 当前文件夹`;
@@ -370,7 +478,7 @@
         const type = ['text', 'image'].includes(record.type) ? record.type : 'audio';
         const date = materialDate(record.createdAt);
         return `<article class="material-file-card" role="listitem" draggable="true" data-drag-material="${escapeHtml(record.id)}"><div class="material-file-preview material-file-preview-${type}">${previewMarkup(record)}</div><div class="material-file-info"><h3 title="${escapeHtml(record.title)}">${escapeHtml(record.title)}</h3>${menuTrigger('material', record)}<time datetime="${escapeHtml(record.createdAt)}">${escapeHtml(date)}</time></div></article>`;
-      }).join('') || `<p class="material-grid-message">${context.folderId ? '当前文件夹暂无素材，可新建文字、上传图片或音频。' : allowsRootMaterials(context) ? '暂无内容，点击「＋ 新建」添加文件夹、文本或上传资产。' : '暂无文件夹，点击「新建文件夹」开始整理素材。'}</p>`;
+      }).join('') || `<p class="material-grid-message">${context.folderId ? '当前文件夹暂无素材，点击「＋ 新建 → 添加资产」添加文本、图片或音频。' : allowsRootMaterials(context) ? '暂无内容，点击「＋ 新建」新建文件夹或添加资产。' : '暂无文件夹，点击「新建文件夹」开始整理素材。'}</p>`;
       hydratePreviews(version);
     } catch {
       q('#materialCount').textContent = '素材读取失败';
@@ -470,7 +578,7 @@
     if (reason) throw new Error(reason);
     const target = { ...context, folderId: parentId }, item = getItem(context, kind, id);
     closeMenu(true);
-    openDialog('新建文件夹', `<p class="material-dialog-hint">位置：${escapeHtml(destinationLabel(target))}</p><label>文件夹名称 <span>*</span><input name="title" required maxlength="40" placeholder="请输入文件夹名称" autocomplete="off" autofocus></label><p class="material-dialog-hint">创建后将「${escapeHtml(item.title)}」移入新文件夹。</p>`, '创建并移入', form => {
+    openDialog('新建文件夹', `<p class="material-dialog-hint">位置：${escapeHtml(destinationLabel(target))}</p><label>文件夹名称 <span>*</span><input name="title" required maxlength="40" placeholder="请输入文件夹名称" autocomplete="off" autofocus></label><p class="material-dialog-hint">名称不超过 20 个字符，支持特殊符号。创建后将「${escapeHtml(item.title)}」移入新文件夹。</p>`, '创建并移入', form => {
       getItem(context, kind, id);
       const restriction = moveNewFolderRestriction(context, kind, id, parentId);
       if (restriction) throw new Error(restriction);
@@ -607,8 +715,7 @@
     const materialReason = context.folderId || allowsRootMaterials(context) ? '' : '请先进入文件夹';
     return [
       { label: '新建文件夹', reason: folderPath(context).length >= 2 ? '已达到 2 层上限' : '', action: openCreateFolder },
-      { label: '新建文本', reason: materialReason, action: openTextEditor },
-      { label: '上传资产', reason: materialReason, action: openUpload }
+      { label: '添加资产', reason: materialReason, action: openAddMaterial }
     ];
   }
   function openCardMenu(trigger) {
@@ -634,11 +741,15 @@
     dialog.className = 'material-dialog'; dialog.setAttribute('aria-labelledby', 'materialDialogTitle');
     dialog.innerHTML = `<form novalidate><header><h2 id="materialDialogTitle">${escapeHtml(title)}</h2><button type="button" data-close aria-label="关闭">×</button></header>${body}<p class="material-dialog-error" role="alert"></p><footer><button type="button" data-close>${submitLabel ? '取消' : '关闭'}</button>${submitLabel ? `<button type="submit" class="material-primary">${escapeHtml(submitLabel)}</button>` : ''}</footer></form>`;
     const form = dialog.querySelector('form'), error = dialog.querySelector('.material-dialog-error');
+    // Native maxlength counts UTF-16 units; validate code points so emoji also count as one character.
+    const nameInputs = Array.from(dialog.querySelectorAll('input[name="title"], input[name="newFolderName"]'));
+    const validateNames = () => nameInputs.forEach(input => input.setCustomValidity(Array.from(input.value).length > 20 ? '名称不能超过 20 个字符' : ''));
+    nameInputs.forEach(input => input.addEventListener('input', validateNames));
     dialog.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => { if (!busy) dialog.close(); }));
     dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
     form.addEventListener('submit', async event => {
       event.preventDefault(); if (busy || !onSubmit) return;
-      error.textContent = ''; if (!form.reportValidity()) return;
+      error.textContent = ''; validateNames(); if (!form.reportValidity()) return;
       busy = true; dialog.setAttribute('aria-busy', 'true');
       dialog.querySelectorAll('button').forEach(button => { button.disabled = true; });
       try { await onSubmit(form); dialog.close(); render(); }
@@ -655,30 +766,75 @@
     const context = contextNow();
     try {
       if (folderPath(context).length >= 2) { showToast('最多支持 2 层文件夹', 'error'); return; }
-      openDialog('新建文件夹', `<p class="material-dialog-hint">位置：${escapeHtml(destinationLabel(context))}</p><label>文件夹名称 <span>*</span><input name="title" required maxlength="40" placeholder="请输入文件夹名称" autocomplete="off" autofocus></label><p class="material-dialog-hint">最多 40 个字，同一目录下名称不能重复。</p>`, '创建', form => { createFolder(context, form.elements.title.value); showToast('文件夹已创建'); });
+      openDialog('新建文件夹', `<p class="material-dialog-hint">位置：${escapeHtml(destinationLabel(context))}</p><label>文件夹名称 <span>*</span><input name="title" required maxlength="40" placeholder="请输入文件夹名称" autocomplete="off" autofocus></label><p class="material-dialog-hint">名称不超过 20 个字符，支持特殊符号；同一目录下名称不能重复。</p>`, '创建', form => { createFolder(context, form.elements.title.value); showToast('文件夹已创建'); });
     } catch (error) { showToast(error.message, 'error'); }
   }
-  function openTextEditor() {
+  function openAddMaterial() {
     const context = contextNow();
     requireMaterialLocation(context);
-    openDialog('新建文本', `<p class="material-dialog-hint">保存到：${escapeHtml(destinationLabel(context))}</p><label>名称 <span>*</span><input name="title" required maxlength="100" placeholder="例如：歌曲灵感、参考歌词" autofocus></label><label>文字内容 <span>*</span><textarea name="content" required maxlength="20000" placeholder="请输入文字内容"></textarea></label>`, '保存', form => {
-      const content = form.elements.content.value.trim();
-      if (!content) throw new Error('请输入文字内容');
-      addMaterial(context, { title: form.elements.title.value, type: 'text', content }); showToast('文字已保存');
+    const mediaTypes = {
+      image: { label: '图片', accept: '.png,.jpg,.jpeg,.gif,.webp,.avif', formats: 'PNG、JPG、GIF、WebP、AVIF' },
+      audio: { label: '音频', accept: '.mp3,.wav,.m4a,.ogg,.flac,.aac', formats: 'MP3、WAV、M4A、OGG、FLAC、AAC' }
+    };
+    const dialog = openDialog('添加资产', `
+      <p class="material-dialog-hint">保存到：${escapeHtml(destinationLabel(context))}</p>
+      <label>资产类型 <span>*</span><select name="assetType" required autofocus><option value="text">文本</option><option value="image">图片</option><option value="audio">音频</option></select></label>
+      <div data-media-fields hidden>
+        <label><span class="material-file-label" data-file-label>选择文件</span> <span>*</span><input type="file" name="file" disabled aria-describedby="materialUploadHint"></label>
+        <p id="materialUploadHint" class="material-dialog-hint"></p>
+      </div>
+      <label>资产名称 <span>*</span><input name="title" required maxlength="40" placeholder="例如：歌曲灵感、参考歌词"></label>
+      <p class="material-dialog-hint">名称不超过 20 个字符，支持特殊符号。</p>
+      <div data-text-fields>
+        <label>文本内容 <span>*</span><textarea name="content" required maxlength="20000" placeholder="请输入文本内容"></textarea></label>
+        <p class="material-dialog-hint">最多 20,000 个字符。</p>
+      </div>`, '保存文本', async form => {
+      const type = form.elements.assetType.value;
+      if (type === 'text') {
+        const content = form.elements.content.value.trim();
+        if (!content) throw new Error('请输入文本内容');
+        addMaterial(context, { title: form.elements.title.value, type, content });
+        showToast('文本已保存');
+        return;
+      }
+      const media = mediaTypes[type], file = form.elements.file.files[0];
+      if (!media) throw new Error('请选择资产类型');
+      if (!file) throw new Error(`请选择${media.label}文件`);
+      if (uploadType(file) !== type) throw new Error(`当前类型为${media.label}，请选择对应的${media.label}文件`);
+      await uploadFile(context, file, form.elements.title.value);
+      showToast(`${media.label}已上传`);
     });
-  }
-  function openUpload() {
-    const context = contextNow();
-    requireMaterialLocation(context);
-    const dialog = openDialog('上传资产', `<p class="material-dialog-hint">保存到：${escapeHtml(destinationLabel(context))}</p><label>选择文件 <span>*</span><input type="file" name="file" accept=".png,.jpg,.jpeg,.gif,.webp,.avif,.mp3,.wav,.m4a,.ogg,.flac,.aac" required></label><p class="material-dialog-hint">支持 PNG、JPG、GIF、WebP、AVIF 图片及 MP3、WAV、M4A、OGG、FLAC、AAC 音频，单个文件不超过 50 MB。文件保存在当前浏览器。</p><label>素材名称 <span>*</span><input name="title" required maxlength="100" placeholder="选择文件后自动填入，可修改"></label>`, '上传', async form => {
-      await uploadFile(context, form.elements.file.files[0], form.elements.title.value); showToast('素材已上传');
+    const form = dialog.querySelector('form'), { assetType, file, title, content } = form.elements;
+    let automaticTitle = '';
+    const updateType = () => {
+      const isText = assetType.value === 'text', media = mediaTypes[assetType.value];
+      dialog.querySelector('[data-text-fields]').hidden = !isText;
+      dialog.querySelector('[data-media-fields]').hidden = isText;
+      content.disabled = !isText; content.required = isText;
+      file.disabled = isText; file.required = !isText; file.value = '';
+      file.accept = media?.accept || '';
+      if (automaticTitle && title.value === automaticTitle) title.value = '';
+      automaticTitle = '';
+      title.placeholder = isText ? '例如：歌曲灵感、参考歌词' : '选择文件后自动填入，可修改';
+      dialog.querySelector('[data-file-label]').textContent = media ? `选择${media.label}` : '选择文件';
+      dialog.querySelector('#materialUploadHint').textContent = media ? `支持 ${media.formats}，单个文件不超过 50 MB。` : '';
+      dialog.querySelector('[type="submit"]').textContent = isText ? '保存文本' : `上传${media.label}`;
+      dialog.querySelector('.material-dialog-error').textContent = '';
+    };
+    assetType.addEventListener('change', updateType);
+    file.addEventListener('change', () => {
+      if (!file.files[0]) return;
+      if (!title.value.trim() || title.value === automaticTitle) {
+        automaticTitle = Array.from(file.files[0].name).slice(0, 20).join('');
+        title.value = automaticTitle;
+      }
+      dialog.querySelector('.material-dialog-error').textContent = '';
     });
-    const form = dialog.querySelector('form');
-    form.elements.file.addEventListener('change', () => { if (form.elements.file.files[0]) form.elements.title.value = form.elements.file.files[0].name.slice(0, 100); });
+    updateType();
   }
   function openRename(context, kind, id) {
     const item = getItem(context, kind, id);
-    const dialog = openDialog('重命名', `<label>${kind === 'folder' ? '文件夹名称' : '素材名称'} <span>*</span><input name="title" required maxlength="${kind === 'folder' ? 40 : 100}" autocomplete="off" autofocus></label>`, '保存', form => {
+    const dialog = openDialog('重命名', `<label>${kind === 'folder' ? '文件夹名称' : '素材名称'} <span>*</span><input name="title" required maxlength="40" autocomplete="off" autofocus></label><p class="material-dialog-hint">名称不超过 20 个字符，支持特殊符号。</p>`, '保存', form => {
       renameItem(context, kind, id, form.elements.title.value); showToast('名称已更新');
     });
     const input = dialog.querySelector('input'); input.value = item.title; input.select();
@@ -693,7 +849,32 @@
   }
   async function openPreview(record) {
     if (record.type === 'text') {
-      openDialog(record.title, `<div class="material-text-content">${escapeHtml(record.content)}</div>`); return;
+      const context = contextNow(), original = getItem(context, 'material', record.id);
+      const dialog = openDialog('编辑文本', `
+        <label>标题 <span>*</span><input name="title" required maxlength="40" autocomplete="off" autofocus placeholder="请输入文本标题"></label>
+        <p class="material-dialog-hint">标题不超过 20 个字符，支持特殊符号。</p>
+        <label>内容 <span>*</span><textarea name="content" required maxlength="20000" placeholder="请输入文本内容"></textarea></label>
+        <p class="material-dialog-hint">最多 20,000 个字符，点击保存后生效。</p>`, '保存', form => {
+        if (context.account !== currentAccount() || context.team !== activeTeam()) throw new Error('当前账号或团队已变更，请关闭弹窗后重试');
+        const current = getItem(context, 'material', record.id);
+        if (current.type !== 'text') throw new Error('该素材已不是文本，请重新打开');
+        if (current.title !== original.title || current.content !== original.content) throw new Error('文本已更新，请关闭后重新打开再编辑');
+        const title = titleValue(form.elements.title.value), content = form.elements.content.value;
+        if (!content.trim()) throw new Error('请输入文本内容');
+        if (content.length > 20000) throw new Error('文本内容不能超过 20,000 个字符');
+        const scope = scopeKey(context);
+        persist(storageKey(context.team), read(context.team).map(item => item.id === record.id ? {
+          ...item,
+          namesByLibrary: { ...item.namesByLibrary, [scope]: title },
+          contentsByLibrary: { ...item.contentsByLibrary, [scope]: content },
+          updatedAt: new Date().toISOString()
+        } : item));
+        showToast('文本已保存');
+      });
+      const form = dialog.querySelector('form');
+      form.elements.title.value = original.title;
+      form.elements.content.value = original.content || '';
+      return;
     }
     let url = record.url, temporary = false;
     if (record.blobId) {
@@ -756,7 +937,7 @@
       if (!blob) throw new Error(`「${record.title}」的本地文件不存在，未生成下载包`);
       return blob;
     }
-    if (['./assets/reference-song-result-a.wav', './assets/reference-song-result-b.wav'].includes(record.url)) {
+    if (['./assets/reference-song-result-a.wav', './assets/reference-song-result-b.wav', './assets/demo-tone.wav'].includes(record.url)) {
       if (!window.orchestraMaterialDemoAudio) await loadLocalScript('./assets/material-demo-audio.js');
       const binary = atob(window.orchestraMaterialDemoAudio[record.url]);
       return new Blob([Uint8Array.from(binary, char => char.charCodeAt(0))], { type: 'audio/wav' });
@@ -880,5 +1061,22 @@
   window.addEventListener('resize', () => closeMenu());
   document.addEventListener('scroll', event => { if (activeMenu && !insideActiveMenu(event.target)) closeMenu(); }, true);
   window.orchestraMaterialLibrary = { hasSaved, save };
+  Object.assign(window.orchestraMaterialLibrary, {
+    listForComposition(team = activeTeam()) {
+      if (team !== activeTeam()) throw new Error('当前团队已变更，请重新打开成品');
+      const account = currentAccount();
+      return ['personal', 'team'].flatMap(library => {
+        const context = { team, account, library }, folders = foldersFor(context);
+        return visibleRecords(context).map(record => ({ ...record, type: record.type || 'audio', sourceLibrary: library,
+          folderPath: [saveLibraryName(library), ...folderPath({ ...context, folderId: recordFolder(record, context, folders) }, folders).map(folder => folder.title)].join(' / ')
+        }));
+      });
+    },
+    readBlob: materialBlob,
+    async ensureZip() {
+      if (!window.JSZip) await loadLocalScript('./vendor/jszip.min.js');
+      return window.JSZip;
+    }
+  });
   render();
 })();

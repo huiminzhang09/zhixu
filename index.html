@@ -13,8 +13,8 @@
   <link rel="stylesheet" href="./business.css?v=13" />
   <link rel="stylesheet" href="./project-create.css?v=17" />
   <link rel="stylesheet" href="./project-detail.css?v=23" />
-  <link rel="stylesheet" href="./task-center.css?v=20261015-return-history-collapsed" />
-  <link rel="stylesheet" href="./workflows.css?v=12" />
+  <link rel="stylesheet" href="./task-center.css?v=20261021-finished-menu" />
+  <link rel="stylesheet" href="./workflows.css?v=20261021-finished-menu" />
   <link rel="stylesheet" href="./playlist-import.css?v=1" />
   <link rel="stylesheet" href="./profile-center.css?v=20261010-menu-unified" />
   <link rel="stylesheet" href="./node-editor.css?v=3" />
@@ -30,8 +30,10 @@
   <link rel="stylesheet" href="./no-organization.css?v=20261013">
   <script>try{const teams=JSON.parse(localStorage.getItem('orchestra-login-organizations')||'null');if(Array.isArray(teams)&&teams.length===0){window.noOrganizationMode=true;document.documentElement.classList.add('no-organization')}}catch{}</script>
   <link rel="stylesheet" href="./task-participation.css?v=20261014-task-card">
-  <link rel="stylesheet" href="./reference-song-task.css?v=20261015-save-material">
-  <link rel="stylesheet" href="./material-library.css?v=20261020-drag-move">
+  <link rel="stylesheet" href="./reference-song-task.css?v=20261021-inline-actions">
+  <link rel="stylesheet" href="./material-library.css?v=20261021-no-folder-checkbox">
+  <link rel="stylesheet" href="./finished-library.css?v=20261021-workflow-resources">
+  <link rel="stylesheet" href="./task-material-reference.css?v=20261021">
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
@@ -277,16 +279,12 @@
       </form>
     </section>
 
-    <section class="page-view assets-page" id="assetsPage" aria-label="团队资产">
-      <div class="asset-tabs" role="tablist" aria-label="资产分类">
-        <button id="assetFinishedTab" role="tab" aria-selected="true" aria-controls="assetFinishedPanel" tabindex="0">成品库</button>
-        <button id="assetMaterialsTab" role="tab" aria-selected="false" aria-controls="assetMaterialsPanel" tabindex="-1">素材库</button>
-      </div>
-      <div id="assetFinishedPanel" class="asset-panel finished-library-panel" role="tabpanel" aria-labelledby="assetFinishedTab"><div class="finished-library-caption"><span id="finishedWorkCount">共 0 个成品</span><small>用户组合确认的作品 · 与项目作品共用记录</small></div><div class="finished-table-scroll"><table class="finished-table"><thead><tr><th>名称</th><th>歌词</th><th>音频</th><th>来源项目</th><th>状态</th><th>创建时间</th><th>完成时间</th></tr></thead><tbody id="finishedWorkRows"><tr><td colspan="7" class="finished-empty">暂无成品信息</td></tr></tbody></table></div></div>
-      <div id="assetMaterialsPanel" class="asset-panel finished-library-panel" role="tabpanel" aria-labelledby="assetMaterialsTab" hidden>
+    <section class="page-view assets-page library-page" id="assetsPage" aria-labelledby="assetsTitle">
+      <header class="library-page-heading"><h1 id="assetsTitle">素材库</h1></header>
+      <div id="assetMaterialsPanel" class="asset-panel finished-library-panel" role="region" aria-labelledby="assetsTitle">
         <div class="material-library-tabs" role="tablist" aria-label="素材库分类">
-          <button id="personalMaterialTab" type="button" role="tab" data-material-library="personal" aria-selected="true" aria-controls="materialLibraryContent" tabindex="0">个人资产库</button>
-          <button id="teamMaterialTab" type="button" role="tab" data-material-library="team" aria-selected="false" aria-controls="materialLibraryContent" tabindex="-1">团队资产库</button>
+          <button id="personalMaterialTab" type="button" role="tab" data-material-library="personal" aria-selected="true" aria-controls="materialLibraryContent" tabindex="0">个人素材</button>
+          <button id="teamMaterialTab" type="button" role="tab" data-material-library="team" aria-selected="false" aria-controls="materialLibraryContent" tabindex="-1">团队素材</button>
         </div>
         <div id="materialLibraryContent" role="tabpanel" aria-labelledby="personalMaterialTab">
           <div class="material-library-toolbar">
@@ -304,6 +302,10 @@
         </div>
       </div>
       <div id="assetReferencesPanel" class="asset-panel" aria-label="对标曲库" hidden></div>
+    </section>
+    <section class="page-view finished-page library-page" id="finishedPage" aria-labelledby="finishedTitle">
+      <header class="library-page-heading"><h1 id="finishedTitle">成品</h1></header>
+      <div id="finishedLibraryPanel" class="asset-panel finished-library-panel" role="region" aria-label="成品列表"><div class="finished-library-caption"><span id="finishedWorkCount" aria-live="polite">共 0 个成品</span><small>用户组合确认的作品</small></div><div id="finishedWorkGrid" class="finished-work-grid" role="list" aria-label="成品卡片"></div></div>
     </section>
     <section class="page-view workflows-page" id="workflowsPage" aria-labelledby="workflowsTitle">
       <header class="workflows-heading">
@@ -680,21 +682,22 @@
     <div class="player-actions"><button aria-label="音量">♬</button><button aria-label="收藏">♡</button><button aria-label="评论">▢</button><button aria-label="更多">⋮</button></div>
   </footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="./script.js?v=20261015-return-history-collapsed"></script>
+  <script src="./script.js?v=20261021-material-menu"></script>
   <script src="./production-model.js?v=20261019-return-rate"></script>
-  <script src="./composition-flow.js?v=20261013-multi-resource"></script>
+  <script src="./composition-flow.js?v=20261021-workflow-resources"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
-  <script src="./finished-library.js?v=8"></script>
+  <script src="./finished-library.js?v=20261021-workflow-resources"></script>
   <script src="./workflow-editor.js?v=12"></script>
-  <script src="./team-navigation.js?v=5"></script>
+  <script src="./team-navigation.js?v=20261021-material-menu"></script>
   <script src="./logout.js?v=20261010-login"></script>
   <script src="./team-invites.js?v=20261014-user-lookup"></script>
   <script src="./run-pagination.js?v=20261013"></script>
   <script src="./assignee-search.js?v=20261013"></script>
   <script src="./avatar-team-entry.js?v=20261013-home-only"></script>
-  <script src="./material-library.js?v=20261020-team-examples"></script>
-  <script src="./reference-song-task.js?v=20261015-save-material"></script>
-  <script src="./task-participation-demo.js?v=20261015-return-history"></script>
+  <script src="./material-library.js?v=20261021-edit-text"></script>
+  <script src="./reference-song-task.js?v=20261021-inline-actions"></script>
+  <script src="./task-participation-demo.js?v=20261021-fresh-song"></script>
+  <script src="./task-material-reference.js?v=20261021"></script>
 </body>
 </html>
