@@ -22,16 +22,17 @@
     if (/[\r\n@]/.test(query) || query.length > 80) return null;
     return { start, end, query };
   }
-  function catalog(team) {
+  function catalog(team, scope = 'personal') {
+    if (scope === 'workflow') return window.orchestraTaskResultResources?.list(activeTask(), 'text') || [];
     const api = window.orchestraMaterialLibrary;
     if (!api?.listForComposition) throw new Error('素材库暂时不可用，请稍后重试');
-    return api.listForComposition(team).filter(record => record.type === 'text');
+    return api.listForComposition(team).filter(record => record.type === 'text' && record.sourceLibrary === scope);
   }
   const popup = document.createElement('section');
   popup.className = 'task-material-reference'; popup.hidden = true;
   popup.setAttribute('aria-label', '引用文本素材');
   popup.innerHTML = `<header><div><b>引用文本素材</b><small>选择后将正文插入当前输入框</small></div><button type="button" data-reference-close aria-label="关闭素材选择">×</button></header>
-    <div class="task-material-reference-libraries" role="group" aria-label="素材范围"><button type="button" data-reference-library="all" aria-pressed="true">全部</button><button type="button" data-reference-library="personal" aria-pressed="false">个人素材</button><button type="button" data-reference-library="team" aria-pressed="false">团队素材</button></div>
+    <div class="task-material-reference-libraries" role="group" aria-label="文本来源"><button type="button" data-reference-library="personal" aria-pressed="true">个人素材</button><button type="button" data-reference-library="team" aria-pressed="false">团队素材</button><button type="button" data-reference-library="workflow" aria-pressed="false">结果资源<span class="task-result-reference-info" role="img" aria-label="仅展示当前工作流本次运行中已设为输出或备选的资源。" title="仅展示当前工作流本次运行中已设为输出或备选的资源。">ⓘ</span></button></div>
     <p class="task-material-reference-status" role="status"></p><div id="taskTextMaterialOptions" class="task-material-reference-options" role="listbox" aria-label="文本素材"></div>
     <footer>输入 @ 后继续搜索 · ↑↓ 选择 · Enter 引用 · Esc 关闭</footer>`;
   document.body.append(popup);
@@ -73,10 +74,13 @@
     const selectedKey = state.matches?.[state.index] && keyFor(state.matches[state.index]);
     try {
       const query = state.range.query.trim().toLocaleLowerCase();
-      state.matches = catalog(state.team).filter(record => (state.library === 'all' || record.sourceLibrary === state.library) &&
-        (!query || `${record.title}\n${record.content || ''}`.toLocaleLowerCase().includes(query)));
-      status.textContent = state.matches.length ? `${state.matches.length} 个文本素材` : query ? '未找到匹配的文本素材，换个关键词试试' : '暂无文本素材，可先到素材库添加';
-      options.innerHTML = state.matches.map((record, i) => `<button type="button" id="taskTextMaterialOption-${i}" role="option" aria-selected="false" tabindex="-1" data-reference-option="${i}"><span class="task-material-reference-option-title"><b>${escapeHtml(record.title)}</b><small>${record.sourceLibrary === 'personal' ? '个人' : '团队'}</small></span><span class="task-material-reference-path">${escapeHtml(record.folderPath)}</span><span class="task-material-reference-preview">${escapeHtml(String(record.content || '').slice(0, 220))}</span></button>`).join('');
+      state.matches = catalog(state.team, state.library).filter(record => !query || `${record.title}\n${record.content || ''}\n${record.node || ''}`.toLocaleLowerCase().includes(query));
+      status.textContent = state.matches.length ? `${state.matches.length} 个文本${state.library === 'workflow' ? '结果' : '素材'}` : query ? '未找到匹配的文本，换个关键词试试' : state.library === 'workflow' ? '暂无文本结果，请先将当前运行的文本设为输出或备选' : '暂无文本素材，可先到素材库添加';
+      const optionMarkup = (record, i) => `<button type="button" id="taskTextMaterialOption-${i}" role="option" aria-selected="false" tabindex="-1" data-reference-option="${i}"><span class="task-material-reference-option-title"><b>${escapeHtml(record.title)}</b><small>${record.sourceLibrary === 'workflow' ? (record.selectionState === 'backup' ? '备选' : '输出') : record.sourceLibrary === 'personal' ? '个人' : '团队'}</small></span><span class="task-material-reference-path">${escapeHtml(record.sourceLibrary === 'workflow' ? `结果资源 / ${record.folderPath}` : record.folderPath)}</span><span class="task-material-reference-preview">${escapeHtml(String(record.content || '').slice(0, 220))}</span></button>`;
+      options.innerHTML = state.library === 'workflow' ? [['selected', '输出'], ['backup', '备选']].map(([group, label]) => {
+        const items = state.matches.map((record, index) => ({ record, index })).filter(({ record }) => record.selectionState === group);
+        return `<div class="task-result-reference-group" role="group" aria-label="${label}"><h3>${label}<span>${items.length}</span></h3>${items.map(({ record, index }) => optionMarkup(record, index)).join('') || `<p>暂无${label}文本</p>`}</div>`;
+      }).join('') : state.matches.map(optionMarkup).join('');
       const previous = state.matches.findIndex(record => keyFor(record) === selectedKey);
       highlight(state.matches.length ? Math.max(0, previous) : -1);
     } catch (error) {
@@ -93,7 +97,7 @@
     if (!state || state.field !== field || state.taskId !== selectedTaskId || state.account !== account() || state.team !== activeTeam()) {
       close();
       const attributes = Object.fromEntries(['aria-autocomplete', 'aria-haspopup', 'aria-controls', 'aria-expanded', 'aria-activedescendant'].map(name => [name, field.getAttribute(name)]));
-      state = { field, taskId: selectedTaskId, account: account(), team: activeTeam(), library: 'all', matches: [], index: -1, attributes };
+      state = { field, taskId: selectedTaskId, account: account(), team: activeTeam(), library: 'personal', matches: [], index: -1, attributes };
       field.setAttribute('aria-autocomplete', 'list'); field.setAttribute('aria-haspopup', 'listbox');
       field.setAttribute('aria-controls', options.id); field.setAttribute('aria-expanded', 'true');
     }
@@ -104,8 +108,8 @@
     const { field, range, value, team } = state, choice = state.matches[index];
     if (!choice || field.value !== value) { sync(field); return; }
     try {
-      const latest = catalog(team).find(record => keyFor(record) === keyFor(choice));
-      if (!latest) throw new Error('该文本素材已移除，请重新选择');
+      const latest = catalog(team, choice.sourceLibrary).find(record => keyFor(record) === keyFor(choice));
+      if (!latest) throw new Error(choice.sourceLibrary === 'workflow' ? '该文本已移除或不再是输出、备选，请重新选择' : '该文本素材已移除，请重新选择');
       let content = String(latest.content || '');
       if (!content.trim()) throw new Error('该素材暂无文本内容，请选择其他素材');
       if (field.tagName !== 'TEXTAREA') content = content.replace(/\r\n|\r|\n/g, ' ');
@@ -125,7 +129,7 @@
     panel.querySelectorAll(fields).forEach(field => {
       if (!editable(field) || enhanced.has(field)) return;
       enhanced.add(field);
-      field.placeholder = `${field.placeholder ? `${field.placeholder} · ` : ''}输入 @ 引用文本素材`;
+      field.placeholder = `${field.placeholder ? `${field.placeholder} · ` : ''}输入 @ 引用素材库或结果资源中的文本`;
     });
   }
   panel.addEventListener('input', event => { if (!event.isComposing && !inserting) sync(event.target); });

@@ -492,7 +492,7 @@
         return `<div role="listitem" class="material-folder-item" data-drop-material-folder="${escapeHtml(folder.id)}"><button class="material-folder-card" type="button" data-open-material-folder="${escapeHtml(folder.id)}" aria-label="打开文件夹：${title}"><span class="material-folder-cover"><img src="./assets/material-folder.svg" alt="" draggable="false"></span><span class="material-folder-info"><strong title="${title}">${title}</strong><time datetime="${escapeHtml(folder.createdAt)}">${escapeHtml(date)}</time></span></button>${menuTrigger('folder', folder)}</div>`;
       }).join('');
       q('#materialFolders').hidden = !children.length;
-      q('#materialLibraryDescription').textContent = searching ? `${libraryName(context.library)} · 全部文件夹` : !context.folderId ? `共 ${allRecords.length} 个素材${allowsRootMaterials(context) ? '（含子文件夹）' : '，按文件夹存放'}` : `${libraryName(context.library)} · 当前文件夹`;
+      q('#materialLibraryDescription').textContent = `共 ${records.length} 个素材`;
       q('#materialCount').textContent = searching ? `找到 ${records.length} 个匹配素材` : !context.folderId && !allowsRootMaterials(context) ? `共 ${children.length} 个文件夹` : `共 ${children.length} 个文件夹 · ${records.length} 个素材`;
       q('#materialItems').hidden = !records.length && children.length > 0;
       q('#materialItems').innerHTML = records.map(record => {

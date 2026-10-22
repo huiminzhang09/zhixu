@@ -76,6 +76,10 @@
   const nodeLayer = document.querySelector('#nodeLayer');
   const edgeLayer = document.querySelector('#edgeLayer');
   const palette = document.querySelector('#nodePalette');
+  const publishDialog = document.querySelector('#canvasPublishDialog');
+  const publishError = document.querySelector('#canvasPublishError');
+  const confirmPublishButton = document.querySelector('#confirmCanvasPublish');
+  let publishContext = null;
   const deep = value => JSON.parse(JSON.stringify(value));
   const snapshot = () => deep({ schemaVersion: 9, name: state.name, scale: state.scale, pan: state.pan, nodes: state.nodes, edges: state.edges });
   const makeId = prefix => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -87,7 +91,7 @@
     const inputs = [], outputs = [];
     if (!type.endsWith('Menu')) {
       inputs.push({ key: 'control-in', edgeType: 'control', label: '控制', required: false });
-      outputs.push({ key: 'control-out', edgeType: 'control', label: '控制', required: false });
+      if (type !== 'workOutput') outputs.push({ key: 'control-out', edgeType: 'control', label: '控制', required: false });
     }
     const addInput = (key, kind, label, required = false) => inputs.push({ key, edgeType: 'data', kind, label, required });
     const addOutput = (key, kind, label) => outputs.push({ key, edgeType: 'data', kind, label });
@@ -155,6 +159,7 @@
   }
   function nodeForm(node) {
     if (node.type.endsWith('Menu')) return featureMenu(node);
+    if (node.type === 'workOutput') return '<div class="feature-title"><b>成品组装</b><small>最终节点</small></div><p class="assembly-node-description">上游节点全部完成后，在待办中将输出与备选资源组合为成品。确认提交后，本次生产运行完成。</p>';
     if (node.type === 'textInput') return `<div class="feature-title"><b>填写文本内容</b><small>基础输入</small></div><div class="node-kind-legend"><span><i class="text"></i>文本输出</span></div><div class="node-form">${field(node, 'text', '文本内容', { required: true, type: 'textarea', placeholder: '输入可复用的文字、歌词或参考内容…' })}${outputBox(node, '填写后可连接到歌词输入端口')}</div><div class="node-run-row"><small>内容即时保存为草稿</small><button class="workflow-run">✓ 保存文本</button></div>`;
     if (node.type === 'audioUpload') return `<div class="feature-title"><b>上传音频</b><small>基础输入</small></div><label class="upload-drop"><input class="audio-upload" type="file" accept="audio/*" /><span><b>${node.data?.fileName || '点击选择音频文件'}</b><small>支持 MP3、WAV、M4A</small></span></label><div class="node-run-row"><small>可连接到参考歌曲输入端口</small><button class="workflow-run">✓ 确认上传</button></div>`;
     const switcher = `<button class="switch-feature" data-back-category="${defs[node.type].category}">更换功能</button>`;
@@ -171,7 +176,7 @@
     return `<div class="feature-title"><b>歌曲生成设置</b>${switcher}</div><div class="node-dependency">${dependency}</div><div class="input-placeholders">${inputSlots}</div><div class="node-form">${commonSongFields(node)}${outputBox(node, '运行后在此展示生成的歌曲')}</div>${run('生成歌曲')}`;
   }
   function nodeHeight(type) {
-    return ({ textInput: 330, audioUpload: 260, lyricsMenu: 250, songMenu: 330, writeLyrics: 350, aiLyrics: 420, refLyrics: 580, uploadSong: 260, aiSong: 500, refSong: 520, sampleSong: 520, playlistSong: 590 })[type] || 360;
+    return ({ textInput: 330, audioUpload: 260, lyricsMenu: 250, songMenu: 330, writeLyrics: 350, aiLyrics: 420, refLyrics: 580, uploadSong: 260, aiSong: 500, refSong: 520, sampleSong: 520, playlistSong: 590, workOutput: 200 })[type] || 360;
   }
   function nodeHTML(node) {
     const def = defs[node.type];
@@ -270,6 +275,7 @@
   }
   async function runNode(id, quiet = false) {
     const node = nodeById(id); if (!node || node.type.endsWith('Menu')) { showToast('请先选择具体功能', 'error'); return false; }
+    if (node.type === 'workOutput') { if (!quiet) showToast('请在待办中完成成品组装'); return true; }
     if (node.type === 'writeLyrics') { node.result = `${node.data?.title || '未命名'} · ${node.data?.lyrics || '尚未填写歌词'}`; node.status = 'success'; renderNodes(); queueDraft(); return true; }
     const missing = missingDependencies(node);
     if (missing.length) { node.status = 'error'; renderNodes(); showToast(`缺少：${missing.join('、')}`, 'error'); return false; }
@@ -289,31 +295,93 @@
     while (queue.length) { const node = queue.shift(); result.push(node); state.edges.filter(edge => edge.edgeType === 'control' && edge.from === node.id).forEach(edge => { if (!indegree.has(edge.to)) return; indegree.set(edge.to, indegree.get(edge.to) - 1); if (indegree.get(edge.to) === 0) queue.push(nodeById(edge.to)); }); }
     return result.length === executable.length ? result : executable;
   }
-  async function runAll() { const button = document.querySelector('#runAll'); button.disabled = true; let success = true; const nodes = executionOrder(); if (!nodes.length) { button.disabled = false; showToast('画布中暂无可运行节点', 'error'); return; } for (const node of nodes) { const ok = await runNode(node.id, true); if (!ok) { success = false; break; } } button.disabled = false; if (success) showToast('画布运行完成'); }
+  async function runAll() { const button = document.querySelector('#runAll'); button.disabled = true; let success = true; const nodes = executionOrder(); if (!nodes.length) { button.disabled = false; showToast('画布中暂无可运行节点', 'error'); return; } for (const node of nodes) { const ok = await runNode(node.id, true); if (!ok) { success = false; break; } } button.disabled = false; if (success) showToast(nodes.some(node => node.type === 'workOutput') ? '业务节点运行完成，请在待办中完成成品组装' : '画布运行完成'); }
   function setZoom(next, anchor) { const old = state.scale; next = Math.max(.5, Math.min(1.5, Math.round(next * 20) / 20)); if (anchor) { const rect = stage.getBoundingClientRect(), ax = anchor.x - rect.left, ay = anchor.y - rect.top, cx = (ax - state.pan.x) / old, cy = (ay - state.pan.y) / old; state.pan.x = ax - cx * next; state.pan.y = ay - cy * next; } state.scale = next; transform(); queueDraft(); }
   function canvasCenter() { const rect = stage.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }; }
   function fitCanvas() { if (!state.nodes.length) { state.pan = { x: 90, y: 90 }; setZoom(.85); return; } const rect = stage.getBoundingClientRect(), minX = Math.min(...state.nodes.map(node => node.x)), minY = Math.min(...state.nodes.map(node => node.y)), maxX = Math.max(...state.nodes.map(node => node.x + NODE_W)), maxY = Math.max(...state.nodes.map(node => node.y + nodeHeight(node.type))); const topInset = 76, bottomInset = 84, sideInset = 70; const rawScale = Math.min(1, (rect.width - sideInset * 2) / (maxX - minX), (rect.height - topInset - bottomInset) / (maxY - minY)); const scale = Math.max(.5, Math.floor(rawScale * 20) / 20); state.scale = scale; state.pan = { x: (rect.width - (maxX - minX) * scale) / 2 - minX * scale, y: topInset + Math.max(0, (rect.height - topInset - bottomInset - (maxY - minY) * scale) / 2) - minY * scale }; transform(); queueDraft(); }
   function renderVersions() { document.querySelector('#versionBadge').textContent = versions.length ? versions[0].version : 'V1.0'; document.querySelector('#versionList').innerHTML = versions.length ? versions.map((version, index) => `<article class="version-item"><b>${version.version}${index === 0 ? ' · 当前版本' : ''}</b><span>${new Date(version.publishedAt).toLocaleString('zh-CN')} · ${version.nodes.length} 个节点</span><small>✓ 已发布，只读快照</small></article>`).join('') : '<div class="version-empty">尚未发布正式版本。<br>当前变化仅存在于自动草稿中。</div>'; }
-  function publish() { const latest = versions[0]?.version?.match(/^V(\d+)\.(\d+)$/); const version = latest ? `V${latest[1]}.${Number(latest[2]) + 1}` : 'V1.0'; versions.unshift({ version, publishedAt: Date.now(), name: state.name, nodes: deep(state.nodes.map(node => ({ ...node, status: 'idle' }))), edges: deep(state.edges) }); localStorage.setItem(activeVersionsKey, JSON.stringify(versions)); renderVersions(); queueDraft(); showToast(`画布已发布为 ${version}`); }
+  function graphWithAssembly() {
+    const outputs = state.nodes.filter(node => node.type === 'workOutput');
+    if (outputs.length > 1) throw new Error('仅可保留一个「成品组装」节点，请调整后重新发布。');
+    const nodes = deep(state.nodes.filter(node => node.type !== 'workOutput'));
+    if (!nodes.length) throw new Error('请先在画布中添加业务节点，再添加成品组装节点并发布。');
+    if (nodes.some(node => node.type.endsWith('Menu'))) throw new Error('请先为所有节点选择具体功能，再重新发布。');
+    const ids = new Set(nodes.map(node => node.id));
+    const edges = deep(state.edges.filter(edge => ids.has(edge.from) && ids.has(edge.to)));
+    const indegree = new Map(nodes.map(node => [node.id, 0])), outgoing = new Map(nodes.map(node => [node.id, new Set()]));
+    edges.forEach(edge => outgoing.get(edge.from).add(edge.to));
+    outgoing.forEach(targets => targets.forEach(id => indegree.set(id, indegree.get(id) + 1)));
+    const queue = nodes.filter(node => !indegree.get(node.id)).map(node => node.id);
+    let visited = 0;
+    while (queue.length) { const id = queue.shift(); visited++; outgoing.get(id).forEach(target => { indegree.set(target, indegree.get(target) - 1); if (!indegree.get(target)) queue.push(target); }); }
+    if (visited !== nodes.length) throw new Error('节点连接存在循环，无法确定流程末尾，请调整连线后重新发布。');
+    const terminals = nodes.filter(node => !outgoing.get(node.id).size);
+    const existing = outputs[0];
+    const assembly = existing ? deep(existing) : { id: makeId('assembly'), type: 'workOutput', data: {}, status: 'idle', result: '' };
+    assembly.title = '成品组装';
+    assembly.x = Math.max(...nodes.map(node => Number(node.x) || 0)) + NODE_W + 120;
+    assembly.y = terminals.reduce((sum, node) => sum + (Number(node.y) || 0), 0) / terminals.length;
+    terminals.forEach(node => {
+      const prior = state.edges.find(edge => edge.from === node.id && edge.to === assembly.id && edge.edgeType === 'control');
+      edges.push({ id: prior?.id || makeId('edge'), edgeType: 'control', from: node.id, fromPort: 'control-out', to: assembly.id, toPort: 'control-in' });
+    });
+    return { nodes: [...nodes, assembly], edges };
+  }
+  function publicationContext() { return JSON.stringify([activeWorkflowId, activeVersionsKey, localStorage.getItem('orchestra-demo-account'), document.querySelector('.workspace-option.active')?.dataset.workspaceId]); }
+  function publish() {
+    if (publishDialog.open) return;
+    publishContext = publicationContext();
+    publishError.hidden = true; publishError.textContent = ''; confirmPublishButton.disabled = false;
+    publishDialog.showModal();
+  }
+  function confirmPublish(event) {
+    event.preventDefault();
+    if (!publishDialog.open || confirmPublishButton.disabled) return;
+    confirmPublishButton.disabled = true; publishError.hidden = true;
+    try {
+      if (publishContext !== publicationContext()) throw new Error('当前工作流、账号或团队已变更，请取消后重新发布。');
+      const graph = graphWithAssembly(), latest = versions[0]?.version?.match(/^V(\d+)\.(\d+)$/);
+      const version = latest ? `V${latest[1]}.${Number(latest[2]) + 1}` : 'V1.0', publishedAt = Date.now();
+      const nextVersions = [{ version, publishedAt, name: state.name, nodes: deep(graph.nodes.map(node => ({ ...node, status: 'idle' }))), edges: deep(graph.edges) }, ...versions];
+      try { localStorage.setItem(activeVersionsKey, JSON.stringify(nextVersions)); }
+      catch { throw new Error('发布保存失败，请检查浏览器存储空间后重试。'); }
+      pushUndo(); state.nodes = graph.nodes; state.edges = graph.edges; versions = nextVersions;
+      renderNodes(); renderVersions(); queueDraft();
+      if (typeof workflowData !== 'undefined') {
+        const item = workflowData.find(workflow => workflow.id === activeWorkflowId);
+        if (item) Object.assign(item, { name: state.name, version, publish: '已发布', publishClass: 'published', publishTime: new Date(publishedAt).toLocaleString('zh-CN'), updated: '刚刚' });
+        if (typeof renderWorkflows === 'function') renderWorkflows();
+      }
+      publishDialog.close(); showToast(`画布已发布为 ${version}`);
+    } catch (error) { publishError.textContent = error.message || '发布失败，请重试。'; publishError.hidden = false; }
+    finally { confirmPublishButton.disabled = false; }
+  }
   function toggleLibrary(force) { const open = force ?? !palette.classList.contains('open'); palette.classList.toggle('open', open); palette.setAttribute('aria-hidden', String(!open)); const trigger = document.querySelector('#openNodeLibrary'); trigger.classList.toggle('active', open); trigger.setAttribute('aria-expanded', String(open)); if (!open) { const search = document.querySelector('#workflowNodeSearch'); search.value = ''; document.querySelectorAll('.workflow-node-option').forEach(button => button.style.display = 'flex'); document.querySelectorAll('.workflow-category').forEach(group => group.style.display = 'block'); } }
   function applySnapshot(data) { state = { ...state, ...deep(data) }; selectedId = null; renderAll(); queueDraft(); }
   function loadWorkflow({ id = 'primary', name = '未命名音乐工作流', version = 'V1.0', published = false } = {}) {
+    if (publishDialog.open) publishDialog.close();
     clearTimeout(saveTimer); persistDraft();
     activeWorkflowId = id;
     activeDraftKey = storageKey(BASE_DRAFT_KEY, activeWorkflowId);
     activeVersionsKey = storageKey(BASE_VERSIONS_KEY, activeWorkflowId);
-    state = parse(localStorage.getItem(activeDraftKey), null) || { ...defaultState(), name };
+    versions = parse(localStorage.getItem(activeVersionsKey), []);
+    const publishedSource = versions.find(item => item.version === version && item.nodes?.length) || (builtInPublishedSnapshots[id] || []).find(item => item.version === version);
+    state = parse(localStorage.getItem(activeDraftKey), null) || { ...defaultState(), name, ...(publishedSource ? { nodes: deep(publishedSource.nodes), edges: deep(publishedSource.edges || []) } : {}) };
     if (state.schemaVersion !== 9) state = { ...defaultState(), name };
     state.nodes.forEach(node => node.status = 'idle');
-    versions = parse(localStorage.getItem(activeVersionsKey), []);
-    if (!versions.length && published) { versions = [{ version, publishedAt: Date.now(), name: state.name, nodes: deep(state.nodes), edges: deep(state.edges) }]; localStorage.setItem(activeVersionsKey, JSON.stringify(versions)); }
+    if (!versions.length && published) { versions = [publishedSource ? deep(publishedSource) : { version, publishedAt: Date.now(), name: state.name, nodes: deep(state.nodes), edges: deep(state.edges) }]; localStorage.setItem(activeVersionsKey, JSON.stringify(versions)); }
     selectedId = null; pending = null; portDragging = null; dragging = null; panning = null; undo = []; redo = [];
     document.querySelector('#versionPanel').classList.remove('open');
     renderAll(); queueDraft();
   }
   function copyWorkflow(sourceId, targetId, name) {
     const sourceDraft = parse(localStorage.getItem(storageKey(BASE_DRAFT_KEY, sourceId)), null);
-    if (sourceDraft) localStorage.setItem(storageKey(BASE_DRAFT_KEY, targetId), JSON.stringify({ ...deep(sourceDraft), name, updatedAt: Date.now() }));
+    if (sourceDraft) {
+      const copied = deep(sourceDraft), assemblyIds = new Set(copied.nodes.filter(node => node.type === 'workOutput').map(node => node.id));
+      copied.nodes = copied.nodes.filter(node => !assemblyIds.has(node.id));
+      copied.edges = copied.edges.filter(edge => !assemblyIds.has(edge.from) && !assemblyIds.has(edge.to));
+      localStorage.setItem(storageKey(BASE_DRAFT_KEY, targetId), JSON.stringify({ ...copied, name, updatedAt: Date.now() }));
+    }
     localStorage.removeItem(storageKey(BASE_VERSIONS_KEY, targetId));
   }
   function publishedSnapshotNodes(snapshot) {
@@ -362,7 +430,10 @@
   document.querySelector('#zoomIn').onclick = () => setZoom(state.scale + .1, canvasCenter()); document.querySelector('#zoomOut').onclick = () => setZoom(state.scale - .1, canvasCenter()); document.querySelector('#zoomReset').onclick = () => setZoom(1, canvasCenter()); document.querySelector('#fitCanvas').onclick = fitCanvas;
   document.querySelector('#undoCanvas').onclick = () => { if (undo.length) { redo.push(snapshot()); applySnapshot(undo.pop()); } else showToast('暂无可撤销的操作', 'error'); }; document.querySelector('#redoCanvas').onclick = () => { if (redo.length) { undo.push(snapshot()); applySnapshot(redo.pop()); } else showToast('暂无可恢复的操作', 'error'); };
   document.querySelector('#canvasTitle').oninput = event => { state.name = event.target.value; queueDraft(); };
+  document.querySelector('#canvasPublishForm').addEventListener('submit', confirmPublish);
+  document.querySelector('#cancelCanvasPublish').addEventListener('click', () => publishDialog.close());
+  publishDialog.addEventListener('close', () => { publishContext = null; document.querySelector('#publishCanvas').focus(); });
   document.querySelector('#publishCanvas').onclick = publish; document.querySelector('#historyToggle').onclick = () => document.querySelector('#versionPanel').classList.add('open'); document.querySelector('#closeHistory').onclick = () => document.querySelector('#versionPanel').classList.remove('open'); document.querySelector('#backProjects').onclick = () => switchPage(typeof getCanvasReturnPage === 'function' ? getCanvasReturnPage() : 'projects');
-  const observer = new MutationObserver(() => { if (document.querySelector('#canvasPage').classList.contains('active') && !state.nodes.length) setTimeout(() => toggleLibrary(true), 180); }); observer.observe(document.querySelector('#canvasPage'), { attributes: true, attributeFilter: ['class'] });
+  const observer = new MutationObserver(() => { const active = document.querySelector('#canvasPage').classList.contains('active'); if (!active && publishDialog.open) publishDialog.close(); if (active && !state.nodes.length) setTimeout(() => toggleLibrary(true), 180); }); observer.observe(document.querySelector('#canvasPage'), { attributes: true, attributeFilter: ['class'] });
   renderAll(); queueDraft();
 })();

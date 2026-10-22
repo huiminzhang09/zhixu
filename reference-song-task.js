@@ -21,8 +21,8 @@
   function referenceMarkup(task, locked, uploading) {
     const tracks = referencesForTask(task), limit = referenceLimit(task), playlist = isPlaylist(task);
     const choose = (index, label) => `<button type="button" data-reference-choose="${index}" ${uploading ? 'disabled' : ''}>${label === '上传' ? transferIcon() : ''}<span>${label}</span></button>`;
-    return `<div class="song-studio-field"><div class="song-studio-reference-heading"><div class="song-studio-label">参考歌曲 <em>必填</em>${playlist ? `<small>${tracks.length} / 4 个</small>` : ''}${info(playlist ? '选择 1～4 个音频，可从个人素材、团队素材选择，或本地上传。' : '选择 1 个参考音频，可从素材库选择或本地上传。')}</div>${!locked && tracks.length ? `<div class="song-studio-reference-actions">${choose(playlist ? -1 : 0, playlist ? '上传' : '替换')}</div>` : ''}</div>
-      <div class="song-studio-reference-list">${tracks.map((track, index) => `<div class="song-studio-reference-item">${playlist ? `<div class="song-studio-reference-heading"><b>参考歌曲 ${index + 1}</b>${!locked ? `<div class="song-studio-reference-actions">${choose(index, '替换')}</div>` : ''}</div>` : ''}${player(track, true, index)}</div>`).join('') || `<div class="song-studio-reference-empty"><span aria-hidden="true">♫</span><b>暂无参考歌曲</b>${!locked ? choose(-1, '上传') : ''}<small>${playlist ? '请选择 1～4 个音频' : '请选择 1 个音频'}，支持素材库选择或本地上传</small></div>`}</div>
+    return `<div class="song-studio-field"><div class="song-studio-reference-heading"><div class="song-studio-label">参考歌曲 <em>必填</em>${playlist ? `<small>${tracks.length} / 4 个</small>` : ''}${info(playlist ? '选择 1～4 个音频，支持素材库、结果资源或本地上传。结果资源仅展示当前运行的输出与备选音频。' : '选择 1 个参考音频，支持素材库、结果资源或本地上传。')}</div>${!locked && tracks.length ? `<div class="song-studio-reference-actions">${choose(playlist ? -1 : 0, playlist ? '上传' : '替换')}</div>` : ''}</div>
+      <div class="song-studio-reference-list">${tracks.map((track, index) => `<div class="song-studio-reference-item">${playlist ? `<div class="song-studio-reference-heading"><b>参考歌曲 ${index + 1}</b>${!locked ? `<div class="song-studio-reference-actions">${choose(index, '替换')}</div>` : ''}</div>` : ''}${player(track, true, index)}</div>`).join('') || `<div class="song-studio-reference-empty"><span aria-hidden="true">♫</span><b>暂无参考歌曲</b>${!locked ? choose(-1, '上传') : ''}<small>${playlist ? '请选择 1～4 个音频' : '请选择 1 个音频'}，支持素材库、结果资源或本地上传</small></div>`}</div>
       ${!locked ? `<p class="song-studio-reference-hint" role="status">${uploading ? '正在选择或读取音频…' : `${playlist ? '可上传 1～4 个参考音频。' : ''}替换或添加参考歌曲后，需要重新运行生成歌曲。`}</p>` : ''}</div>`;
   }
   const lyrics = '风经过窗台，唤醒沉睡的街\n我把昨日心事，折进新的书页\n远处的钟声，落在微亮的天\n你说每次出发，都能遇见晴天\n\n让晨光慢慢，铺满回家的路\n让未说的话，随晚风轻轻落幕\n我们走过雨，也看过云舒\n把平凡的日子，唱成温柔的祝福';
@@ -43,7 +43,7 @@
     const waveform = heights.map((height, i) => `<path d="M${i * 10 + 5} ${40 - height / 2}v${height}"/>`).join('');
     const duration = track.durationSeconds;
     return `<div class="song-studio-player${withFile ? ' is-reference' : ''}" data-reference-player>
-      ${withFile ? `<div class="song-studio-file"><i>${icon}</i><div><b>${escapeHtml(track.title)}</b><small>${(track.bytes / 1048576).toFixed(2)} MB / ${escapeHtml(track.format)} · ${track.sourceLibrary ? (track.sourceLibrary === 'team' ? '团队素材' : '个人素材') : track.demo ? '演示音频' : '本地音频'}</small></div></div>` : ''}
+      ${withFile ? `<div class="song-studio-file"><i>${icon}</i><div><b>${escapeHtml(track.title)}</b><small>${(track.bytes / 1048576).toFixed(2)} MB / ${escapeHtml(track.format)} · ${track.sourceLibrary ? ({ team: '团队素材', personal: '个人素材', workflow: '结果资源' }[track.sourceLibrary] || '素材库') : track.demo ? '演示音频' : '本地音频'}</small></div></div>` : ''}
       <audio preload="metadata" src="${escapeHtml(track.url)}" aria-label="${escapeHtml(track.title)}"></audio>
       <div class="song-studio-time"><time data-reference-elapsed>0:00</time><time data-reference-duration>${formatTaskSongTime(duration)}</time></div>
       <div class="song-studio-wave"><svg viewBox="0 0 560 80" preserveAspectRatio="none" aria-hidden="true">${waveform}</svg><div class="song-studio-wave-progress"><svg viewBox="0 0 560 80" preserveAspectRatio="none" aria-hidden="true">${waveform}</svg></div><input type="range" min="0" max="${duration}" step="0.1" value="0" data-reference-seek aria-label="${escapeHtml(track.title)}播放进度" aria-valuetext="0:00 / ${formatTaskSongTime(duration)}"></div>
@@ -74,6 +74,7 @@
         <section class="song-studio-panel song-studio-input" aria-labelledby="referenceSongInputTitle"><header><h3 id="referenceSongInputTitle">输入</h3></header><div class="song-studio-scroll">
           ${referenceMarkup(task, locked, uploading)}
           <label class="song-studio-field task-form-field"><span class="song-studio-label">歌词 ${info('可填写用于生成歌曲的歌词。')}</span><textarea class="song-studio-lyrics" data-task-field="lyrics" ${disabled} placeholder="请输入歌词">${taskFormValue(task, 'lyrics', lyrics)}</textarea></label>
+          ${task.workflowTextReferenceDemo && !locked ? '<p class="song-studio-reference-hint">引用示例：输入 @，切换「结果资源」，在「输出」「备选」中选择「晨间来信」歌词，正文会填入当前输入框。</p>' : ''}
           <label class="song-studio-field task-form-field"><span class="song-studio-label">提示词 ${info('选填音乐风格、编曲、演唱和情绪方向。')}</span><input data-task-field="prompt" ${disabled} value="${taskFormValue(task, 'prompt')}" placeholder="选填音乐风格、编曲、演唱和情绪方向"></label>
           <label class="song-studio-field task-form-field"><span class="song-studio-label">标题</span><input data-task-field="title" ${disabled} value="${taskFormValue(task, 'title')}" placeholder="选填歌曲标题"></label>
         </div></section>
@@ -152,7 +153,7 @@
     const prepared = []; let retained = false;
     renderTaskCenter();
     try {
-      const sources = await picker.open({ max, replacing, isCurrent });
+      const sources = await picker.open({ max, replacing, task, isCurrent });
       if (!sources || !isCurrent()) return;
       picker.checkCount(sources.length, max, replacing);
       for (const source of sources) {
@@ -160,6 +161,10 @@
         if (source.kind === 'file') {
           file = source.file;
           if (!picker.validAudio(file)) throw new Error('请选择有效且非空的音频文件');
+        } else if (source.kind === 'workflow') {
+          record = picker.resolveWorkflowAudio(task, source.record);
+          file = await window.orchestraMaterialLibrary.readBlob(record);
+          if (!file?.size) throw new Error('无法读取该结果音频，请重新选择');
         } else {
           record = window.orchestraMaterialLibrary.listForComposition(initialTeam).find(item => item.type === 'audio' && item.id === source.record.id && item.sourceLibrary === source.record.sourceLibrary);
           if (!record) throw new Error('所选音频已移除，请重新选择');
@@ -167,7 +172,7 @@
           if (!file?.size) throw new Error('无法读取该音频，请重新选择');
         }
         const url = URL.createObjectURL(file);
-        const track = { id: crypto.randomUUID(), title: record?.title || file.name, url, bytes: file.size, format: (file.type?.split('/')[1] || file.name?.split('.').pop() || '音频').toUpperCase(), ...(record ? { sourceMaterialId: record.id, sourceLibrary: record.sourceLibrary } : {}) };
+        const track = { id: crypto.randomUUID(), title: record?.title || file.name, url, bytes: file.size, format: (file.type?.split('/')[1] || file.name?.split('.').pop() || '音频').toUpperCase(), ...(record ? { sourceLibrary: record.sourceLibrary, ...(source.kind === 'workflow' ? { sourceWorkflowResourceId: record.id, sourceRunId: record.runId, sourceNode: record.node } : { sourceMaterialId: record.id }) } : {}) };
         prepared.push(track); track.durationSeconds = await readAudioDuration(url);
       }
       if (!isCurrent() || pendingUploads.get(task.id) !== operation) return;
@@ -177,6 +182,7 @@
         const current = window.orchestraMaterialLibrary.listForComposition(initialTeam);
         if (materialSources.some(source => !current.some(record => record.type === 'audio' && record.id === source.record.id && record.sourceLibrary === source.record.sourceLibrary))) throw new Error('所选音频已移除，请重新选择');
       }
+      sources.filter(source => source.kind === 'workflow').forEach(source => picker.resolveWorkflowAudio(task, source.record));
       const next = [...oldTracks];
       if (replacing) next.splice(replaceIndex, 1, prepared[0]); else next.push(...prepared);
       retained = setReferenceAudios(task, next);

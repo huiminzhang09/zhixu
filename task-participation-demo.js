@@ -54,10 +54,14 @@
    const task=createProductionTask(songContext,node,index,index===songIndex?'in_progress':'completed',seedTime-1000+index);
    Object.assign(task,{assignmentCreated:true,updatedAt:index===songIndex?seedTime+4:seedTime-1000+index,updatedLabel:'刚刚'});
    // Each demo initialization starts a fresh generation; previously saved materials stay intact.
-   if(index===songIndex)Object.assign(task,{nodeTitle:playlist?'基于歌单生成歌曲':'基于参考生成歌曲',referenceSongDemo:true,requiresHuman:true,executionMode:'manual',generationStage:playlist?'ready':'generated',formValues:{lyrics:window.orchestraReferenceSongTask.lyrics,count:'2'},candidates:playlist?[]:window.orchestraReferenceSongTask.candidates(true),...(playlist?{referenceAudios:[]}:{}),updatedAt:seedTime+(playlist?6:4)});
+   if(index===songIndex)Object.assign(task,{nodeTitle:playlist?'基于歌单生成歌曲':'基于参考生成歌曲',referenceSongDemo:true,workflowTextReferenceDemo:true,requiresHuman:true,executionMode:'manual',generationStage:playlist?'ready':'generated',formValues:{lyrics:window.orchestraReferenceSongTask.lyrics,count:'2'},candidates:playlist?[]:window.orchestraReferenceSongTask.candidates(true),...(playlist?{referenceAudios:[]}:{}),updatedAt:seedTime+(playlist?6:4)});
    else{
     task.completedAt=new Date(seedTime-1000+index).toISOString();task.actualSubmitter=member.name;
-    if(node.type==='refLyrics')Object.assign(task,{selectedCandidateId:'reference-song-lyrics',selectedCandidateText:window.orchestraReferenceSongTask.lyrics,selectedOutput:{type:'lyrics',candidateId:'reference-song-lyrics',content:window.orchestraReferenceSongTask.lyrics}});
+    if(node.type==='refLyrics'){
+     const selected={id:'reference-song-lyrics',title:'晨间来信 · 输出歌词',type:'lyrics',content:window.orchestraReferenceSongTask.lyrics};
+     const backup={id:'reference-song-lyrics-backup',title:'晨间来信 · 备选歌词',type:'lyrics',content:'清晨的风翻开昨日的信\n街角的光照亮归途的云\n把未说出口的思念写成旋律\n让每个明天都有你的回音'};
+     Object.assign(task,{generationStage:'generated',candidates:[selected,backup,{id:'reference-song-lyrics-unused',title:'晨间来信 · 未选择歌词',type:'lyrics',content:'这一版尚未设为输出或备选，不出现在结果资源中。'}],selectedCandidateId:selected.id,backupCandidateIds:[backup.id],selectedCandidateText:selected.content,selectedOutput:{...selected,candidateId:selected.id}});
+    }
     if(node.type==='lyricsReview')task.reviewResult='approved';
    }
    productionTasks.push(task);

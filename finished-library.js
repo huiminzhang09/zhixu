@@ -3,10 +3,15 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
 (()=>{
   const grid=document.querySelector('#finishedWorkGrid'),page=document.querySelector('#finishedPage');
   const dialogs=new Set(),downloading=new Set();
+  const searchInput=document.querySelector('#finishedWorkSearch'),clearSearchButton=document.querySelector('#clearFinishedWorkSearch'),searches=new Map();
   let activeMenu=null;
   const clone=value=>JSON.parse(JSON.stringify(value));
   const team=()=>document.querySelector('.workspace-option.active')?.dataset.workspaceId||'orchestra-studio';
   const account=()=>localStorage.getItem('orchestra-demo-account')||'demo-user';
+  const searchScope=()=>JSON.stringify([team(),account()]);
+  const normalizeSearch=value=>String(value||'').normalize('NFKC').trim().toLocaleLowerCase();
+  function updateSearch(event){const value=event.currentTarget.value;if(value)searches.set(searchScope(),value);else searches.delete(searchScope());if(!event.isComposing)render();}
+  function clearSearch(){searches.delete(searchScope());render();searchInput?.focus();}
   const entries=()=>projectData.filter(p=>(p.teamId||'orchestra-studio')===team()).flatMap(project=>(project.works||[]).map(work=>({project,work,team:team(),account:account(),key:JSON.stringify([project.id,work.id])})));
   function findEntry(key){const entry=entries().find(item=>item.key===key);if(!entry)throw new Error('该成品已不存在，请刷新列表');return entry;}
   function library(){const api=window.orchestraMaterialLibrary;if(!api?.readBlob||!api?.ensureZip)throw new Error('资源读取组件尚未就绪，请稍后重试');return api;}
@@ -34,9 +39,12 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
   function resourceMarkup(resource,index,editable){return `<article class="finished-resource"><header><div><b>${escapeHtml(resourceTitle(resource,index))}</b><small>${typeLabel(resource)}</small></div>${editable?`<button type="button" class="finished-remove" data-remove-resource="${index}" aria-label="移除${escapeHtml(resourceTitle(resource,index))}">移除</button>`:''}</header>${preview(resource,index)}</article>`;}
   const cardState=mediaState(grid);
   function render(){
-    closeMenu();release(cardState);const items=entries(),covers=[];
-    document.querySelector('#finishedWorkCount').textContent=`共 ${items.length} 个成品`;
+    closeMenu();release(cardState);const value=searches.get(searchScope())||'',keyword=normalizeSearch(value),all=entries(),items=keyword?all.filter(({work})=>normalizeSearch(work.name).includes(keyword)):all,covers=[];
+    if(searchInput&&searchInput.value!==value)searchInput.value=value;
+    if(clearSearchButton)clearSearchButton.hidden=!value;
+    document.querySelector('#finishedWorkCount').textContent=keyword?`找到 ${items.length} 个成品，共 ${all.length} 个成品`:`共 ${items.length} 个成品`;
     grid.innerHTML=items.map(({work,key})=>{const cover=(work.resources||[]).find(r=>typeOf(r)==='image'),index=covers.length;if(cover)covers.push(cover);const date=new Date(work.createdAt);return `<article class="finished-work-card" role="listitem" data-finished-key="${escapeHtml(key)}"><button type="button" class="finished-card-open" data-finished-view aria-label="查看${escapeHtml(work.name)}"><div class="finished-card-cover"><span class="finished-card-symbol">${musicIcon}</span>${cover?`<img data-finished-media="${index}" alt="" loading="lazy"><span data-media-error hidden></span>`:''}<span class="finished-card-count">${(work.resources||[]).length} 个资源</span></div><div class="finished-card-info"><h2 title="${escapeHtml(work.name)}">${escapeHtml(work.name)}</h2><time>创建于 ${Number.isNaN(date.getTime())?'—':date.toLocaleString('zh-CN',{hour12:false})}</time></div></button><button type="button" class="finished-card-more" data-finished-more aria-label="${escapeHtml(work.name)}的更多操作" aria-haspopup="menu" aria-expanded="false">⋯</button></article>`;}).join('')||'<p class="finished-empty">暂无成品，请先在待办的「成品组装」任务中组合成品并提交。</p>';
+    if(keyword&&!items.length)grid.innerHTML='<p class="finished-empty">未找到匹配的成品，请尝试其他名称或清空搜索。</p>';
     hydrate(cardState,covers);
   }
   function closeMenu(restore=false){if(!activeMenu)return;const {menu,trigger}=activeMenu;activeMenu=null;menu.remove();trigger.setAttribute('aria-expanded','false');if(restore&&trigger.isConnected)trigger.focus();}
@@ -160,6 +168,11 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
       else{const url=URL.createObjectURL(archive.blob),link=document.createElement('a');link.href=url;link.download=archive.name;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);showToast('文件已生成，已交由浏览器下载');}
     }catch(error){if(stream)try{await stream.abort();}catch{}if(error.name!=='AbortError')showToast(error.message||'下载失败，请重试','error');}finally{downloading.delete(entry.key);}
   }
+  searchInput?.addEventListener('input',updateSearch);
+  searchInput?.addEventListener('compositionend',updateSearch);
+  searchInput?.addEventListener('search',updateSearch);
+  searchInput?.addEventListener('keydown',event=>{if(event.key==='Escape'&&!event.isComposing){event.preventDefault();clearSearch();}});
+  clearSearchButton?.addEventListener('click',clearSearch);
   grid.addEventListener('click',event=>{const card=event.target.closest('[data-finished-key]');if(!card)return;try{const entry=findEntry(card.dataset.finishedKey),more=event.target.closest('[data-finished-more]');if(more)openMenu(more,entry);else if(event.target.closest('[data-finished-view]'))openWork(entry,false);}catch(error){showToast(error.message,'error');}});
   grid.addEventListener('error',event=>{if(event.target.matches('[data-finished-media]'))mediaError(event.target);},true);
   document.addEventListener('pointerdown',event=>{if(activeMenu&&!activeMenu.menu.contains(event.target)&&!activeMenu.trigger.contains(event.target))closeMenu();});
