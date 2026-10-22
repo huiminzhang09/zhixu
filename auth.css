@@ -9,6 +9,7 @@
 .demo-accounts{color:#999aa7;font-size:12px;line-height:1.8;margin-top:10px}.demo-accounts p{margin:6px 0}.demo-accounts b{color:#b291fb;font-weight:500}
 
 .organization-create{width:100%;margin-top:12px}.organization-selection .primary[hidden]+.organization-create{margin-top:0}
+.organization-skip{width:100%;margin-top:12px}
 .organization-empty{padding:28px 18px;text-align:center;border:1px dashed #3c344e;border-radius:14px;background:#0e0f14}
 .organization-empty-icon{display:grid;place-items:center;width:48px;height:48px;margin:0 auto 16px;border-radius:14px;background:#8559e81f;color:#b291fb;font-size:30px}
 .organization-empty b{display:block;font-size:16px}.organization-empty p{margin:10px 0 0;color:#999aa7;font-size:13px;line-height:1.8}

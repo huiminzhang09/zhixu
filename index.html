@@ -9,10 +9,10 @@
   <link rel="preconnect" href="https://images.unsplash.com" />
   <link rel="stylesheet" href="./styles.css?v=5" />
   <link rel="stylesheet" href="./sidebar-states.css?v=7" />
-  <link rel="stylesheet" href="./projects.css?v=15" />
+  <link rel="stylesheet" href="./projects.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./business.css?v=13" />
   <link rel="stylesheet" href="./project-create.css?v=17" />
-  <link rel="stylesheet" href="./project-detail.css?v=23" />
+  <link rel="stylesheet" href="./project-detail.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./task-center.css?v=20261021-finished-menu" />
   <link rel="stylesheet" href="./workflows.css?v=20261021-finished-menu" />
   <link rel="stylesheet" href="./playlist-import.css?v=1" />
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="./node-library-bottom.css?v=6" />
   <link rel="stylesheet" href="./connection-types.css?v=2" />
   <link rel="stylesheet" href="./workflow-nodes.css?v=5" />
-  <link rel="stylesheet" href="./production-model.css?v=20261019-return-rate" />
+  <link rel="stylesheet" href="./production-model.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./team-navigation.css?v=8" />
   <link rel="stylesheet" href="./team-invites.css?v=20261014-user-lookup">
   <link rel="stylesheet" href="./run-pagination.css?v=20261013">
@@ -32,9 +32,10 @@
   <link rel="stylesheet" href="./task-participation.css?v=20261014-task-card">
   <link rel="stylesheet" href="./reference-song-task.css?v=20261021-reference-picker">
   <link rel="stylesheet" href="./task-audio-picker.css?v=20261021">
-  <link rel="stylesheet" href="./material-library.css?v=20261021-no-folder-checkbox">
+  <link rel="stylesheet" href="./material-library.css?v=20261021-material-search">
   <link rel="stylesheet" href="./finished-library.css?v=20261021-workflow-resources">
   <link rel="stylesheet" href="./task-material-reference.css?v=20261021">
+  <link rel="stylesheet" href="./work-output-task.css?v=20261021">
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
@@ -280,9 +281,8 @@
       </form>
     </section>
 
-    <section class="page-view assets-page library-page" id="assetsPage" aria-labelledby="assetsTitle">
-      <header class="library-page-heading"><h1 id="assetsTitle">素材库</h1></header>
-      <div id="assetMaterialsPanel" class="asset-panel finished-library-panel" role="region" aria-labelledby="assetsTitle">
+    <section class="page-view assets-page library-page" id="assetsPage" aria-label="素材库">
+      <div id="assetMaterialsPanel" class="asset-panel finished-library-panel" role="region" aria-label="素材库内容">
         <div class="material-library-tabs" role="tablist" aria-label="素材库分类">
           <button id="personalMaterialTab" type="button" role="tab" data-material-library="personal" aria-selected="true" aria-controls="materialLibraryContent" tabindex="0">个人素材</button>
           <button id="teamMaterialTab" type="button" role="tab" data-material-library="team" aria-selected="false" aria-controls="materialLibraryContent" tabindex="-1">团队素材</button>
@@ -291,6 +291,11 @@
           <div class="material-library-toolbar">
             <nav id="materialBreadcrumb" class="material-breadcrumb" aria-label="素材文件夹路径"></nav>
             <div class="material-library-actions">
+              <div class="material-search" role="search" aria-label="素材名称搜索">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5" stroke-linecap="round"/></svg>
+                <input id="materialSearch" class="material-search-input" type="search" placeholder="搜索素材名称" aria-label="搜索素材名称" aria-controls="materialItems" autocomplete="off">
+                <button id="clearMaterialSearch" class="material-search-clear" type="button" aria-label="清空素材搜索" title="清空搜索" hidden>×</button>
+              </div>
               <button id="createMaterialMenu" class="material-create-button" type="button" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">＋</span> 新建</button>
             </div>
           </div>
@@ -305,7 +310,7 @@
       <div id="assetReferencesPanel" class="asset-panel" aria-label="对标曲库" hidden></div>
     </section>
     <section class="page-view finished-page library-page" id="finishedPage" aria-labelledby="finishedTitle">
-      <header class="library-page-heading"><h1 id="finishedTitle">成品</h1></header>
+      <header class="library-page-heading"><h1 id="finishedTitle">成品库</h1></header>
       <div id="finishedLibraryPanel" class="asset-panel finished-library-panel" role="region" aria-label="成品列表"><div class="finished-library-caption"><span id="finishedWorkCount" aria-live="polite">共 0 个成品</span><small>用户组合确认的作品</small></div><div id="finishedWorkGrid" class="finished-work-grid" role="list" aria-label="成品卡片"></div></div>
     </section>
     <section class="page-view workflows-page" id="workflowsPage" aria-labelledby="workflowsTitle">
@@ -683,23 +688,24 @@
     <div class="player-actions"><button aria-label="音量">♬</button><button aria-label="收藏">♡</button><button aria-label="评论">▢</button><button aria-label="更多">⋮</button></div>
   </footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="./script.js?v=20261021-reference-picker"></script>
-  <script src="./production-model.js?v=20261019-return-rate"></script>
-  <script src="./composition-flow.js?v=20261021-workflow-resources"></script>
+  <script src="./script.js?v=20261021-library-menu"></script>
+  <script src="./production-model.js?v=20261021-completed-no-actions"></script>
+  <script src="./composition-flow.js?v=20261021-finished-assembly"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
-  <script src="./finished-library.js?v=20261021-output-backups"></script>
-  <script src="./workflow-editor.js?v=20261021-playlist-demo"></script>
-  <script src="./team-navigation.js?v=20261021-material-menu"></script>
+  <script src="./finished-library.js?v=20261021-finished-copy"></script>
+  <script src="./workflow-editor.js?v=20261021-finished-assembly"></script>
+  <script src="./team-navigation.js?v=20261021-library-menu"></script>
   <script src="./logout.js?v=20261010-login"></script>
   <script src="./team-invites.js?v=20261014-user-lookup"></script>
   <script src="./run-pagination.js?v=20261013"></script>
   <script src="./assignee-search.js?v=20261013"></script>
   <script src="./avatar-team-entry.js?v=20261013-home-only"></script>
-  <script src="./material-library.js?v=20261021-edit-text"></script>
-  <script src="./task-audio-picker.js?v=20261021"></script>
-  <script src="./reference-song-task.js?v=20261021-reference-picker"></script>
+  <script src="./material-library.js?v=20261021-material-search"></script>
+  <script src="./task-audio-picker.js?v=20261021-material-scope-labels"></script>
+  <script src="./reference-song-task.js?v=20261021-material-scope-labels"></script>
   <script src="./task-participation-demo.js?v=20261021-playlist-demo"></script>
   <script src="./task-material-reference.js?v=20261021"></script>
+  <script src="./work-output-task.js?v=20261021-library-menu"></script>
 </body>
 </html>

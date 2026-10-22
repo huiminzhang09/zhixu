@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <defs><linearGradient id="sky" x2="0.8" y2="1"><stop stop-color="#182e46"/><stop offset="0.6" stop-color="#75638b"/><stop offset="1" stop-color="#ecb490"/></linearGradient><linearGradient id="light" x2="0" y2="1"><stop stop-color="#ffe8bc"/><stop offset="1" stop-color="#ffe8bc" stop-opacity="0"/></linearGradient></defs>
+  <rect width="600" height="600" fill="url(#sky)"/>
+  <circle cx="421" cy="230" r="77" fill="#ffe6be" opacity=".85"/>
+  <path d="M0 340Q150 250 300 340T600 330V600H0Z" fill="#243747"/>
+  <path d="M0 410Q150 330 300 410T600 390V600H0Z" fill="#172d3a"/>
+  <path d="M366 326h108l-30 220H270Z" fill="url(#light)" opacity=".3"/>
+  <path d="M45 51h510M45 549h510" stroke="#fff" stroke-opacity=".3"/>
+  <text x="45" y="100" fill="#f0e9e0" font-family="sans-serif" font-size="13" letter-spacing="5">ORCHESTRA / MORNING LETTER</text>
+  <text x="43" y="474" fill="#fff5e7" font-family="PingFang SC, sans-serif" font-size="52" letter-spacing="10">晨间来信</text>
+  <text x="46" y="510" fill="#c7d1d8" font-family="sans-serif" font-size="14" letter-spacing="3">把平凡的日子，唱成温柔的祝福</text>
+</svg>

@@ -13,7 +13,16 @@
 .material-breadcrumb button { border: 0; background: none; padding: 6px 0; color: #9565ed; font: inherit; cursor: pointer; }
 .material-breadcrumb [aria-current] { color: var(--text); overflow-wrap: anywhere; }
 .material-library-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.material-search { display: flex; align-items: center; gap: 8px; width: 260px; max-width: 100%; min-width: 0; min-height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--muted); }
+.material-search:focus-within { border-color: #986de9; box-shadow: 0 0 0 2px #986de91a; }
+.material-search > svg { flex: 0 0 17px; width: 17px; height: 17px; }
+.material-search .material-search-input { flex: 1; min-width: 0; width: 100%; padding: 10px 0; border: 0; border-radius: 0; background: transparent; color: var(--text); font: inherit; font-size: 13px; }
+.material-search-input::placeholder { color: var(--muted); }
+.material-search-input::-webkit-search-cancel-button { -webkit-appearance: none; }
+#materialLibraryContent .material-search-input:focus-visible { outline: none; }
 .material-library-actions button,.material-dialog button { border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); padding: 10px 14px; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.material-library-actions .material-search-clear { flex: 0 0 24px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-size: 20px; line-height: 24px; }
+.material-library-actions .material-search-clear:hover { background: var(--surface-2); color: var(--text); }
 .material-library-actions .material-primary,.material-dialog .material-primary { color: #fff; border-color: transparent; background: linear-gradient(110deg, #7749e8, #bc4897); }
 .material-library-actions .material-create-button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 9px 16px; border-color: #ededee; border-radius: 10px; background: #f4f4f5; color: #26262a; font-weight: 500; }
 .material-create-button>span { font-size: 20px; line-height: 1; font-weight: 400; color: #73737b; }
@@ -94,6 +103,8 @@ html[data-theme="dark"] .material-move-submenu button:disabled { background: tra
 .material-file-info { position: relative; padding: 8px 4px 0; }
 .material-file-info h3 { margin: 0; padding-right: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 400; line-height: 20px; color: var(--text); }
 .material-file-info time { display: block; margin-top: 3px; font-size: 12px; line-height: 18px; color: var(--muted); }
+.material-file-info .material-result-path { display: block; width: 100%; margin-top: 5px; padding: 0; overflow: hidden; border: 0; background: transparent; color: #a788df; font: inherit; font-size: 11px; line-height: 18px; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.material-result-path:hover { text-decoration: underline; }
 .material-grid-message { grid-column: 1 / -1; margin: 0; padding: 72px 24px; border: 1px dashed var(--line); border-radius: 14px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.8; }
 .material-file-missing { color: var(--muted); font-size: 12px; }
 .material-dialog { width: min(600px, calc(100vw - 32px)); max-height: 85vh; overflow: auto; padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--text); box-shadow: 0 24px 80px #0006; }
@@ -148,5 +159,6 @@ html[data-theme="dark"] .material-move-submenu button:disabled { background: tra
 .material-audio-player { display: block; width: 100%; }
 #materialLibraryContent :focus-visible,.material-dialog :focus-visible { outline: 2px solid #ac8cf7; outline-offset: 3px; }
 @media (max-width: 600px) { .material-library-actions { width: 100%; } .material-library-actions button { flex: 1; padding: 10px; white-space: nowrap; } .material-dialog { padding: 20px; } }
+@media (max-width: 600px) { .material-search { flex: 1 1 180px; width: auto; } .material-library-actions .material-create-button { flex: 0 0 auto; } }
 .song-studio-result-actions .song-studio-save-material { color: #b99af5; border-color: #9774e766; background: #8058e714; }
 .song-studio-result-actions .song-studio-save-material.is-saved:disabled { color: #6ac9a1; border-color: #6ac9a144; background: #6ac9a10a; opacity: 1; cursor: default; }

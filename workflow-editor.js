@@ -18,9 +18,18 @@
     aiSong: { title: 'AI 生成歌曲', subtitle: '歌曲节点', symbol: 'AI', color: '#d45398', category: 'song' },
     refSong: { title: '基于参考生成歌曲', subtitle: '歌曲节点', symbol: '参', color: '#5e76db', category: 'song' },
     sampleSong: { title: '基于采样生成歌曲', subtitle: '歌曲节点', symbol: '采', color: '#36a68c', category: 'song' },
-    playlistSong: { title: '基于歌单生成歌曲', subtitle: '歌曲节点', symbol: '单', color: '#8a5dd8', category: 'song' }
+    playlistSong: { title: '基于歌单生成歌曲', subtitle: '歌曲节点', symbol: '单', color: '#8a5dd8', category: 'song' },
+    workOutput: { title: '成品组装', subtitle: '组合资源并输出成品', symbol: '成', color: '#4aab91', category: 'output' }
   };
   const builtInPublishedSnapshots = {
+    'work-output-production': [{ version: 'V1.0', name: '词曲与成品组装流程', publishedAt: Date.parse('2026-10-21T10:00:00+08:00'), nodes: [
+      { id: 'output-lyrics', type: 'refLyrics', x: 100, y: 100 },
+      { id: 'output-song', type: 'refSong', x: 460, y: 100 },
+      { id: 'output-work', type: 'workOutput', x: 820, y: 100 }
+    ], edges: [
+      { id: 'output-control-1', edgeType: 'control', from: 'output-lyrics', to: 'output-song' },
+      { id: 'output-control-2', edgeType: 'control', from: 'output-song', to: 'output-work' }
+    ] }],
     'midnight-melody': [{ version: 'V2.1', name: '午夜旋律', publishedAt: Date.parse('2026-09-01T14:25:00+08:00'), nodes: [
       { id: 'midnight-write-lyrics', type: 'writeLyrics', x: 100, y: 100 },
       { id: 'midnight-ai-song', type: 'aiSong', x: 460, y: 100 },

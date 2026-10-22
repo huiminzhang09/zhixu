@@ -45,6 +45,7 @@
 .model-table tbody tr:hover { background: color-mix(in srgb, var(--surface-2) 40%, var(--surface)); }
 /* Avoid two stacked borders around the plan table. */
 .project-plan-table-wrap { border: 0; }
+.project-plan-table-wrap, .project-works-table-wrap { min-width: 0; max-width: 100%; overflow-x: auto; }
 .project-plan-table { min-width: 1150px; }
 .model-table button, .model-toolbar button, .model-dialog button,
 .project-work-row button, #consumptionPanel > button {
@@ -165,7 +166,7 @@
 .composition-resources { display: flex; flex-wrap: wrap; gap: 20px; }
 .model-empty { padding: 40px !important; color: var(--muted); text-align: center !important; }
 .project-work-row {
-  grid-template-columns: 32px 170px 180px 185px 80px 130px 105px 155px 155px 80px 100px !important;
+  grid-template-columns: 32px minmax(170px,1.2fr) minmax(180px,1.3fr) minmax(185px,1.3fr) minmax(80px,.6fr) minmax(130px,1fr) minmax(105px,.8fr) minmax(155px,1fr) minmax(155px,1fr) minmax(80px,.6fr) minmax(100px,.7fr) !important;
   min-width: 1510px !important;
 }
 .project-work-row > div { padding: 12px 6px; font-size: 12px; overflow-wrap: anywhere; }

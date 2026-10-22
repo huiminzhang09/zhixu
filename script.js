@@ -1,5 +1,5 @@
-const navItems=[['✣','创作集合','','集合'],['🏠','首页','active','首页'],['🔔','待办','','待办'],['📂','项目','','项目'],['💰','素材','','素材'],['💿','成品','','成品'],['•••','更多','','更多']];
-const navPageMap={'首页':'home','待办':'tasks','项目':'projects','创作集合':'workflows','素材':'assets','成品':'finished'};
+const navItems=[['✣','创作集合','','集合'],['🏠','首页','active','首页'],['🔔','待办','','待办'],['📂','项目','','项目'],['💰','素材库','','素材库'],['💿','成品库','','成品库'],['•••','更多','','更多']];
+const navPageMap={'首页':'home','待办':'tasks','项目':'projects','创作集合':'workflows','素材库':'assets','成品库':'finished'};
 const recordImages=['photo-1493225457124-a3eb161ffa5f','photo-1514525253161-7a46d19cd819','photo-1501386761578-eac5c94b800a','photo-1521337581100-8ca9a73a5f79','photo-1524368535928-5b5e00ddc76b','photo-1496293455970-f8581aae0e3b','photo-1459749411175-04bf5292ceea','photo-1471478331149-c72f17e33c73'];
 const records=['绯红海岸','雨过后的风景','Dear D（亲爱的告白）','爱过的你','零距离的思念','一半一半','single','single'];
 const photos=['photo-1516280440614-37939bbacd81','photo-1500530855697-b586d89ba3ee','photo-1511671782779-c97d3d27a1d4','photo-1506157786151-b8491531f063','photo-1460661419201-fd4cecdf8a8b','photo-1501612780327-45045538702b','photo-1494232410401-ad00d5433cfa','photo-1511379938547-c1f69419868d','photo-1507838153414-b4b713384a76','photo-1524650359799-842906ca1c06','photo-1519508234439-4f23643125c1','photo-1525362081669-2b476bb628c3','photo-1524368535928-5b5e00ddc76b','photo-1496293455970-f8581aae0e3b','photo-1459749411175-04bf5292ceea'];
@@ -265,7 +265,8 @@ const taskCategoryMeta={
   input:{label:'输入节点',symbol:'入'},
   lyrics:{label:'歌词节点',symbol:'文'},
   song:{label:'歌曲节点',symbol:'音'},
-  review:{label:'审核节点',symbol:'审'}
+  review:{label:'审核节点',symbol:'审'},
+  output:{label:'成品组装',symbol:'成'}
 };
 const lyricProductionNodeTypes=new Set(['writeLyrics','aiLyrics','refLyrics']);
 const songProductionNodeTypes=new Set(['aiSong','refSong','sampleSong','playlistSong']);
@@ -297,12 +298,14 @@ let taskCenterReady=false;
 function operationalWorkflowNodes(nodes){
   const lyrics=nodes.find(node=>node.type==='refLyrics')||nodes.find(node=>lyricProductionNodeTypes.has(node.type));
   const song=nodes.find(node=>node.type==='refSong')||nodes.find(node=>songProductionNodeTypes.has(node.type));
+  const output=nodes.find(node=>node.type==='workOutput');
   const lyricsId=lyrics?.id||'complete-reference-lyrics',songId=song?.id||'complete-reference-song';
   return [
     {id:lyricsId,type:'refLyrics',title:'基于参考生成歌词',subtitle:'配置生成歌词，选择结果后提交审核',category:'lyrics'},
     {id:`${lyricsId}--lyrics-review`,type:'lyricsReview',title:'歌词审核',subtitle:'审核歌词产物',category:'review',sourceNodeId:lyricsId},
     {id:songId,type:song?.type==='playlistSong'?'playlistSong':'refSong',title:song?.type==='playlistSong'?'基于歌单生成歌曲':'基于参考曲生成歌曲',subtitle:'配置生成歌曲，选择结果后提交审核',category:'song'},
-    {id:`${songId}--song-review`,type:'songReview',title:'歌曲审核',subtitle:'审核歌曲产物',category:'review',sourceNodeId:songId}
+    {id:`${songId}--song-review`,type:'songReview',title:'歌曲审核',subtitle:'审核歌曲产物',category:'review',sourceNodeId:songId},
+    ...(output?[{...output,title:'成品组装',subtitle:'组合工作流资源，确认输出成品',category:'output',requiresHuman:true}]:[])
   ];
 }
 function resolveTaskWorkflowContext(project,work){
@@ -562,12 +565,15 @@ function taskNodeActionLabel(){return '确认提交'}
 function taskNodeCanComplete(task){return !['aiLyrics','refLyrics','aiSong','refSong','sampleSong','playlistSong'].includes(task.nodeType)||Boolean(task.selectedCandidateId)}
 function renderProductionTaskDetail(task){
   window.orchestraReferenceSongTask?.stopAudio();
+  window.orchestraWorkOutputTask?.stopAudio();
+  taskDetailPanel.classList.toggle('is-work-output',task?.nodeType==='workOutput');
   const isReferenceLyrics=Boolean(task&&(task.nodeType==='refLyrics'||task.nodeTitle==='基于参考生成歌词'));
   const isReferenceSong=Boolean(task&&(task.nodeType==='refSong'||(task.nodeType==='playlistSong'&&task.referenceSongDemo)||task.nodeTitle==='基于参考曲生成歌曲'||task.nodeTitle==='基于参考生成歌曲'));
   taskDetailPanel.classList.toggle('is-reference-lyrics',isReferenceLyrics);
   taskDetailPanel.classList.toggle('is-reference-song',isReferenceSong);
   taskDetailPanel.classList.toggle('task-reference-workspace',isReferenceLyrics||isReferenceSong);
   if(!task){taskDetailPanel.innerHTML='<div class="task-detail-empty"><span aria-hidden="true">▤</span><h2>选择一条任务</h2><p>右侧将根据工作流节点类型展示对应的任务处理页面。</p></div>';return}
+  if(task.nodeType==='workOutput'&&window.orchestraWorkOutputTask){window.orchestraWorkOutputTask.render(task);return}
   if(isReferenceLyrics){taskDetailPanel.innerHTML=renderReferenceLyricsWorkspace(task);const formatSelect=taskDetailPanel.querySelector('[data-task-field="lyricsFormat"]');if(formatSelect){const formatInput=document.createElement('input');formatInput.type='text';formatInput.dataset.taskField='lyricsFormat';formatInput.value=lyricFormatLabel(formatSelect.value);formatInput.placeholder='例如：主歌 / 副歌';formatInput.disabled=formatSelect.disabled;formatInput.className=formatSelect.className;formatSelect.replaceWith(formatInput)}taskDetailPanel.querySelector('[data-task-field="config"]')?.closest('.task-form-field')?.remove();return}
   if(isReferenceSong){taskDetailPanel.innerHTML=renderReferenceSongWorkspace(task);return}
   const context=taskContextByTask(task),status=taskStatusMeta[task.status],category=taskCategoryMeta[task.nodeCategory]||taskCategoryMeta.song;
@@ -777,6 +783,7 @@ function selectTaskCandidate(task,candidateId){setTaskCandidateSelection(task,ca
 function toggleTaskBackup(task,candidateId){setTaskCandidateSelection(task,candidateId,true)}
 function advanceProductionTask(task,outcome){
   if(!task||task.status!=='in_progress'){showToast('该任务已结束，无法重复处理','error');return}
+  if(task.nodeType==='workOutput'&&outcome==='complete'){window.orchestraWorkOutputTask?.requestSubmit(task);return}
   if(outcome==='complete'&&task.referenceSongDemo&&window.orchestraReferenceSongTask&&!window.orchestraReferenceSongTask.validateReference(task))return;
   saveTaskPageValues(task);
   if(outcome==='complete'&&!validateActiveTaskPage())return;

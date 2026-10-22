@@ -100,28 +100,42 @@ function showComposer(project,runId=''){
  };
  return d;
 }
-function commitRunComposition(project,run,drafts){
+function commitRunComposition(project,run,drafts,outputTask=null){
  // Local prototype transaction: one synchronous storage write saves every work and the lock.
  // A production service must provide the same atomic commit with runId as an idempotency key.
  const raw=localStorage.getItem(productionModelKey),saved=raw?JSON.parse(raw):null;
  const persisted=Array.isArray(saved)?saved.find(p=>p.id===project.id):null,persistedRun=persisted?.runs?.find(r=>r.id===run.id);
  if(compositionLocked(project,run)||(persistedRun&&compositionLocked(persisted,persistedRun))){
-  if(persistedRun){run.composition=persistedRun.composition;const known=new Map((project.works||[]).map(w=>[w.id,w]));(persisted.works||[]).forEach(w=>known.set(w.id,w));project.works=[...known.values()]}
+  if(persistedRun){run.composition=persistedRun.composition;const known=new Map((project.works||[]).map(w=>[w.id,w]));(persisted.works||[]).forEach(w=>known.set(w.id,w));project.works=[...known.values()];if(outputTask&&persistedRun.workOutputCompletedTask){Object.assign(run,persistedRun);Object.assign(outputTask,persistedRun.workOutputCompletedTask);persistProductionTasks()}}
   return {alreadyCommitted:true};
  }
- if(!modelDone(run)||!drafts.length)throw Error('Invalid composition');
+ if(outputTask){
+  const context=taskContextByTask(outputTask);
+  if(outputTask.nodeType!=='workOutput'||outputTask.status!=='in_progress'||context?.project!==project||context?.work!==run||context.snapshot.nodes.at(-1)?.id!==outputTask.nodeId||productionTasks.some(t=>t.projectId===project.id&&String(t.workId)===String(run.id)&&t.status==='in_progress'&&t.id!==outputTask.id))throw Error('当前成品组装任务已变更，请重新打开');
+ }
+ if((!modelDone(run)&&!outputTask)||!drafts.length)throw Error('Invalid composition');
  const draftResources=drafts.flatMap(draft=>draft.resources||[]);
  if(drafts.some(draft=>!draft.name?.trim()||Array.from(draft.name.trim()).length>70||!draft.resources?.length||draft.resources.length>10)||new Set(draftResources.map(r=>r.id)).size!==draftResources.length)throw Error('Invalid or duplicate resources');
- const currentRun=persistedRun||run,currentProject=persisted||project,availableIds=new Set(compositionAvailableResources(currentProject,currentRun).map(resource=>resource.id));
+ const currentRun=persistedRun||run,currentProject=persisted||project,availableResources=new Map(compositionAvailableResources(currentProject,currentRun).map(resource=>[resource.id,resource])),availableIds=new Set(availableResources.keys());
+ if(outputTask)for(const [id,resource] of availableResources)if(!['selected','backup'].includes(resource.selectionState)){availableResources.delete(id);availableIds.delete(id)}
  if(drafts.some(draft=>(draft.resources||[]).some(resource=>!availableIds.has(resource.id))))throw Error('Resource already used');
  const now=new Date().toISOString(),batchId=crypto.randomUUID();
- const works=drafts.map((draft,index)=>({id:`WORK-${batchId}-${index+1}`,name:draft.name,resources:modelClone(draft.resources),planId:run.planId,runId:run.id,projectId:project.id,creator:'Huimin Zhang',createdAt:now,compositionBatchId:batchId}));
+ const works=drafts.map((draft,index)=>({id:`WORK-${batchId}-${index+1}`,name:draft.name.trim(),resources:draft.resources.map(resource=>modelClone(availableResources.get(resource.id))),planId:run.planId,runId:run.id,projectId:project.id,creator:outputTask?.assigneeName||'Huimin Zhang',createdAt:now,compositionBatchId:batchId}));
  const snapshot=modelClone(projectData),target=snapshot.find(p=>p.id===project.id),targetRun=target.runs.find(r=>r.id===run.id);
  const existing=new Map((target.works||[]).map(w=>[w.id,w]));(persisted?.works||[]).forEach(w=>existing.set(w.id,w));works.forEach(w=>existing.set(w.id,w));target.works=[...existing.values()];
  const previousComposition=targetRun.composition||{};
  targetRun.composition={...previousComposition,batchId,committedAt:now,workIds:[...new Set([...(previousComposition.workIds||[]),...works.map(w=>w.id)])],batches:[...(previousComposition.batches||[]),{batchId,committedAt:now,workIds:works.map(w=>w.id)}]};
+ if(outputTask){
+  Object.assign(targetRun,{status:'已完成',stage:'已完成',completedAt:now,updated:now});
+  // Save completion alongside the works so a failed task-cache write is recoverable.
+  targetRun.workOutputCompletedTask={...modelClone(outputTask),status:'completed',completedAt:now,actualSubmitter:outputTask.assigneeName,updatedAt:Date.parse(now),updatedLabel:'刚刚',outputWorkIds:works.map(work=>work.id)};
+  target.metricTasks||=[];
+  if(!target.metricTasks.some(task=>task.id===outputTask.id))target.metricTasks.push({id:outputTask.id,person:outputTask.assigneeName,assignedAt:new Date(outputTask.createdAt).toISOString(),completedAt:now,planId:run.planId,runId:run.id,firstReview:'未审核'});
+  syncProjectPlanProductionProgress(target);
+ }
  localStorage.setItem(productionModelKey,JSON.stringify(snapshot));
  project.works=target.works;run.composition=targetRun.composition;
+ if(outputTask){Object.assign(run,targetRun);Object.assign(outputTask,targetRun.workOutputCompletedTask);project.metricTasks=target.metricTasks;syncProjectPlanProductionProgress(project);persistProductionTasks()}
  return {alreadyCommitted:false,works};
 }
 // Four composition scenarios plus ten pending runs reset on page load for allocation demos.
@@ -129,6 +143,12 @@ function commitRunComposition(project,run,drafts){
  const project=projectData.find(p=>p.id==='orchestra-theme-album');
  if(project){
   const retainedFinishedEdits=(project.works||[]).filter(work=>work.finishedEditedAt).map(modelClone);
+  const retainedOutputRuns=(project.runs||[]).filter(run=>run.workOutputDemo).map(modelClone),retainedOutputIds=new Set(retainedOutputRuns.map(run=>run.id));
+  const retainedOutputPlans=(project.batches||[]).filter(plan=>retainedOutputRuns.some(run=>run.planId===plan.id)).map(modelClone);
+  const retainedOutputWorks=(project.works||[]).filter(work=>retainedOutputIds.has(work.runId)).map(modelClone);
+  const retainedOutputMetrics=(project.metricTasks||[]).filter(task=>retainedOutputIds.has(task.runId)).map(modelClone),retainedOutputCalls=(project.calls||[]).filter(call=>retainedOutputIds.has(call.runId)).map(modelClone);
+  let retainedOutputTasks=[];
+  try{retainedOutputTasks=JSON.parse(localStorage.getItem(taskCenterStorageKey)||'[]').filter(task=>task.projectId===project.id&&retainedOutputIds.has(String(task.workId)))}catch{}
   const previousSerials=new Map((project.runs||[]).filter(run=>/^DEMO-(?:STATE-00[1-4]|ALLOCATION-\d{3})$/.test(run.id)).map(run=>[run.id,run.serial]));
   const planId='DEMO-FOUR-STATES',planName='四种资源组合状态示例',now=new Date().toISOString();
   const source=project.runs.find(r=>r.resources?.some(x=>x.kind==='歌词')&&r.resources?.some(x=>x.kind==='音频'));
@@ -155,11 +175,13 @@ function commitRunComposition(project,run,drafts){
    {id:'DEMO-CONFIRMED-WORK-03',name:'晚风与星光 · 资源用尽示例',planId,runId:fullyUsed.id,projectId:project.id,resources:modelClone([usedLyrics,usedAudio].filter(Boolean)),creator:'张三',createdAt:now,compositionBatchId:'DEMO-CONFIRMED-BATCH-03'},
    {id:'DEMO-CONFIRMED-WORK-04',name:'晨光与远方 · 剩余资源示例',planId,runId:residual.id,projectId:project.id,resources:modelClone([residualLyrics,residualAudio].filter(Boolean)),creator:'李四',createdAt:now,compositionBatchId:'DEMO-CONFIRMED-BATCH-04'}
   ];
-  for(const edited of retainedFinishedEdits){const index=project.works.findIndex(work=>work.id===edited.id);if(index>=0)project.works[index]=edited;else project.works.push(edited)}
+  project.batches.push(...retainedOutputPlans);project.runs.push(...retainedOutputRuns);
+  for(const edited of [...retainedOutputWorks,...retainedFinishedEdits]){const index=project.works.findIndex(work=>work.id===edited.id);if(index>=0)project.works[index]=edited;else project.works.push(edited)}
   fullyUsed.composition={batchId:'DEMO-CONFIRMED-BATCH-03',committedAt:now,workIds:['DEMO-CONFIRMED-WORK-03']};
   residual.composition={batchId:'DEMO-CONFIRMED-BATCH-04',committedAt:now,workIds:['DEMO-CONFIRMED-WORK-04']};
-  project.calls=[];project.metricTasks=[];project.demoScenarioVersion=4;
-  productionTasks=productionTasks.filter(t=>t.projectId!==project.id);
+  project.calls=retainedOutputCalls;project.metricTasks=retainedOutputMetrics;project.demoScenarioVersion=4;
+  productionTasks=productionTasks.filter(t=>t.projectId!==project.id||retainedOutputIds.has(String(t.workId)));
+  for(const task of retainedOutputTasks)if(!productionTasks.some(item=>item.id===task.id))productionTasks.push(task);
   persistProductionTasks();syncProjectPlanProductionProgress(project);modelPersist();
  }
 }

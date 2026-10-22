@@ -30,14 +30,14 @@
  const menuLabels=[...document.querySelectorAll('#primaryNav .nav-item')].map(item=>item.querySelector('.nav-label-full')?.textContent.trim()).filter(Boolean);
  const escapeHtml=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
  const getTeamKey=()=>document.querySelector('#managedTeamId').textContent.trim()||'default-team';
- const readStore=key=>{try{const value=JSON.parse(localStorage.getItem(key)||'{}');if(key.startsWith('team-role-menus:')&&value&&typeof value==='object')for(const role of Object.keys(value))if(Array.isArray(value[role]))value[role]=[...new Set(value[role].map(name=>name==='资产'?'素材':name))];return value}catch{return {}}};
+ const readStore=key=>{try{const value=JSON.parse(localStorage.getItem(key)||'{}');if(key.startsWith('team-role-menus:')&&value&&typeof value==='object')for(const role of Object.keys(value))if(Array.isArray(value[role]))value[role]=[...new Set(value[role].map(name=>name==='资产'||name==='素材'?'素材库':name==='成品'?'成品库':name))];return value}catch{return {}}};
  const writeStore=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
  const builtInRoleItems=roleItems.slice();
  function syncRoleItems(){const stored=readStore(`team-custom-roles:${getTeamKey()}`),custom=Array.isArray(stored)?stored:[];roleItems=[...builtInRoleItems,...custom.filter(item=>item&&typeof item.name==='string'&&!builtInRoleItems.some(role=>role.name===item.name))]}
  const roleMenuDefaults={
   '团队最高管理员':menuLabels,
   '团队管理员':menuLabels.filter(name=>name!=='更多'),
-  '生产者':['首页','待办','项目','素材','成品']
+  '生产者':['首页','待办','项目','素材库','成品库']
  };
  function renderRoleCards(){
   syncRoleItems();const saved=readStore(`team-role-menus:${getTeamKey()}`),cards=roleSection.querySelector('.role-menu-cards');

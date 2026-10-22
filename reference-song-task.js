@@ -21,7 +21,7 @@
   function referenceMarkup(task, locked, uploading) {
     const tracks = referencesForTask(task), limit = referenceLimit(task), playlist = isPlaylist(task);
     const choose = (index, label) => `<button type="button" data-reference-choose="${index}" ${uploading ? 'disabled' : ''}>${label === '上传' ? transferIcon() : ''}<span>${label}</span></button>`;
-    return `<div class="song-studio-field"><div class="song-studio-reference-heading"><div class="song-studio-label">参考歌曲 <em>必填</em>${playlist ? `<small>${tracks.length} / 4 个</small>` : ''}${info(playlist ? '选择 1～4 个音频，可从个人素材库、团队素材库选择，或本地上传。' : '选择 1 个参考音频，可从素材库选择或本地上传。')}</div>${!locked && tracks.length ? `<div class="song-studio-reference-actions">${choose(playlist ? -1 : 0, playlist ? '上传' : '替换')}</div>` : ''}</div>
+    return `<div class="song-studio-field"><div class="song-studio-reference-heading"><div class="song-studio-label">参考歌曲 <em>必填</em>${playlist ? `<small>${tracks.length} / 4 个</small>` : ''}${info(playlist ? '选择 1～4 个音频，可从个人素材、团队素材选择，或本地上传。' : '选择 1 个参考音频，可从素材库选择或本地上传。')}</div>${!locked && tracks.length ? `<div class="song-studio-reference-actions">${choose(playlist ? -1 : 0, playlist ? '上传' : '替换')}</div>` : ''}</div>
       <div class="song-studio-reference-list">${tracks.map((track, index) => `<div class="song-studio-reference-item">${playlist ? `<div class="song-studio-reference-heading"><b>参考歌曲 ${index + 1}</b>${!locked ? `<div class="song-studio-reference-actions">${choose(index, '替换')}</div>` : ''}</div>` : ''}${player(track, true, index)}</div>`).join('') || `<div class="song-studio-reference-empty"><span aria-hidden="true">♫</span><b>暂无参考歌曲</b>${!locked ? choose(-1, '上传') : ''}<small>${playlist ? '请选择 1～4 个音频' : '请选择 1 个音频'}，支持素材库选择或本地上传</small></div>`}</div>
       ${!locked ? `<p class="song-studio-reference-hint" role="status">${uploading ? '正在选择或读取音频…' : `${playlist ? '可上传 1～4 个参考音频。' : ''}替换或添加参考歌曲后，需要重新运行生成歌曲。`}</p>` : ''}</div>`;
   }
@@ -43,7 +43,7 @@
     const waveform = heights.map((height, i) => `<path d="M${i * 10 + 5} ${40 - height / 2}v${height}"/>`).join('');
     const duration = track.durationSeconds;
     return `<div class="song-studio-player${withFile ? ' is-reference' : ''}" data-reference-player>
-      ${withFile ? `<div class="song-studio-file"><i>${icon}</i><div><b>${escapeHtml(track.title)}</b><small>${(track.bytes / 1048576).toFixed(2)} MB / ${escapeHtml(track.format)} · ${track.sourceLibrary ? (track.sourceLibrary === 'team' ? '团队素材库' : '个人素材库') : track.demo ? '演示音频' : '本地音频'}</small></div></div>` : ''}
+      ${withFile ? `<div class="song-studio-file"><i>${icon}</i><div><b>${escapeHtml(track.title)}</b><small>${(track.bytes / 1048576).toFixed(2)} MB / ${escapeHtml(track.format)} · ${track.sourceLibrary ? (track.sourceLibrary === 'team' ? '团队素材' : '个人素材') : track.demo ? '演示音频' : '本地音频'}</small></div></div>` : ''}
       <audio preload="metadata" src="${escapeHtml(track.url)}" aria-label="${escapeHtml(track.title)}"></audio>
       <div class="song-studio-time"><time data-reference-elapsed>0:00</time><time data-reference-duration>${formatTaskSongTime(duration)}</time></div>
       <div class="song-studio-wave"><svg viewBox="0 0 560 80" preserveAspectRatio="none" aria-hidden="true">${waveform}</svg><div class="song-studio-wave-progress"><svg viewBox="0 0 560 80" preserveAspectRatio="none" aria-hidden="true">${waveform}</svg></div><input type="range" min="0" max="${duration}" step="0.1" value="0" data-reference-seek aria-label="${escapeHtml(track.title)}播放进度" aria-valuetext="0:00 / ${formatTaskSongTime(duration)}"></div>
@@ -64,7 +64,7 @@
           <button type="button" data-task-candidate="${escapeHtml(candidate.id)}" aria-pressed="${selected}" title="仅可选择一个输出版本" ${disabled}>${selected ? '✓ 已设为输出' : '设为输出'}</button>
           <button type="button" data-task-backup="${escapeHtml(candidate.id)}" aria-pressed="${backup}" title="${backup ? '点击取消备选' : '可选择多个备选版本'}" ${disabled}>${backup ? '✓ 已设为备选' : '设为备选'}</button>
           <a href="${escapeHtml(candidate.url)}" download="${escapeHtml(candidate.title)}.wav" aria-label="下载${escapeHtml(candidate.title)}" title="下载${escapeHtml(candidate.title)}（演示音频）">${transferIcon(true)}<span>下载</span></a>
-          <button type="button" class="song-studio-save-material${saved ? ' is-saved' : ''}" data-save-song-material="${escapeHtml(candidate.id)}" aria-label="${escapeHtml(candidate.title)}${saved ? '已保存至素材库' : '保存素材'}" title="${saved ? '已保存至素材库，可在「素材」查看' : '选择素材库及文件夹后保存'}" ${saved ? 'disabled' : ''}>${saved ? '✓ 已保存' : '保存素材'}</button>
+          <button type="button" class="song-studio-save-material${saved ? ' is-saved' : ''}" data-save-song-material="${escapeHtml(candidate.id)}" aria-label="${escapeHtml(candidate.title)}${saved ? '已保存至素材库' : '保存素材'}" title="${saved ? '已保存至素材库，可在「素材库」查看' : '选择素材库及文件夹后保存'}" ${saved ? 'disabled' : ''}>${saved ? '✓ 已保存' : '保存素材'}</button>
         </div></div>
         <div class="song-studio-result-body">${player(candidate, false, index + 1)}</div></article>`;
     }).join('') : '<div class="ref-output-empty"><i>♫</i><b>暂无生成歌曲</b><small>确认左侧输入后，点击“开始运行”。</small></div>';
@@ -207,7 +207,7 @@
     if (saved) {
       button.classList.add('is-saved');
       button.textContent = '✓ 已保存';
-      button.title = '已保存至素材库，可在「素材」查看';
+      button.title = '已保存至素材库，可在「素材库」查看';
       button.setAttribute('aria-label', `${candidate.title}已保存至素材库`);
     }
   });

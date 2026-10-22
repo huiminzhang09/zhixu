@@ -11,9 +11,9 @@
   let dragClickGuardUntil = 0;
   const scriptLoads = new Map();
   const failedExampleSeeds = new Set();
-  const locations = new Map(), previewUrls = new Set();
+  const locations = new Map(), searches = new Map(), previewUrls = new Set();
   const q = selector => panel.querySelector(selector);
-  const libraryName = library => library === 'personal' ? '个人素材库' : '团队素材库';
+  const libraryName = library => library === 'personal' ? '个人素材' : '团队素材';
   const allowsRootMaterials = context => ['personal', 'team'].includes(context.library);
   const activeTeam = () => document.querySelector('.workspace-option.active')?.dataset.workspaceId || 'orchestra-studio';
   const currentAccount = () => localStorage.getItem('orchestra-demo-account') || 'demo-user';
@@ -26,6 +26,18 @@
     const context = { team: activeTeam(), account: currentAccount(), library: selectedLibrary };
     return { ...context, folderId: locations.get(locationKey(context)) || null };
   };
+  const normalizeSearch = value => String(value || '').normalize('NFKC').trim().toLocaleLowerCase();
+  const searchTerm = context => normalizeSearch(searches.get(locationKey(context)));
+  function updateMaterialSearch(event) {
+    const key = locationKey(contextNow()), value = event.currentTarget.value;
+    if (value) searches.set(key, value); else searches.delete(key);
+    if (!event.isComposing) render();
+  }
+  function clearMaterialSearch() {
+    searches.delete(locationKey(contextNow()));
+    render();
+    q('#materialSearch')?.focus();
+  }
   const recordId = (task, candidate) => JSON.stringify([task.id, candidate.generationId || candidate.id]);
   const folderIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 10h18"/></svg>';
   function read(team) {
@@ -285,7 +297,7 @@
     }
     catch { return false; }
   }
-  const saveLibraryName = library => library === 'personal' ? '个人素材库' : '团队素材库';
+  const saveLibraryName = library => library === 'personal' ? '个人素材' : '团队素材';
   function saveDestinationLabel(context) {
     return [saveLibraryName(context.library), ...folderPath(context).map(folder => folder.title)].join(' / ');
   }
@@ -462,23 +474,34 @@
       let path;
       try { path = folderPath(context, folders); }
       catch { context.folderId = null; locations.delete(locationKey(context)); path = []; }
-      const children = folders.filter(folder => folder.parentId === context.folderId);
-      const allRecords = visibleRecords(context), records = allRecords.filter(record => recordFolder(record, context, folders) === context.folderId);
+      const keyword = searchTerm(context), searching = Boolean(keyword);
+      const searchInput = q('#materialSearch'), clearSearch = q('#clearMaterialSearch');
+      if (searchInput) {
+        const value = searches.get(locationKey(context)) || '';
+        if (searchInput.value !== value) searchInput.value = value;
+        searchInput.placeholder = `搜索${libraryName(context.library)}名称`;
+        searchInput.setAttribute('aria-label', `搜索${libraryName(context.library)}名称（含子文件夹）`);
+      }
+      if (clearSearch) clearSearch.hidden = !searchInput?.value;
+      const children = searching ? [] : folders.filter(folder => folder.parentId === context.folderId);
+      const allRecords = visibleRecords(context), records = allRecords.filter(record => searching ? normalizeSearch(record.title).includes(keyword) : recordFolder(record, context, folders) === context.folderId);
       q('#materialBreadcrumb').innerHTML = [{ id: '', title: libraryName(context.library) }, ...path].map((folder, index) => `${index ? '<span aria-hidden="true">/</span>' : ''}${index === path.length ? `<span aria-current="page">${escapeHtml(folder.title)}</span>` : `<button type="button" data-open-material-folder="${escapeHtml(folder.id)}">${escapeHtml(folder.title)}</button>`}`).join('');
-      q('#materialFolderHint').textContent = !path.length ? (allowsRootMaterials(context) ? '可直接新建文件夹或添加资产；支持文本、图片和音频，文件夹最多支持 2 层。' : '素材按文件夹存放，点击文件夹查看内容；最多支持 2 层文件夹。') : path.length >= 2 ? '已达第 2 层，可添加文本、图片和音频；如需新建文件夹，请返回上级。' : '可添加文本、图片和音频，或新建第二层文件夹。';
+      q('#materialFolderHint').textContent = searching ? `按名称查找${libraryName(context.library)}中的全部素材，包含子文件夹；清空搜索可返回当前目录。` : !path.length ? (allowsRootMaterials(context) ? '可直接新建文件夹或添加资产；支持文本、图片和音频，文件夹最多支持 2 层。' : '素材按文件夹存放，点击文件夹查看内容；最多支持 2 层文件夹。') : path.length >= 2 ? '已达第 2 层，可添加文本、图片和音频；如需新建文件夹，请返回上级。' : '可添加文本、图片和音频，或新建第二层文件夹。';
       q('#materialFolders').innerHTML = children.map(folder => {
         const title = escapeHtml(folder.title), date = materialDate(folder.createdAt);
         return `<div role="listitem" class="material-folder-item" data-drop-material-folder="${escapeHtml(folder.id)}"><button class="material-folder-card" type="button" data-open-material-folder="${escapeHtml(folder.id)}" aria-label="打开文件夹：${title}"><span class="material-folder-cover"><img src="./assets/material-folder.svg" alt="" draggable="false"></span><span class="material-folder-info"><strong title="${title}">${title}</strong><time datetime="${escapeHtml(folder.createdAt)}">${escapeHtml(date)}</time></span></button>${menuTrigger('folder', folder)}</div>`;
       }).join('');
       q('#materialFolders').hidden = !children.length;
-      q('#materialLibraryDescription').textContent = !context.folderId ? `共 ${allRecords.length} 个素材${allowsRootMaterials(context) ? '（含子文件夹）' : '，按文件夹存放'}` : `${libraryName(context.library)} · 当前文件夹`;
-      q('#materialCount').textContent = !context.folderId && !allowsRootMaterials(context) ? `共 ${children.length} 个文件夹` : `共 ${children.length} 个文件夹 · ${records.length} 个素材`;
+      q('#materialLibraryDescription').textContent = searching ? `${libraryName(context.library)} · 全部文件夹` : !context.folderId ? `共 ${allRecords.length} 个素材${allowsRootMaterials(context) ? '（含子文件夹）' : '，按文件夹存放'}` : `${libraryName(context.library)} · 当前文件夹`;
+      q('#materialCount').textContent = searching ? `找到 ${records.length} 个匹配素材` : !context.folderId && !allowsRootMaterials(context) ? `共 ${children.length} 个文件夹` : `共 ${children.length} 个文件夹 · ${records.length} 个素材`;
       q('#materialItems').hidden = !records.length && children.length > 0;
       q('#materialItems').innerHTML = records.map(record => {
         const type = ['text', 'image'].includes(record.type) ? record.type : 'audio';
         const date = materialDate(record.createdAt);
-        return `<article class="material-file-card" role="listitem" draggable="true" data-drag-material="${escapeHtml(record.id)}"><div class="material-file-preview material-file-preview-${type}">${previewMarkup(record)}</div><div class="material-file-info"><h3 title="${escapeHtml(record.title)}">${escapeHtml(record.title)}</h3>${menuTrigger('material', record)}<time datetime="${escapeHtml(record.createdAt)}">${escapeHtml(date)}</time></div></article>`;
-      }).join('') || `<p class="material-grid-message">${context.folderId ? '当前文件夹暂无素材，点击「＋ 新建 → 添加资产」添加文本、图片或音频。' : allowsRootMaterials(context) ? '暂无内容，点击「＋ 新建」新建文件夹或添加资产。' : '暂无文件夹，点击「新建文件夹」开始整理素材。'}</p>`;
+        const folderId = recordFolder(record, context, folders);
+        const resultPath = searching ? [libraryName(context.library), ...folderPath({ ...context, folderId }, folders).map(folder => folder.title)].join(' / ') : '';
+        return `<article class="material-file-card" role="listitem" draggable="${!searching}" ${searching ? '' : `data-drag-material="${escapeHtml(record.id)}"`}><div class="material-file-preview material-file-preview-${type}">${previewMarkup(record)}</div><div class="material-file-info"><h3 title="${escapeHtml(record.title)}">${escapeHtml(record.title)}</h3>${menuTrigger('material', record)}<time datetime="${escapeHtml(record.createdAt)}">${escapeHtml(date)}</time>${searching ? `<button type="button" class="material-result-path" data-open-material-folder="${escapeHtml(folderId || '')}" title="打开所在位置：${escapeHtml(resultPath)}" aria-label="打开所在位置：${escapeHtml(resultPath)}">${escapeHtml(resultPath)}</button>` : ''}</div></article>`;
+      }).join('') || `<p class="material-grid-message">${searching ? '未找到匹配素材，请更换关键词或清空搜索。' : context.folderId ? '当前文件夹暂无素材，点击「＋ 新建 → 添加资产」添加文本、图片或音频。' : allowsRootMaterials(context) ? '暂无内容，点击「＋ 新建」新建文件夹或添加资产。' : '暂无文件夹，点击「新建文件夹」开始整理素材。'}</p>`;
       hydratePreviews(version);
     } catch {
       q('#materialCount').textContent = '素材读取失败';
@@ -489,7 +512,7 @@
   }
   function openFolder(id) {
     const context = { ...contextNow(), folderId: id || null };
-    try { folderPath(context); locations.set(locationKey(context), context.folderId); render(); }
+    try { folderPath(context); locations.set(locationKey(context), context.folderId); searches.delete(locationKey(context)); render(); }
     catch (error) { showToast(error.message, 'error'); }
   }
   function setMaterialDropTarget(target) {
@@ -990,6 +1013,11 @@
     });
   });
   q('#createMaterialMenu').addEventListener('click', event => { try { openMenu(event.currentTarget, createMenuItems(contextNow())); } catch (error) { showToast(error.message, 'error'); } });
+  q('#materialSearch')?.addEventListener('input', updateMaterialSearch);
+  q('#materialSearch')?.addEventListener('compositionend', updateMaterialSearch);
+  q('#materialSearch')?.addEventListener('search', updateMaterialSearch);
+  q('#materialSearch')?.addEventListener('keydown', event => { if (event.key === 'Escape' && !event.isComposing) { event.preventDefault(); clearMaterialSearch(); } });
+  q('#clearMaterialSearch')?.addEventListener('click', clearMaterialSearch);
   panel.addEventListener('pointerdown', event => {
     dragFromMenu = Boolean(event.target.closest('[data-material-menu]'));
     dragClickGuardUntil = 0;

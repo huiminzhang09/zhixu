@@ -17,13 +17,15 @@
  }
  function enterOrganization(organization,newMemberships=null,feedback=null){
   const memberships=newMemberships||organizations,accountKey='orchestra-account-organizations:'+loginAccount;
+  if(!organization&&memberships.length){show('请选择一个企业进行登录。');return false}
   const keys=['orchestra-login-organizations','orchestra-workspace','orchestra-demo-signed-out',...(newMemberships?[accountKey]:[])];
   let previous=[];
   try{
    previous=keys.map(key=>[key,localStorage.getItem(key)]);
    if(newMemberships)localStorage.setItem(accountKey,JSON.stringify(memberships));
    localStorage.setItem('orchestra-login-organizations',JSON.stringify(memberships));
-   localStorage.setItem('orchestra-workspace',organization.id);
+   if(organization)localStorage.setItem('orchestra-workspace',organization.id);
+   else localStorage.removeItem('orchestra-workspace');
    localStorage.removeItem('orchestra-demo-signed-out');
   }catch{
    previous.forEach(([key,value])=>{try{if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value)}catch{}});
@@ -64,7 +66,7 @@
   form.hidden=true;
   document.querySelector('.auth-links').hidden=true;
   document.querySelector('h1').textContent='选择企业';
-  document.querySelector('.intro').textContent=organizations.length?'请选择一个企业进行登录':'新建企业后即可进入系统';
+  document.querySelector('.intro').textContent=organizations.length?'请选择一个企业进行登录':'新建企业或跳过进入首页';
   const selection=document.createElement('form');selection.className='organization-selection';
   const group=document.createElement('fieldset');
   const legend=document.createElement('legend');legend.textContent='可登录的企业';group.append(legend);
@@ -76,14 +78,20 @@
   });
   if(!organizations.length){
    const empty=document.createElement('div');empty.className='organization-empty';
-   empty.innerHTML='<span class="organization-empty-icon" aria-hidden="true">＋</span><b>暂无可登录的企业</b><p>你还未加入任何企业，可以新建企业后继续。</p>';
+   empty.innerHTML='<span class="organization-empty-icon" aria-hidden="true">＋</span><b>暂无可登录的企业</b><p>你还未加入任何企业，可以新建企业，或跳过进入首页。</p>';
    group.append(empty);
   }
   const submit=document.createElement('button');submit.type='submit';submit.className='primary';submit.textContent='登录所选企业';submit.disabled=true;submit.hidden=!organizations.length;
   const create=document.createElement('button');create.type='button';create.className=`organization-create ${organizations.length?'secondary':'primary'}`;create.textContent='＋ 新建企业';create.addEventListener('click',openCreateOrganization);
   selectionMessage=document.createElement('p');selectionMessage.className='message';selectionMessage.setAttribute('role','status');selectionMessage.setAttribute('aria-live','polite');
   const back=document.createElement('a');back.href='./login.html';back.className='organization-back';back.textContent='返回登录';
-  selection.append(group,selectionMessage,submit,create,back);form.after(selection);
+  selection.append(group,selectionMessage,submit,create);
+  if(!organizations.length){
+   const skip=document.createElement('button');skip.type='button';skip.className='organization-skip secondary';skip.textContent='跳过';skip.setAttribute('aria-label','跳过企业选择，进入首页');
+   skip.addEventListener('click',()=>{skip.disabled=true;if(!enterOrganization(null))skip.disabled=false});
+   selection.append(skip);
+  }
+  selection.append(back);form.after(selection);
   selection.addEventListener('change',()=>{submit.disabled=!selection.querySelector('[name="organization"]:checked');show('')});
   selection.addEventListener('submit',event=>{event.preventDefault();const chosenId=selection.querySelector('[name="organization"]:checked')?.value;const chosen=organizations.find(item=>item.id===chosenId);if(chosen)enterOrganization(chosen)});
   (group.querySelector('input')||create).focus();
