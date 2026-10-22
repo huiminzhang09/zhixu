@@ -5,7 +5,7 @@
   const session=()=>JSON.stringify([localStorage.getItem('orchestra-demo-account'),localStorage.getItem('orchestra-workspace')]);
   const kind=resource=>({text:'歌词',lyrics:'歌词',audio:'音频',song:'音频',image:'图片'}[resource.type])||resource.kind;
   const title=resource=>resource.title||resource.kind||'资源';
-  let mountedTask='',mountedSession='',submitting=false;
+  let mountedTask='',mountedSession='',submitting=false,initialized=false;
   function stopAudio(){taskDetailPanel.querySelectorAll('audio').forEach(audio=>audio.pause())}
   function resourcesFor(task){
     const context=taskContextByTask(task);if(!context)return [];
@@ -126,6 +126,16 @@
   },true);
   function initialize(){
     const project=projectData.find(item=>item.id==='orchestra-theme-album'),member=project&&projectAssignableMembers(project)[0];if(!member)return;
+    const resetDemo=!initialized,previousSerial=project.runs.find(item=>item.id===runId)?.serial;
+    if(resetDemo){
+      // Reset only this repeatable example once per page load, including its submission lock.
+      project.runs=project.runs.filter(item=>item.id!==runId);
+      project.batches=project.batches.filter(item=>item.id!==planId);
+      project.works=(project.works||[]).filter(item=>item.runId!==runId);
+      project.metricTasks=(project.metricTasks||[]).filter(item=>item.runId!==runId);
+      project.calls=(project.calls||[]).filter(item=>item.runId!==runId&&(!previousSerial||item.runId!==previousSerial));
+      productionTasks=productionTasks.filter(task=>task.projectId!==project.id||String(task.workId)!==runId);
+    }
     let run=project.runs.find(item=>item.id===runId);
     if(!project.batches.some(plan=>plan.id===planId))project.batches.push({id:planId,name:'成品组装示例计划',quantity:1,workflowId:'work-output-production',workflowName:'词曲与成品组装流程',workflowVersion:'V1.0',delivery:'2026-10-31',notes:'将工作流的输出与备选资源组合为成品。'});
     const plan=project.batches.find(item=>item.id===planId);
@@ -133,7 +143,7 @@
     if(plan.workflowName==='词曲与作品输出流程')plan.workflowName='词曲与成品组装流程';
     const now=Date.now();
     if(!run){
-      run={id:runId,serial:reserveDailyProductionNumbers({flow:1})?.flow[0]||runId,name:'成品组装示例',planId,planName:'成品组装示例计划',status:'进行中',stage:'成品组装',workOutputDemo:true,owner:member.name,lastAssigneeId:member.id,createdAt:new Date(now).toISOString(),startedAt:new Date(now-20*60000).toISOString(),resources:[]};
+      run={id:runId,serial:previousSerial||reserveDailyProductionNumbers({flow:1})?.flow[0]||runId,name:'成品组装示例',planId,planName:'成品组装示例计划',status:'进行中',stage:'成品组装',workOutputDemo:true,owner:member.name,lastAssigneeId:member.id,createdAt:new Date(now).toISOString(),startedAt:new Date(now-20*60000).toISOString(),resources:[]};
       const base={runId,planId,version:'V1'};
       run.resources=[
         {...base,id:runId+'-lyrics-a',kind:'歌词',title:'晨间来信 · 正式歌词',node:'基于参考生成歌词',selectionState:'selected',content:window.orchestraReferenceSongTask?.lyrics||'清晨的风推开窗\n把昨日心事轻轻放\n沿着光亮去远方\n每一步都有回响'},
@@ -182,7 +192,9 @@
       const task=productionTasks.find(item=>item.id===run.workOutputCompletedTask.id);
       if(task)Object.assign(task,run.workOutputCompletedTask);else productionTasks.push(clone(run.workOutputCompletedTask));
     }
+    initialized=true;
     syncProjectPlanProductionProgress(project);persistProductionTasks();persistProjectWorkAssignments();modelPersist();renderTaskCenter();
+    if(resetDemo){renderFinishedLibrary();renderProjectDetail()}
   }
   window.orchestraWorkOutputTask={render,stopAudio,validateDrafts,requestSubmit,initialize};
   window.addEventListener('pagehide',stopAudio);
