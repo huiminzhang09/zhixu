@@ -4,15 +4,18 @@
   const clone=value=>JSON.parse(JSON.stringify(value));
   const session=()=>JSON.stringify([localStorage.getItem('orchestra-demo-account'),localStorage.getItem('orchestra-workspace')]);
   const kind=resource=>({text:'歌词',lyrics:'歌词',audio:'音频',song:'音频',image:'图片'}[resource.type])||resource.kind;
-  const title=resource=>resource.title||resource.kind||'资源';
+  const title=resource=>String(resource.title||resource.kind||'资源').split('·')[0].trim()||'资源';
   let mountedTask='',mountedSession='',submitting=false,initialized=false;
-  function stopAudio(){taskDetailPanel.querySelectorAll('audio').forEach(audio=>audio.pause())}
+  const editorStates=new Map(),previewDialogs=new Set();
+  function stopAudio(){taskDetailPanel.querySelectorAll('audio').forEach(audio=>audio.pause());previewDialogs.forEach(dialog=>dialog.querySelectorAll('audio').forEach(audio=>audio.pause()))}
+  function closePreviews(){previewDialogs.forEach(dialog=>dialog.close());previewDialogs.clear()}
   function resourcesFor(task){
     const context=taskContextByTask(task);if(!context)return [];
     return (context.work.resources||[]).filter(resource=>['selected','backup'].includes(resource.selectionState));
   }
   function draftsFor(task){
     if(!Array.isArray(task.outputDrafts))task.outputDrafts=[{name:'晨间来信',resourceIds:resourcesFor(task).filter(resource=>resource.selectionState==='selected').slice(0,10).map(resource=>resource.id)}];
+    task.outputDrafts.forEach(draft=>{draft.resourceIds=(draft.resourceIds||[]).filter(Boolean)});
     return task.outputDrafts;
   }
   function mediaURL(resource){
@@ -27,7 +30,6 @@
     if(['图片','封面'].includes(type))return url?`<details class="output-image-preview"><summary>查看图片</summary><img src="${escapeHtml(url)}" alt="${escapeHtml(title(resource))}" loading="lazy"></details>`:'<p class="output-media-empty">暂无图片</p>';
     return '<p class="output-media-empty">暂不支持预览此资源</p>';
   }
-  function badge(resource){return `<span class="output-resource-badge ${resource.selectionState==='backup'?'is-backup':''}">${resource.selectionState==='backup'?'备选':'输出'}</span>`}
   function validateDrafts(task,drafts=draftsFor(task)){
     const resources=new Map(resourcesFor(task).map(resource=>[resource.id,resource])),used=new Set();
     if(!drafts.length)throw Error('请至少配置一个成品');
@@ -44,26 +46,82 @@
       return {name,resources:chosen};
     });
   }
-  function workCard(draft,index,resources,used,workCount){
-    return `<article class="output-work-card" data-output-work="${index}"><header><h3>成品 ${index+1}</h3><button type="button" class="output-remove" data-output-remove-work="${index}" ${workCount===1?'disabled':''}>删除成品</button></header>
-      <label class="output-name-field"><span>成品名称 <em>*</em></span><input data-output-name="${index}" value="${escapeHtml(draft.name)}" maxlength="70" placeholder="请输入成品名称" required><small>最多 70 个字符</small></label>
-      <div class="output-resource-heading"><b>选择资源</b><span>${draft.resourceIds.filter(Boolean).length} / 10 个</span></div>
+  function editorState(task){
+    const key=session()+':'+task.id;
+    if(!editorStates.has(key))editorStates.set(key,{active:0,collapsed:new Set()});
+    const state=editorStates.get(key);state.active=Math.max(0,Math.min(state.active,draftsFor(task).length-1));return state;
+  }
+  const nodeName=resource=>resource.node||resource.nodeTitle||'未记录产出节点';
+  function resourceIcon(resource){
+    const type=kind(resource),audio=type==='音频',image=['图片','封面'].includes(type);
+    const path=audio?'<path d="M9 17V6l10-2v11M9 9l10-2"/><ellipse cx="6" cy="17" rx="3" ry="3"/><ellipse cx="16" cy="15" rx="3" ry="3"/>':image?'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 6"/>':'<path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"/>';
+    return `<span class="output-resource-icon ${audio?'is-audio':image?'is-image':'is-text'}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`;
+  }
+  const trashIcon='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M7 5V3h6v2M5 5l1 12h8l1-12M8 8v6M12 8v6"/></svg>';
+  const chevronIcon='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 12 4-4 4 4"/></svg>';
+  function previewButton(resource){
+    const audio=kind(resource)==='音频';
+    return `<button type="button" class="output-preview-button${audio?' is-audio':''}" data-output-preview="${escapeHtml(resource.id)}" aria-label="${audio?'试听':'预览'}${escapeHtml(title(resource))}">${audio?'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M5 2.5 13 8l-8 5.5z"/></svg>':''}${audio?'试听':'预览'}</button>`;
+  }
+  function draftReady(draft,resources){return Boolean(draft.name.trim()&&Array.from(draft.name.trim()).length<=70&&draft.resourceIds.length>0&&draft.resourceIds.length<=10&&draft.resourceIds.every(id=>resources.some(resource=>resource.id===id)))}
+  function workCard(task,draft,index,resources,used,workCount){
+    const state=editorState(task),active=state.active===index,collapsed=state.collapsed.has(index),ready=draftReady(draft,resources);
+    return `<article class="output-work-card${active?' is-active':''}" data-output-work="${index}" aria-label="成品 ${index+1}"><header>
+      <button type="button" class="output-card-select" data-output-select-work="${index}" aria-pressed="${active}" aria-controls="outputWorkBody-${index}"><span class="output-work-number">${index+1}</span><b>成品 ${index+1}</b><small data-output-current ${active?'':'hidden'}>当前编辑</small></button>
+      <div class="output-card-actions"><span class="output-ready${ready?' is-ready':''}" data-output-ready="${index}" aria-label="${ready?'已配置':'待配置'}" title="${ready?'已配置':'待配置'}">${ready?'✓':'待配置'}</span><button type="button" class="output-icon-button output-delete-work" data-output-remove-work="${index}" ${workCount===1?'disabled':''} aria-label="删除成品 ${index+1}" title="删除成品">${trashIcon}</button><button type="button" class="output-icon-button output-collapse" data-output-collapse-work="${index}" aria-expanded="${!collapsed}" aria-controls="outputWorkBody-${index}" aria-label="${collapsed?'展开':'收起'}成品 ${index+1}">${chevronIcon}</button></div></header>
+      <div id="outputWorkBody-${index}" ${collapsed?'hidden':''}>
+      <label class="output-name-field"><span class="output-name-label"><span>成品名称 <em>*</em></span><small data-output-name-count="${index}">${Array.from(draft.name).length} / 70</small></span><input data-output-name="${index}" value="${escapeHtml(draft.name)}" maxlength="140" placeholder="请输入成品名称" required></label>
+      <div class="output-resource-heading"><span>已选资源</span><span>${draft.resourceIds.length} / 10</span></div>
       <div class="output-selected-resources">${draft.resourceIds.map((id,slot)=>{
         const resource=resources.find(item=>item.id===id);
-        return `<div class="output-selected-resource"><div class="output-resource-choice"><select data-output-resource="${index}:${slot}" aria-label="成品 ${index+1} 的资源 ${slot+1}" required><option value="">请选择资源</option>${resources.map(item=>`<option value="${escapeHtml(item.id)}" ${item.id===id?'selected':''} ${used.has(item.id)&&item.id!==id?'disabled':''}>${escapeHtml(title(item))} · ${kind(item)} · ${item.selectionState==='backup'?'备选':'输出'}${used.has(item.id)&&item.id!==id?'（已选择）':''}</option>`).join('')}</select><button type="button" class="output-remove" data-output-remove-resource="${index}:${slot}" ${draft.resourceIds.length===1?'disabled':''} aria-label="移除成品 ${index+1} 的资源 ${slot+1}">移除</button></div>${resource?`<div class="output-resource-preview">${preview(resource)}</div>`:''}</div>`;
-      }).join('')}</div><button type="button" class="output-add-resource" data-output-add-resource="${index}" ${draft.resourceIds.length>=10||used.size>=resources.length?'disabled':''}>＋ 添加资源</button></article>`;
+        return `<div class="output-selected-resource">${resource?`${resourceIcon(resource)}<div class="output-resource-info"><b>${escapeHtml(title(resource))}</b><small>${escapeHtml(nodeName(resource))}</small></div>${previewButton(resource)}`:'<span class="output-resource-info output-invalid-resource">资源已失效，请移除后重新添加</span>'}<button type="button" class="output-icon-button output-remove-resource" data-output-remove-resource="${index}:${slot}" aria-label="移除成品 ${index+1} 的资源 ${slot+1}" title="移除资源">×</button></div>`;
+      }).join('')||'<p class="output-empty-selection">暂无资源，请从右侧资源列表添加。</p>'}</div><button type="button" class="output-add-resource" data-output-add-resource="${index}" ${draft.resourceIds.length>=10||used.size>=resources.length?'disabled':''}>＋ 添加资源</button></div></article>`;
+  }
+  function sourcePanel(task,resources){
+    const drafts=draftsFor(task),state=editorState(task),full=(drafts[state.active]?.resourceIds.length||0)>=10;
+    return `<div class="output-section-heading"><div><h3>结果资源信息</h3><p>${resources.length} 个资源可用于组装</p></div></div><p class="output-target-hint" role="status">添加至：<b>成品 ${state.active+1}</b>${full?' · 已达 10 个资源上限':''}</p><div class="output-source-groups">${[['selected','输出资源'],['backup','备选资源']].map(([status,label])=>`<section class="output-source-group"><h4>${label} <span>${resources.filter(resource=>resource.selectionState===status).length}</span></h4>${resources.filter(resource=>resource.selectionState===status).map(resource=>{
+      const owner=drafts.findIndex(draft=>draft.resourceIds.includes(resource.id)),added=owner===state.active,occupied=owner!==-1;
+      const label=added?'✓ 已添加':occupied?`成品 ${owner+1} 已用`:'＋ 添加';
+      return `<article class="output-source-resource">${resourceIcon(resource)}<div class="output-resource-info"><b>${escapeHtml(title(resource))}</b><small>${escapeHtml(nodeName(resource))}</small></div><div class="output-source-actions"><button type="button" class="output-pick-resource${added?' is-added':''}" data-output-pick-resource="${escapeHtml(resource.id)}" ${occupied||full?'disabled':''} title="${occupied?`已添加至成品 ${owner+1}`:full?'当前成品最多添加 10 个资源':`添加至成品 ${state.active+1}`}">${label}</button>${previewButton(resource)}</div></article>`;
+    }).join('')||'<p class="output-media-empty">暂无资源</p>'}</section>`).join('')}</div>`;
+  }
+  function updateEditingState(task){
+    const state=editorState(task);
+    taskDetailPanel.querySelectorAll('[data-output-work]').forEach(card=>{
+      const active=Number(card.dataset.outputWork)===state.active;card.classList.toggle('is-active',active);
+      card.querySelector('[data-output-select-work]')?.setAttribute('aria-pressed',String(active));
+      const label=card.querySelector('[data-output-current]');if(label)label.hidden=!active;
+    });
+    const source=taskDetailPanel.querySelector('.output-source-panel');if(source)source.innerHTML=sourcePanel(task,resourcesFor(task));
+  }
+  function selectWork(task,index){
+    if(!Number.isInteger(index)||!draftsFor(task)[index])return;
+    const state=editorState(task);if(state.active===index)return;state.active=index;updateEditingState(task);
+  }
+  function focusResources(task,index){
+    selectWork(task,index);const source=taskDetailPanel.querySelector('.output-source-panel');
+    source?.scrollIntoView?.({behavior:'smooth',block:'nearest'});
+    source?.querySelector?.('[data-output-pick-resource]:not(:disabled)')?.focus({preventScroll:true});
+  }
+  function openResourcePreview(task,id){
+    const resource=resourcesFor(task).find(item=>item.id===id);if(!resource){showError('资源已失效，请刷新后重试');return}
+    const trigger=document.activeElement;
+    stopAudio();closePreviews();
+    const dialog=modelDialog(title(resource),`<p>${escapeHtml(nodeName(resource))}</p><div class="output-preview-content">${preview(resource).replace('<details ','<details open ')}</div>`,'output-preview-dialog');
+    previewDialogs.add(dialog);dialog.addEventListener('close',()=>{previewDialogs.delete(dialog);if(trigger?.isConnected)trigger.focus()},{once:true});
   }
   function render(task){
+    if(mountedTask!==task.id||mountedSession!==session())closePreviews();
     mountedTask=task.id;mountedSession=session();
     const context=taskContextByTask(task),resources=resourcesFor(task),active=task.status==='in_progress',status=taskStatusMeta[task.status];
-    const drafts=active?draftsFor(task):[],used=new Set(drafts.flatMap(draft=>draft.resourceIds).filter(Boolean));
+    const drafts=active?draftsFor(task):[],used=new Set(drafts.flatMap(draft=>draft.resourceIds));
     const works=(context?.project.works||[]).filter(work=>work.runId===task.workId);
     taskDetailPanel.innerHTML=`<div class="work-output-workbench"><header class="task-detail-header output-task-header"><div class="task-detail-title"><i class="task-node-icon output" aria-hidden="true">成</i><div><span class="task-detail-kicker">WORK ASSEMBLY</span><h2>成品组装</h2><p><span data-task-display-name>${escapeHtml(task.workName)}</span></p></div><span class="task-status ${status.className}">${status.label}</span></div><div class="task-detail-context"><span>${escapeHtml(task.projectName)}</span><span>来源运行：${escapeHtml(context?.work.serial||task.workId)}</span></div></header>
-      ${active?`<div class="output-task-body"><section class="output-composer" aria-label="成品组装"><div class="output-section-heading"><div><h3>成品组装</h3><p>组合当前工作流的输出与备选资源，提交后生成成品。</p></div><button type="button" class="output-secondary" data-output-add-work ${used.size>=resources.length?'disabled':''}>＋ 新增成品</button></div><p class="output-guidance">每个成品可添加 1～10 个资源，不限制资源类型。同一资源不可重复选择，确认提交后生效。</p>
-      <div class="output-work-list">${drafts.map((draft,index)=>workCard(draft,index,resources,used,drafts.length)).join('')}</div></section>
-      <aside class="output-source-panel" aria-label="结果资源信息"><div class="output-section-heading"><div><h3>结果资源信息</h3><p>${resources.length} 个资源可用于组合</p></div></div>${[['selected','输出资源'],['backup','备选资源']].map(([state,label])=>`<section class="output-source-group"><h4>${label} <span>${resources.filter(resource=>resource.selectionState===state).length}</span></h4>${resources.filter(resource=>resource.selectionState===state).map(resource=>`<article class="output-source-resource"><header><b>${escapeHtml(title(resource))}</b>${badge(resource)}</header><small>${escapeHtml(kind(resource))} · ${escapeHtml(resource.node||'结果资源信息')} · ${escapeHtml(resource.version||'V1')}</small>${preview(resource)}</article>`).join('')||'<p class="output-media-empty">暂无资源</p>'}</section>`).join('')}</aside></div>
+      ${active?`<div class="output-task-body"><section class="output-composer" aria-label="成品组装"><div class="output-section-heading"><div><h3>成品组装 <span class="output-work-total">${drafts.length}</span></h3><p>组合本次运行的输出与备选资源</p></div><button type="button" class="output-secondary" data-output-add-work ${used.size>=resources.length?'disabled':''}>＋ 新增成品</button></div><p class="output-guidance">每个成品可添加 1～10 个资源，类型不限。</p>
+      <div class="output-work-list">${drafts.map((draft,index)=>workCard(task,draft,index,resources,used,drafts.length)).join('')}</div></section>
+      <aside class="output-source-panel" aria-label="结果资源信息">${sourcePanel(task,resources)}</aside></div>
       <footer class="output-task-footer"><p class="output-form-error" role="alert" hidden></p><small>共 ${drafts.length} 个成品 · 已选择 ${used.size} 个资源</small><div><button type="button" class="task-return-button" data-task-action="return">打回</button><button type="button" class="output-submit" data-output-submit>确认提交</button></div></footer>`:
-      `<section class="output-completed" aria-label="已输出成品"><div class="output-section-heading"><div><h3>${works.length?'成品已输出':'该任务已结束'}</h3><p>${works.length?`已生成 ${works.length} 个成品，可查看全部资源。`:'该任务未输出成品。'}</p></div>${works.length?'<button type="button" class="output-secondary" data-output-view-finished>查看成品</button>':''}</div>${works.map(work=>`<article class="output-work-card"><header><h3>${escapeHtml(work.name)}</h3><span>${work.resources.length} 个资源</span></header>${work.resources.map(resource=>`<div class="output-source-resource"><header><b>${escapeHtml(title(resource))}</b><small>${escapeHtml(kind(resource))}</small></header>${preview(resource)}</div>`).join('')}</article>`).join('')}</section>`}</div>`;
+      `<section class="output-completed" aria-label="已输出成品"><div class="output-section-heading"><div><h3>${works.length?'成品已输出':'该任务已结束'}</h3><p>${works.length?`已生成 ${works.length} 个成品，可查看全部资源。`:'该任务未输出成品。'}</p></div>${works.length?'<button type="button" class="output-secondary" data-output-view-finished>查看成品</button>':''}</div>${works.map(work=>`<article class="output-work-card"><header><h3>${escapeHtml(work.name)}</h3><span>${work.resources.length} 个资源</span></header>${work.resources.map(resource=>`<div class="output-completed-resource"><header><b>${escapeHtml(title(resource))}</b><small>${escapeHtml(nodeName(resource))}</small></header>${preview(resource)}</div>`).join('')}</article>`).join('')}</section>`}</div>`;
   }
   function showError(message){const node=taskDetailPanel.querySelector('.output-form-error');if(node){node.textContent=message;node.hidden=!message}if(message)showToast(message,'error')}
   function activeTask(){
@@ -97,29 +155,65 @@
       }catch(error){committing=false;dialog.close();showError(error.message==='Invalid or duplicate resources'?'请检查成品名称和资源选择':error.message==='Resource already used'?'资源已被其他成品使用，请重新选择':'输出失败：'+error.message)}
     };
   }
+  taskDetailPanel.addEventListener('focusin',event=>{
+    const input=event.target.closest('[data-output-name]'),task=activeTask();if(task&&input)selectWork(task,Number(input.dataset.outputName));
+  });
   taskDetailPanel.addEventListener('input',event=>{
     if(!event.target.matches('[data-output-name]'))return;
     const task=activeTask();if(!task)return;
-    draftsFor(task)[Number(event.target.dataset.outputName)].name=event.target.value;saveDraft(task,false);
-  });
-  taskDetailPanel.addEventListener('change',event=>{
-    const control=event.target;if(!control.matches('[data-output-resource]'))return;
-    const task=activeTask();if(!task)return;
-    const [work,slot]=control.dataset.outputResource.split(':').map(Number),drafts=draftsFor(task),value=control.value;
-    if(value&&drafts.some((draft,i)=>draft.resourceIds.some((id,j)=>id===value&&(i!==work||j!==slot)))){control.value=drafts[work].resourceIds[slot];showError('该资源已选择，请选择其他资源');return}
-    drafts[work].resourceIds[slot]=value;saveDraft(task);
+    const index=Number(event.target.dataset.outputName),draft=draftsFor(task)[index];if(!draft)return;
+    draft.name=event.target.value;selectWork(task,index);
+    const length=Array.from(draft.name).length,counter=taskDetailPanel.querySelector(`[data-output-name-count="${index}"]`),ready=draftReady(draft,resourcesFor(task)),status=taskDetailPanel.querySelector(`[data-output-ready="${index}"]`);
+    if(counter)counter.textContent=`${length} / 70`;
+    event.target.setCustomValidity?.(length>70?'成品名称最多 70 个字符':'');
+    if(status){status.textContent=ready?'✓':'待配置';status.classList?.toggle('is-ready',ready);status.setAttribute?.('aria-label',ready?'已配置':'待配置');status.title=ready?'已配置':'待配置'}
+    saveDraft(task,false);
   });
   taskDetailPanel.addEventListener('click',event=>{
     if(event.target.closest('[data-output-view-finished]')){switchPage('finished');renderFinishedLibrary();return}
     const task=activeTask();if(!task)return;
-    const button=event.target.closest('button');if(!button||button.disabled)return;
+    const button=event.target.closest('button'),card=event.target.closest('[data-output-work]');
+    if(button?.disabled)return;
+    if(card&&!button?.hasAttribute('data-output-remove-work')&&!button?.hasAttribute('data-output-collapse-work'))selectWork(task,Number(card.dataset.outputWork));
+    if(!button)return;
     if(button.hasAttribute('data-output-submit')){requestSubmit(task);return}
-    const drafts=draftsFor(task),used=new Set(drafts.flatMap(draft=>draft.resourceIds).filter(Boolean));let changed=false;
-    if(button.hasAttribute('data-output-add-work')&&used.size<resourcesFor(task).length){drafts.push({name:'',resourceIds:['']});changed=true}
-    if(button.hasAttribute('data-output-remove-work')&&drafts.length>1){drafts.splice(Number(button.dataset.outputRemoveWork),1);changed=true}
-    if(button.hasAttribute('data-output-add-resource')){const draft=drafts[Number(button.dataset.outputAddResource)];if(draft.resourceIds.length<10&&used.size<resourcesFor(task).length){draft.resourceIds.push('');changed=true}}
-    if(button.hasAttribute('data-output-remove-resource')){const [work,slot]=button.dataset.outputRemoveResource.split(':').map(Number);if(drafts[work].resourceIds.length>1){drafts[work].resourceIds.splice(slot,1);changed=true}}
-    if(changed)saveDraft(task);
+    const drafts=draftsFor(task),state=editorState(task),resources=resourcesFor(task),used=new Set(drafts.flatMap(draft=>draft.resourceIds));let changed=false;
+    if(button.hasAttribute('data-output-select-work')){
+      const index=Number(button.dataset.outputSelectWork);selectWork(task,index);
+      if(state.collapsed.delete(index))render(task);return;
+    }
+    if(button.hasAttribute('data-output-collapse-work')){
+      const index=Number(button.dataset.outputCollapseWork);if(!drafts[index])return;
+      if(state.collapsed.has(index))state.collapsed.delete(index);else state.collapsed.add(index);
+      render(task);taskDetailPanel.querySelector(`[data-output-collapse-work="${index}"]`)?.focus?.();return;
+    }
+    if(button.hasAttribute('data-output-preview')){openResourcePreview(task,button.dataset.outputPreview);return}
+    if(button.hasAttribute('data-output-add-resource')){focusResources(task,Number(button.dataset.outputAddResource));return}
+    if(button.hasAttribute('data-output-add-work')&&used.size<resources.length){drafts.push({name:'',resourceIds:[]});state.active=drafts.length-1;changed=true}
+    if(button.hasAttribute('data-output-remove-work')&&drafts.length>1){
+      const index=Number(button.dataset.outputRemoveWork);if(!drafts[index])return;
+      drafts.splice(index,1);state.active=Math.max(0,Math.min(state.active-(index<state.active?1:0),drafts.length-1));
+      state.collapsed=new Set([...state.collapsed].filter(i=>i!==index).map(i=>i>index?i-1:i));changed=true;
+    }
+    if(button.hasAttribute('data-output-pick-resource')){
+      const id=button.dataset.outputPickResource,draft=drafts[state.active];
+      if(!resources.some(resource=>resource.id===id)){showError('资源已失效，请刷新后重试');return}
+      if(used.has(id)){showError('该资源已添加至成品，请先移除再添加');return}
+      if(!draft||draft.resourceIds.length>=10){showError('每个成品最多添加 10 个资源');return}
+      draft.resourceIds.push(id);state.collapsed.delete(state.active);changed=true;
+    }
+    if(button.hasAttribute('data-output-remove-resource')){
+      const [work,slot]=button.dataset.outputRemoveResource.split(':').map(Number),draft=drafts[work];
+      if(!draft||slot<0||slot>=draft.resourceIds.length)return;
+      state.active=work;draft.resourceIds.splice(slot,1);changed=true;
+    }
+    if(changed){
+      saveDraft(task);
+      let focus;
+      if(button.hasAttribute('data-output-add-work'))focus=taskDetailPanel.querySelector(`[data-output-name="${state.active}"]`);
+      else if(button.hasAttribute('data-output-pick-resource'))focus=taskDetailPanel.querySelector('.output-source-panel [data-output-pick-resource]:not(:disabled)');
+      focus||=taskDetailPanel.querySelector(`[data-output-select-work="${state.active}"]`);focus?.focus?.({preventScroll:true});
+    }
   });
   taskDetailPanel.addEventListener('play',event=>{
     if(event.target.closest('.work-output-workbench'))taskDetailPanel.querySelectorAll('audio').forEach(audio=>{if(audio!==event.target)audio.pause()});
@@ -197,6 +291,6 @@
     if(resetDemo){renderFinishedLibrary();renderProjectDetail()}
   }
   window.orchestraWorkOutputTask={render,stopAudio,validateDrafts,requestSubmit,initialize};
-  window.addEventListener('pagehide',stopAudio);
+  window.addEventListener('pagehide',()=>{stopAudio();closePreviews()});
   if(document.readyState==='complete')initialize();else window.addEventListener('load',initialize,{once:true});
 })();

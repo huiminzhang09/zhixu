@@ -143,10 +143,6 @@ html[data-theme="dark"] .material-move-submenu button:disabled { background: tra
 .material-save-folder-option:hover { background: var(--surface-2); }
 .material-save-folder-option:has(input:checked) { background: #8058e720; box-shadow: inset 0 0 0 1px #9774e766; }
 .material-save-folder-option input[type="radio"] { flex: 0 0 15px; width: 15px; height: 15px; margin: 0; padding: 0; accent-color: #9764e8; cursor: pointer; }
-.material-save-new-folder { margin-top: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
-.material-save-new-folder[hidden] { display: none; }
-.material-save-new-folder label { margin: 0; }
-.material-save-new-folder button { padding: 7px 12px; font-size: 12px; }
 .material-save-name-hint { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0 0; color: var(--muted); font-size: 12px; }
 .material-save-name-hint .is-over-limit { color: #e97681; }
 .material-delete-message { line-height: 1.8; overflow-wrap: anywhere; }

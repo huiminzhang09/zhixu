@@ -10,6 +10,7 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
   const account=()=>localStorage.getItem('orchestra-demo-account')||'demo-user';
   const searchScope=()=>JSON.stringify([team(),account()]);
   const normalizeSearch=value=>String(value||'').normalize('NFKC').trim().toLocaleLowerCase();
+  const newestFirst=(a,b)=>(Date.parse(b.work.createdAt)||0)-(Date.parse(a.work.createdAt)||0);
   function updateSearch(event){const value=event.currentTarget.value;if(value)searches.set(searchScope(),value);else searches.delete(searchScope());if(!event.isComposing)render();}
   function clearSearch(){searches.delete(searchScope());render();searchInput?.focus();}
   const entries=()=>projectData.filter(p=>(p.teamId||'orchestra-studio')===team()).flatMap(project=>(project.works||[]).map(work=>({project,work,team:team(),account:account(),key:JSON.stringify([project.id,work.id])})));
@@ -39,7 +40,7 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
   function resourceMarkup(resource,index,editable){return `<article class="finished-resource"><header><div><b>${escapeHtml(resourceTitle(resource,index))}</b><small>${typeLabel(resource)}</small></div>${editable?`<button type="button" class="finished-remove" data-remove-resource="${index}" aria-label="移除${escapeHtml(resourceTitle(resource,index))}">移除</button>`:''}</header>${preview(resource,index)}</article>`;}
   const cardState=mediaState(grid);
   function render(){
-    closeMenu();release(cardState);const value=searches.get(searchScope())||'',keyword=normalizeSearch(value),all=entries(),items=keyword?all.filter(({work})=>normalizeSearch(work.name).includes(keyword)):all,covers=[];
+    closeMenu();release(cardState);const value=searches.get(searchScope())||'',keyword=normalizeSearch(value),all=entries().sort(newestFirst),items=keyword?all.filter(({work})=>normalizeSearch(work.name).includes(keyword)):all,covers=[];
     if(searchInput&&searchInput.value!==value)searchInput.value=value;
     if(clearSearchButton)clearSearchButton.hidden=!value;
     document.querySelector('#finishedWorkCount').textContent=keyword?`找到 ${items.length} 个成品，共 ${all.length} 个成品`:`共 ${items.length} 个成品`;

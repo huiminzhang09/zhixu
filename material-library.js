@@ -27,6 +27,7 @@
     return { ...context, folderId: locations.get(locationKey(context)) || null };
   };
   const normalizeSearch = value => String(value || '').normalize('NFKC').trim().toLocaleLowerCase();
+  const newestFirst = (a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0);
   const searchTerm = context => normalizeSearch(searches.get(locationKey(context)));
   function updateMaterialSearch(event) {
     const key = locationKey(contextNow()), value = event.currentTarget.value;
@@ -197,6 +198,61 @@
     const records = read(context.team).map(record => record.id === id ? { ...record, folderIds: { ...record.folderIds, [scopeKey(context)]: target.folderId } } : record);
     persist(storageKey(context.team), records);
   }
+  function teamTransferReason(context, id) {
+    if (context.account !== currentAccount() || context.team !== activeTeam()) return '当前账号或团队已变更，请关闭弹窗后重试';
+    if (context.library !== 'personal') return '仅支持个人素材转移至团队素材，团队素材不能转回个人素材';
+    const item = visibleRecords(context).find(record => record.id === id);
+    if (!item) return '素材已不存在或已转移，请刷新后重试';
+    if (item.savedBy !== context.account) return '仅素材归属人可转移个人素材';
+    let role;
+    try {
+      const memberships = JSON.parse(localStorage.getItem('orchestra-account-organizations:' + context.account) || localStorage.getItem('orchestra-login-organizations') || 'null');
+      role = Array.isArray(memberships) ? memberships.find(team => team.id === context.team)?.role : document.querySelector('.workspace-option.active')?.dataset.workspaceStatus;
+    } catch { return '无法确认团队权限，请重新登录后重试'; }
+    return ['团队最高管理员', '团队管理员'].includes(role) ? '' : '仅团队管理员可将个人素材转移至团队素材';
+  }
+  function transferMaterialToTeam(context, id, targetId, original) {
+    const reason = teamTransferReason(context, id);
+    if (reason) throw new Error(reason);
+    const records = read(context.team), raw = records.find(record => record.id === id);
+    if (original && JSON.stringify(raw) !== original) throw new Error('素材已更新，请关闭弹窗后重新选择');
+    const item = getItem(context, 'material', id), target = { ...context, library: 'team', folderId: targetId || null };
+    requireMaterialLocation(target);
+    const transferred = { ...raw, library: 'team', title: item.title,
+      ...(item.type === 'text' ? { content: item.content } : {}),
+      folderIds: { team: target.folderId }, namesByLibrary: { team: item.title },
+      contentsByLibrary: item.type === 'text' ? { team: item.content } : {}, deletedIn: [],
+      transferredBy: context.account, transferredAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    // One metadata write changes ownership and placement together; the original file and ID stay intact.
+    persist(storageKey(context.team), records.map(record => record.id === id ? transferred : record));
+    return transferred;
+  }
+  function transferFolderPickerMarkup(context) {
+    const folders = foldersFor({ ...context, library: 'team' });
+    const option = (id, title) => `<label class="material-save-folder-option"><input type="radio" name="transferDestination" value="${escapeHtml(id)}" required><span class="material-save-folder-icon" aria-hidden="true">${folderIcon}</span><span>${escapeHtml(title)}</span></label>`;
+    const children = (parentId, depth = 0) => depth >= 2 ? '' : folders.filter(folder => folder.parentId === parentId).sort((a, b) => a.title.localeCompare(b.title, 'zh-CN')).map(folder => {
+      const nested = children(folder.id, depth + 1);
+      return `<li>${option(folder.id, folder.title)}${nested ? `<ul>${nested}</ul>` : ''}</li>`;
+    }).join('');
+    return `<div class="material-save-library-folders">${option('root', '团队素材（根目录）')}<ul>${children(null)}</ul></div>`;
+  }
+  function openTransferToTeam(context, id) {
+    const reason = teamTransferReason(context, id);
+    if (reason) throw new Error(reason);
+    const item = getItem(context, 'material', id), original = JSON.stringify(read(context.team).find(record => record.id === id));
+    const dialog = openDialog('转移至团队素材', `
+      <p class="material-dialog-hint">将「${escapeHtml(item.title)}」转移至当前团队，请选择目标位置。</p>
+      <div class="material-save-folder-heading"><span id="materialTransferLocationTitle">目标位置 <em>*</em></span></div>
+      <div class="material-save-tree" role="group" aria-labelledby="materialTransferLocationTitle" aria-describedby="materialTransferNotice">${transferFolderPickerMarkup(context)}</div>
+      <p id="materialTransferNotice" class="material-dialog-hint">确认后，该素材将从个人素材移出。团队内所有成员均可使用和引用，仅团队管理员可管理，且不能再转回个人素材。</p>`, '确认转移', form => {
+      const selected = form.querySelector('input[name="transferDestination"]:checked');
+      if (!selected) throw new Error('请选择团队素材中的目标位置');
+      const targetId = selected.value === 'root' ? null : selected.value;
+      transferMaterialToTeam(context, id, targetId, original);
+      showToast(`已转移至「${destinationLabel({ ...context, library: 'team', folderId: targetId })}」`);
+    });
+    return dialog;
+  }
   function getItem(context, kind, id) {
     const item = (kind === 'folder' ? foldersFor(context) : visibleRecords(context)).find(entry => entry.id === id);
     if (!item) throw new Error('该项目已不存在，请刷新后重试');
@@ -313,7 +369,7 @@
         }).join('');
       };
       const contents = children(null);
-      return `<section class="material-save-library"><button type="button" class="material-save-library-root" data-save-library-switch="${library}" aria-expanded="${expanded}" aria-controls="materialSaveFolders-${library}"><span aria-hidden="true">${expanded ? '⌄' : '›'}</span><span class="material-save-folder-icon" aria-hidden="true">${folderIcon}</span>${saveLibraryName(library)}</button><div id="materialSaveFolders-${library}" class="material-save-library-folders" ${expanded ? '' : 'hidden'}>${contents ? `<ul>${contents}</ul>` : '<p class="material-dialog-hint">暂无文件夹，请点击上方“新建文件夹”。</p>'}</div></section>`;
+      return `<section class="material-save-library"><button type="button" class="material-save-library-root" data-save-library-switch="${library}" aria-expanded="${expanded}" aria-controls="materialSaveFolders-${library}"><span aria-hidden="true">${expanded ? '⌄' : '›'}</span><span class="material-save-folder-icon" aria-hidden="true">${folderIcon}</span>${saveLibraryName(library)}</button><div id="materialSaveFolders-${library}" class="material-save-library-folders" ${expanded ? '' : 'hidden'}>${contents ? `<ul>${contents}</ul>` : '<p class="material-dialog-hint">暂无文件夹，请先到素材库创建文件夹，再返回选择保存位置。</p>'}</div></section>`;
     }).join('');
   }
   function saveSongToFolder(task, candidate, context, value) {
@@ -340,15 +396,10 @@
       return await new Promise(resolve => {
         let saved = false;
         const dialog = openDialog('保存至素材库', `
-          <p class="material-dialog-hint">选择保存位置，并为这首歌曲命名。</p>
+          <p class="material-dialog-hint">选择已有文件夹作为保存位置，并为这首歌曲命名。</p>
           <input type="hidden" name="library" value="personal"><input type="hidden" name="folderId" value="">
-          <div class="material-save-folder-heading"><span id="materialSaveLocationTitle">保存位置 <em>*</em></span><button type="button" data-new-save-folder aria-expanded="false">＋ 新建文件夹</button></div>
+          <div class="material-save-folder-heading"><span id="materialSaveLocationTitle">保存位置 <em>*</em></span></div>
           <div class="material-save-tree" data-save-folder-tree role="group" aria-labelledby="materialSaveLocationTitle" aria-describedby="materialSavePath"></div>
-          <div class="material-save-new-folder" data-save-new-folder hidden>
-            <label>新文件夹名称<input name="newFolderName" maxlength="40" placeholder="请输入文件夹名称" disabled></label>
-            <p class="material-dialog-hint" data-new-save-folder-hint></p>
-            <button type="button" data-confirm-save-folder>创建文件夹</button>
-          </div>
           <p id="materialSavePath" class="material-dialog-hint" role="status"></p>
           <label>素材名称 <span>*</span><input name="title" required maxlength="40" autocomplete="off" placeholder="请输入素材名称" aria-describedby="materialSaveNameHint"></label>
           <p id="materialSaveNameHint" class="material-save-name-hint"><span>不超过 20 个字符，支持特殊符号</span><span data-save-name-count aria-live="polite">0 / 20</span></p>`, '确认保存', form => {
@@ -358,7 +409,7 @@
           showToast(`已保存至「${saveDestinationLabel(context)}」`);
         });
         dialog.addEventListener('close', () => resolve(saved), { once: true });
-        const form = dialog.querySelector('form'), { library, folderId, title, newFolderName } = form.elements;
+        const form = dialog.querySelector('form'), { library, folderId, title } = form.elements;
         const error = dialog.querySelector('.material-dialog-error'), tree = dialog.querySelector('[data-save-folder-tree]');
         const context = () => ({ ...base, library: library.value, folderId: folderId.value || null });
         const updatePath = () => {
@@ -369,13 +420,7 @@
           const folders = foldersFor(context());
           folderId.value = folders.some(folder => folder.id === selected) ? selected : '';
           tree.innerHTML = saveFolderPickerMarkup(context());
-          dialog.querySelector('[data-new-save-folder-hint]').textContent = `名称不超过 20 个字符，支持特殊符号。在${saveLibraryName(library.value)}下新建一级文件夹。`;
           updatePath();
-        };
-        const closeFolderEditor = () => {
-          dialog.querySelector('[data-save-new-folder]').hidden = true;
-          dialog.querySelector('[data-new-save-folder]').setAttribute('aria-expanded', 'false');
-          newFolderName.disabled = true; newFolderName.value = '';
         };
         const changeLocation = action => {
           error.textContent = '';
@@ -387,7 +432,7 @@
           changeLocation(() => {
             const selected = library.value === button.dataset.saveLibrarySwitch ? folderId.value : '';
             library.value = button.dataset.saveLibrarySwitch;
-            closeFolderEditor(); updateFolders(selected);
+            updateFolders(selected);
             tree.querySelector(`[data-save-library-switch="${library.value}"]`)?.focus();
           });
         });
@@ -395,22 +440,6 @@
           const choice = event.target.closest('[data-save-folder]');
           if (!choice?.checked || choice.dataset.saveLibrary !== library.value) return;
           changeLocation(() => { folderId.value = choice.value; updatePath(); });
-        });
-        dialog.querySelector('[data-new-save-folder]').addEventListener('click', () => {
-          const editor = dialog.querySelector('[data-save-new-folder]');
-          if (!editor.hidden) { closeFolderEditor(); return; }
-          editor.hidden = false; newFolderName.disabled = false;
-          dialog.querySelector('[data-new-save-folder]').setAttribute('aria-expanded', 'true');
-          newFolderName.focus();
-        });
-        const createDestinationFolder = () => changeLocation(() => {
-          if (base.account !== currentAccount() || base.team !== activeTeam()) throw new Error('当前账号或团队已变更，请关闭弹窗后重试');
-          const folder = createFolder({ ...context(), folderId: null }, newFolderName.value);
-          updateFolders(folder.id); closeFolderEditor();
-        });
-        dialog.querySelector('[data-confirm-save-folder]').addEventListener('click', createDestinationFolder);
-        newFolderName.addEventListener('keydown', event => {
-          if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); createDestinationFolder(); }
         });
         const updateName = () => {
           const length = Array.from(title.value).length;
@@ -483,8 +512,8 @@
         searchInput.setAttribute('aria-label', `搜索${libraryName(context.library)}名称（含子文件夹）`);
       }
       if (clearSearch) clearSearch.hidden = !searchInput?.value;
-      const children = searching ? [] : folders.filter(folder => folder.parentId === context.folderId);
-      const allRecords = visibleRecords(context), records = allRecords.filter(record => searching ? normalizeSearch(record.title).includes(keyword) : recordFolder(record, context, folders) === context.folderId);
+      const children = searching ? [] : folders.filter(folder => folder.parentId === context.folderId).sort(newestFirst);
+      const allRecords = visibleRecords(context), records = allRecords.filter(record => searching ? normalizeSearch(record.title).includes(keyword) : recordFolder(record, context, folders) === context.folderId).sort(newestFirst);
       q('#materialBreadcrumb').innerHTML = [{ id: '', title: libraryName(context.library) }, ...path].map((folder, index) => `${index ? '<span aria-hidden="true">/</span>' : ''}${index === path.length ? `<span aria-current="page">${escapeHtml(folder.title)}</span>` : `<button type="button" data-open-material-folder="${escapeHtml(folder.id)}">${escapeHtml(folder.title)}</button>`}`).join('');
       q('#materialFolderHint').textContent = searching ? `按名称查找${libraryName(context.library)}中的全部素材，包含子文件夹；清空搜索可返回当前目录。` : !path.length ? (allowsRootMaterials(context) ? '可直接新建文件夹或添加资产；支持文本、图片和音频，文件夹最多支持 2 层。' : '素材按文件夹存放，点击文件夹查看内容；最多支持 2 层文件夹。') : path.length >= 2 ? '已达第 2 层，可添加文本、图片和音频；如需新建文件夹，请返回上级。' : '可添加文本、图片和音频，或新建第二层文件夹。';
       q('#materialFolders').innerHTML = children.map(folder => {
@@ -746,6 +775,7 @@
     getItem(context, kind, id);
     openMenu(trigger, [
       { label: '移动到', submenu: { context, kind, id } },
+      ...(kind === 'material' && context.library === 'personal' ? [{ label: '转移至团队素材', reason: teamTransferReason(context, id), action: () => openTransferToTeam(context, id) }] : []),
       { label: '下载', action: async () => {
         trigger.disabled = true; trigger.setAttribute('aria-busy', 'true');
         try {
