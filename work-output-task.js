@@ -63,19 +63,18 @@
     const audio=kind(resource)==='音频';
     return `<button type="button" class="output-preview-button${audio?' is-audio':''}" data-output-preview="${escapeHtml(resource.id)}" aria-label="${audio?'试听':'预览'}${escapeHtml(title(resource))}">${audio?'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M5 2.5 13 8l-8 5.5z"/></svg>':''}${audio?'试听':'预览'}</button>`;
   }
-  function draftReady(draft,resources){return Boolean(draft.name.trim()&&Array.from(draft.name.trim()).length<=70&&draft.resourceIds.length>0&&draft.resourceIds.length<=10&&draft.resourceIds.every(id=>resources.some(resource=>resource.id===id)))}
-  function workCard(task,draft,index,resources,used,workCount){
-    const state=editorState(task),active=state.active===index,collapsed=state.collapsed.has(index),ready=draftReady(draft,resources);
+  function workCard(task,draft,index,resources,workCount){
+    const state=editorState(task),active=state.active===index,collapsed=state.collapsed.has(index);
     return `<article class="output-work-card${active?' is-active':''}" data-output-work="${index}" aria-label="成品 ${index+1}"><header>
       <button type="button" class="output-card-select" data-output-select-work="${index}" aria-pressed="${active}" aria-controls="outputWorkBody-${index}"><span class="output-work-number">${index+1}</span><b>成品 ${index+1}</b><small data-output-current ${active?'':'hidden'}>当前编辑</small></button>
-      <div class="output-card-actions"><span class="output-ready${ready?' is-ready':''}" data-output-ready="${index}" aria-label="${ready?'已配置':'待配置'}" title="${ready?'已配置':'待配置'}">${ready?'✓':'待配置'}</span><button type="button" class="output-icon-button output-delete-work" data-output-remove-work="${index}" ${workCount===1?'disabled':''} aria-label="删除成品 ${index+1}" title="删除成品">${trashIcon}</button><button type="button" class="output-icon-button output-collapse" data-output-collapse-work="${index}" aria-expanded="${!collapsed}" aria-controls="outputWorkBody-${index}" aria-label="${collapsed?'展开':'收起'}成品 ${index+1}">${chevronIcon}</button></div></header>
+      <div class="output-card-actions"><button type="button" class="output-icon-button output-delete-work" data-output-remove-work="${index}" ${workCount===1?'disabled':''} aria-label="删除成品 ${index+1}" title="删除成品">${trashIcon}</button><button type="button" class="output-icon-button output-collapse" data-output-collapse-work="${index}" aria-expanded="${!collapsed}" aria-controls="outputWorkBody-${index}" aria-label="${collapsed?'展开':'收起'}成品 ${index+1}">${chevronIcon}</button></div></header>
       <div id="outputWorkBody-${index}" ${collapsed?'hidden':''}>
       <label class="output-name-field"><span class="output-name-label"><span>成品名称 <em>*</em></span><small data-output-name-count="${index}">${Array.from(draft.name).length} / 70</small></span><input data-output-name="${index}" value="${escapeHtml(draft.name)}" maxlength="140" placeholder="请输入成品名称" required></label>
       <div class="output-resource-heading"><span>已选资源</span><span>${draft.resourceIds.length} / 10</span></div>
       <div class="output-selected-resources">${draft.resourceIds.map((id,slot)=>{
         const resource=resources.find(item=>item.id===id);
         return `<div class="output-selected-resource">${resource?`${resourceIcon(resource)}<div class="output-resource-info"><b>${escapeHtml(title(resource))}</b><small>${escapeHtml(nodeName(resource))}</small></div>${previewButton(resource)}`:'<span class="output-resource-info output-invalid-resource">资源已失效，请移除后重新添加</span>'}<button type="button" class="output-icon-button output-remove-resource" data-output-remove-resource="${index}:${slot}" aria-label="移除成品 ${index+1} 的资源 ${slot+1}" title="移除资源">×</button></div>`;
-      }).join('')||'<p class="output-empty-selection">暂无资源，请从右侧资源列表添加。</p>'}</div><button type="button" class="output-add-resource" data-output-add-resource="${index}" ${draft.resourceIds.length>=10||used.size>=resources.length?'disabled':''}>＋ 添加资源</button></div></article>`;
+      }).join('')||'<p class="output-empty-selection">暂无资源，请从右侧资源列表添加。</p>'}</div></div></article>`;
   }
   function sourcePanel(task,resources){
     const drafts=draftsFor(task),state=editorState(task),full=(drafts[state.active]?.resourceIds.length||0)>=10;
@@ -98,11 +97,6 @@
     if(!Number.isInteger(index)||!draftsFor(task)[index])return;
     const state=editorState(task);if(state.active===index)return;state.active=index;updateEditingState(task);
   }
-  function focusResources(task,index){
-    selectWork(task,index);const source=taskDetailPanel.querySelector('.output-source-panel');
-    source?.scrollIntoView?.({behavior:'smooth',block:'nearest'});
-    source?.querySelector?.('[data-output-pick-resource]:not(:disabled)')?.focus({preventScroll:true});
-  }
   function openResourcePreview(task,id){
     const resource=resourcesFor(task).find(item=>item.id===id);if(!resource){showError('资源已失效，请刷新后重试');return}
     const trigger=document.activeElement;
@@ -118,7 +112,7 @@
     const works=(context?.project.works||[]).filter(work=>work.runId===task.workId);
     taskDetailPanel.innerHTML=`<div class="work-output-workbench"><header class="task-detail-header output-task-header"><div class="task-detail-title"><i class="task-node-icon output" aria-hidden="true">成</i><div><span class="task-detail-kicker">WORK ASSEMBLY</span><h2>成品组装</h2><p><span data-task-display-name>${escapeHtml(task.workName)}</span></p></div><span class="task-status ${status.className}">${status.label}</span></div><div class="task-detail-context"><span>${escapeHtml(task.projectName)}</span><span>来源运行：${escapeHtml(context?.work.serial||task.workId)}</span></div></header>
       ${active?`<div class="output-task-body"><section class="output-composer" aria-label="成品组装"><div class="output-section-heading"><div><h3>成品组装 <span class="output-work-total">${drafts.length}</span></h3><p>组合本次运行的输出与备选资源</p></div><button type="button" class="output-secondary" data-output-add-work ${used.size>=resources.length?'disabled':''}>＋ 新增成品</button></div><p class="output-guidance">每个成品可添加 1～10 个资源，类型不限。</p>
-      <div class="output-work-list">${drafts.map((draft,index)=>workCard(task,draft,index,resources,used,drafts.length)).join('')}</div></section>
+      <div class="output-work-list">${drafts.map((draft,index)=>workCard(task,draft,index,resources,drafts.length)).join('')}</div></section>
       <aside class="output-source-panel" aria-label="结果资源信息">${sourcePanel(task,resources)}</aside></div>
       <footer class="output-task-footer"><p class="output-form-error" role="alert" hidden></p><small>共 ${drafts.length} 个成品 · 已选择 ${used.size} 个资源</small><div><button type="button" class="task-return-button" data-task-action="return">打回</button><button type="button" class="output-submit" data-output-submit>确认提交</button></div></footer>`:
       `<section class="output-completed" aria-label="已输出成品"><div class="output-section-heading"><div><h3>${works.length?'成品已输出':'该任务已结束'}</h3><p>${works.length?`已生成 ${works.length} 个成品，可查看全部资源。`:'该任务未输出成品。'}</p></div>${works.length?'<button type="button" class="output-secondary" data-output-view-finished>查看成品</button>':''}</div>${works.map(work=>`<article class="output-work-card"><header><h3>${escapeHtml(work.name)}</h3><span>${work.resources.length} 个资源</span></header>${work.resources.map(resource=>`<div class="output-completed-resource"><header><b>${escapeHtml(title(resource))}</b><small>${escapeHtml(nodeName(resource))}</small></header>${preview(resource)}</div>`).join('')}</article>`).join('')}</section>`}</div>`;
@@ -163,10 +157,9 @@
     const task=activeTask();if(!task)return;
     const index=Number(event.target.dataset.outputName),draft=draftsFor(task)[index];if(!draft)return;
     draft.name=event.target.value;selectWork(task,index);
-    const length=Array.from(draft.name).length,counter=taskDetailPanel.querySelector(`[data-output-name-count="${index}"]`),ready=draftReady(draft,resourcesFor(task)),status=taskDetailPanel.querySelector(`[data-output-ready="${index}"]`);
+    const length=Array.from(draft.name).length,counter=taskDetailPanel.querySelector(`[data-output-name-count="${index}"]`);
     if(counter)counter.textContent=`${length} / 70`;
     event.target.setCustomValidity?.(length>70?'成品名称最多 70 个字符':'');
-    if(status){status.textContent=ready?'✓':'待配置';status.classList?.toggle('is-ready',ready);status.setAttribute?.('aria-label',ready?'已配置':'待配置');status.title=ready?'已配置':'待配置'}
     saveDraft(task,false);
   });
   taskDetailPanel.addEventListener('click',event=>{
@@ -188,7 +181,6 @@
       render(task);taskDetailPanel.querySelector(`[data-output-collapse-work="${index}"]`)?.focus?.();return;
     }
     if(button.hasAttribute('data-output-preview')){openResourcePreview(task,button.dataset.outputPreview);return}
-    if(button.hasAttribute('data-output-add-resource')){focusResources(task,Number(button.dataset.outputAddResource));return}
     if(button.hasAttribute('data-output-add-work')&&used.size<resources.length){drafts.push({name:'',resourceIds:[]});state.active=drafts.length-1;changed=true}
     if(button.hasAttribute('data-output-remove-work')&&drafts.length>1){
       const index=Number(button.dataset.outputRemoveWork);if(!drafts[index])return;

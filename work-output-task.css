@@ -24,8 +24,6 @@
 .output-work-number{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:5px;background:var(--surface-2);color:var(--muted);font-size:12px}
 .is-active .output-work-number{background:#7552aa;color:#fff}
 .output-card-actions{display:flex;align-items:center;gap:8px;flex:none}
-.output-ready{font-size:10px;color:var(--muted)}
-.output-ready.is-ready{display:grid;place-items:center;width:15px;height:15px;border:1px solid #51c9a5;border-radius:50%;font-size:10px;color:#51c9a5}
 .output-icon-button{display:grid;place-items:center;flex:none;width:24px;height:26px;padding:0;border:0;background:transparent;color:var(--muted)}
 .output-icon-button svg{width:18px;height:18px}
 .output-delete-work:hover,.output-remove-resource:hover{color:#f07b8d!important}
@@ -56,9 +54,8 @@
 .output-invalid-resource{color:#f07b8d;font-size:12px}
 .work-output-workbench button,.output-confirm-list{font:inherit;font-size:12px}
 .work-output-workbench button{cursor:pointer;white-space:nowrap}
-.output-secondary,.output-add-resource{min-height:32px;padding:6px 10px;border:1px solid #9464d866;border-radius:5px;background:#8058e710;color:#b797ed}
-.output-secondary:hover,.output-add-resource:hover,.output-pick-resource:not(:disabled):hover{background:#8058e725}
-.output-add-resource{margin-top:12px;width:100%;border-style:dashed;font-size:11px!important}
+.output-secondary{min-height:32px;padding:6px 10px;border:1px solid #9464d866;border-radius:5px;background:#8058e710;color:#b797ed}
+.output-secondary:hover,.output-pick-resource:not(:disabled):hover{background:#8058e725}
 .output-target-hint{margin:0;padding:10px 16px;border-bottom:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.6}
 .output-target-hint b{color:#b797ed;font-weight:500}
 .output-source-groups{padding:0 16px 12px}
