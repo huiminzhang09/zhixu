@@ -118,11 +118,13 @@
  form.addEventListener('submit',event=>{
   event.preventDefault();if(!validateAccount())return;
   if(!password.value.trim()){show('密码不能全部为空格。');password.focus();return}
+  if(password.value.length<6||password.value.length>18){show('密码长度为 6～18 位。');password.focus();return}
   if(confirm&&confirm.value!==password.value){confirm.setCustomValidity('两次输入的密码不一致，请重新输入。');confirm.reportValidity();return}
   if((mode==='reset-password'||mode==='register')&&(!codeIssued||form.elements.code.value!=='123456')){show('请先获取演示验证码，并填写正确的验证码。');form.elements.code.focus();return}
   if(mode==='login'){
+   try{loginAccount=window.orchestraAccountPhone.resolveLogin(account.value.trim())}
+   catch(error){show(error.message);account.focus();return}
    try{
-    loginAccount=account.value.trim().replace(/^\+?86(?=1\d{10}$)/,'');
     organizations=membershipsForAccount(loginAccount);
     localStorage.setItem('orchestra-demo-signed-out','true');
     localStorage.setItem('orchestra-demo-account',loginAccount);

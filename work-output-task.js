@@ -232,11 +232,11 @@
       run={id:runId,serial:previousSerial||reserveDailyProductionNumbers({flow:1})?.flow[0]||runId,name:'成品组装示例',planId,planName:'成品组装示例计划',status:'进行中',stage:'成品组装',workOutputDemo:true,owner:member.name,lastAssigneeId:member.id,createdAt:new Date(now).toISOString(),startedAt:new Date(now-20*60000).toISOString(),resources:[]};
       const base={runId,planId,version:'V1'};
       run.resources=[
-        {...base,id:runId+'-lyrics-a',kind:'歌词',title:'晨间来信 · 正式歌词',node:'基于参考生成歌词',selectionState:'selected',content:window.orchestraReferenceSongTask?.lyrics||'清晨的风推开窗\n把昨日心事轻轻放\n沿着光亮去远方\n每一步都有回响'},
-        {...base,id:runId+'-audio-a',kind:'音频',title:'晨间来信 · 版本一',node:'基于参考曲生成歌曲',selectionState:'selected',url:'./assets/reference-song-result-a.wav'},
-        {...base,id:runId+'-cover',kind:'图片',title:'晨间来信 · 封面',node:'封面资源',selectionState:'selected',url:'./assets/work-output-demo-cover.svg'},
-        {...base,id:runId+'-lyrics-b',kind:'歌词',title:'晨间来信 · 备选歌词',node:'基于参考生成歌词',selectionState:'backup',version:'V2',content:'当第一束光落在肩上\n我听见远方轻轻歌唱\n那些没有说完的话\n都开成了清晨的花'},
-        {...base,id:runId+'-audio-b',kind:'音频',title:'晨间来信 · 版本二',node:'基于参考曲生成歌曲',selectionState:'backup',version:'V2',url:'./assets/reference-song-result-b.wav'}
+        {...base,id:runId+'-lyrics-a',kind:'歌词',title:'清晨的来信',node:'基于参考生成歌词',selectionState:'selected',content:window.orchestraReferenceSongTask?.lyrics||'清晨的风推开窗\n把昨日心事轻轻放\n沿着光亮去远方\n每一步都有回响'},
+        {...base,id:runId+'-audio-a',kind:'音频',title:'沿光前行',node:'基于参考曲生成歌曲',selectionState:'selected',url:'./assets/reference-song-result-a.wav'},
+        {...base,id:runId+'-cover',kind:'图片',title:'晨曦映像',node:'封面资源',selectionState:'selected',url:'./assets/work-output-demo-cover.svg'},
+        {...base,id:runId+'-lyrics-b',kind:'歌词',title:'未说完的话',node:'基于参考生成歌词',selectionState:'backup',version:'V2',content:'当第一束光落在肩上\n我听见远方轻轻歌唱\n那些没有说完的话\n都开成了清晨的花'},
+        {...base,id:runId+'-audio-b',kind:'音频',title:'微风里的回响',node:'基于参考曲生成歌曲',selectionState:'backup',version:'V2',url:'./assets/reference-song-result-b.wav'}
       ];
       project.runs.push(run);
     }
