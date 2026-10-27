@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="./task-center.css?v=20261021-finished-menu" />
   <link rel="stylesheet" href="./workflows.css?v=20261021-finished-menu" />
   <link rel="stylesheet" href="./playlist-import.css?v=1" />
-  <link rel="stylesheet" href="./profile-center.css?v=20261026-change-phone" />
+  <link rel="stylesheet" href="./profile-center.css?v=20261026-account-security" />
   <link rel="stylesheet" href="./node-editor.css?v=3" />
   <link rel="stylesheet" href="./node-editor-responsive.css?v=1" />
   <link rel="stylesheet" href="./node-library-bottom.css?v=6" />
@@ -33,7 +33,7 @@
   <link rel="stylesheet" href="./reference-song-task.css?v=20261021-reference-picker">
   <link rel="stylesheet" href="./task-audio-picker.css?v=20261022-personal-team">
   <link rel="stylesheet" href="./material-library.css?v=20261023-save-existing-folder">
-  <link rel="stylesheet" href="./finished-library.css?v=20261022-name-search">
+  <link rel="stylesheet" href="./finished-library.css?v=20261027-edit-name">
   <link rel="stylesheet" href="./task-material-reference.css?v=20261022-result-help">
   <link rel="stylesheet" href="./work-output-task.css?v=20261023-simplify-cards">
 </head>
@@ -368,7 +368,6 @@
             <form class="profile-form" id="profileForm">
               <label><span>用户名</span><input name="username" value="Huimin Zhang" placeholder="请输入用户名" /></label>
               <label><span>昵称</span><input name="nickname" placeholder="请输入昵称" /></label>
-              <div class="profile-phone-field form-wide"><div><span>手机号</span><b id="profilePhoneNumber">未绑定手机号</b><small id="profilePhoneHint">绑定后可使用手机号登录，并用于账号找回。</small></div><button type="button" class="secondary-button" data-change-phone>绑定手机号</button></div>
               <div class="form-actions form-wide"><button type="reset" class="ghost-button">取消修改</button><button type="submit" class="primary-button">保存资料</button></div>
             </form>
           </section>
@@ -376,7 +375,7 @@
           <section class="profile-panel" id="profileSecurityPanel" data-profile-panel="security" role="region" aria-label="账号安全" hidden>
             <header class="panel-heading system-panel-heading"><div class="system-heading-main"><span class="system-heading-icon security" aria-hidden="true">✓</span><div><small>个人中心</small><h2>账号安全</h2><p>维护登录凭据与多重身份验证方式。</p></div></div><span class="panel-state success">安全等级 良好</span></header>
             <div class="security-list">
-              <article><span class="setting-icon purple">⌁</span><div><b>登录密码</b><p>上次修改于 2026年8月18日</p></div><span class="setting-status success">已设置</span><button class="secondary-button" data-toast="密码修改流程已打开">修改</button></article>
+              <article><span class="setting-icon purple">⌁</span><div><b>登录密码</b><p id="securityPasswordHint">密码长度为 6～18 位。</p></div><span class="setting-status success">已设置</span><button type="button" class="secondary-button" id="changeAccountPassword">修改密码</button></article>
               <article><span class="setting-icon blue">@</span><div><b>绑定邮箱</b><p>hui***@example.com</p></div><span class="setting-status success">已验证</span><button class="secondary-button" data-toast="邮箱管理功能已打开">管理</button></article>
               <article><span class="setting-icon orange">◫</span><div><b>绑定手机</b><p id="securityPhoneNumber">用于登录验证与账号找回</p></div><span class="setting-status warning" id="securityPhoneStatus">未绑定</span><button type="button" class="secondary-button" data-change-phone>更换手机号</button></article>
               <article><span class="setting-icon green">✓</span><div><b>双重验证</b><p>登录新设备时需要额外验证码</p></div><span class="setting-status">推荐开启</span><label class="security-switch"><input id="twoFactorToggle" type="checkbox" /><i></i></label></article>
@@ -710,17 +709,19 @@
     <div class="player-actions"><button aria-label="音量">♬</button><button aria-label="收藏">♡</button><button aria-label="评论">▢</button><button aria-label="更多">⋮</button></div>
   </footer>
   <div class="toast" id="toast" role="status"></div>
-  <script src="./account-phone.js?v=20261026-unbound-phone"></script>
+  <script src="./account-phone.js?v=20261026-account-security"></script>
   <script src="./script.js?v=20261021-library-menu"></script>
-  <script src="./profile-phone.js?v=20261026-unbound-phone"></script>
+  <script src="./profile-phone.js?v=20261026-account-security"></script>
+  <script src="./profile-password.js?v=20261026-account-security"></script>
   <script src="./production-model.js?v=20261021-completed-no-actions"></script>
-  <script src="./composition-flow.js?v=20261021-finished-assembly"></script>
+  <script src="./composition-flow.js?v=20261026-finished-examples"></script>
+  <script src="./finished-library-demo.js?v=20261027-team-examples"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
-  <script src="./finished-library.js?v=20261023-created-order"></script>
+  <script src="./finished-library.js?v=20261027-edit-name"></script>
   <script src="./workflow-editor.js?v=20261022-publish-confirm"></script>
   <script src="./team-navigation.js?v=20261021-library-menu"></script>
-  <script src="./logout.js?v=20261010-login"></script>
+  <script src="./logout.js?v=20261026-account-security"></script>
   <script src="./team-invites.js?v=20261014-user-lookup"></script>
   <script src="./run-pagination.js?v=20261013"></script>
   <script src="./assignee-search.js?v=20261013"></script>

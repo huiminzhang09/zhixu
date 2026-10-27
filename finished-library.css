@@ -21,6 +21,7 @@
 .finished-card-cover > img { position: absolute; width: 100%; height: 100%; object-fit: cover; }
 .finished-card-symbol svg { width: 48px; height: 48px; fill: none; stroke: #c4b1e9; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .finished-card-count { position: absolute; left: 12px; bottom: 12px; padding: 5px 9px; border: 1px solid #ffffff20; border-radius: 6px; background: #14131bc9; color: #fff; font-size: 11px; }
+.finished-card-example { position: absolute; left: 12px; top: 12px; padding: 4px 8px; border-radius: 6px; background: #29213fdb; color: #e1d3ff; font-size: 11px; }
 .finished-card-info { padding: 15px 14px 17px; }
 .finished-card-info h2 { margin: 0 0 9px; font-size: 14px; line-height: 1.5; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .finished-card-info time { display: block; color: var(--muted); font-size: 11px; line-height: 1.6; }
@@ -43,6 +44,13 @@
 .finished-dialog-content h3 span { font-size: 12px; font-weight: 400; color: var(--muted); }
 .finished-selected-resources { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; align-items: start; }
 .finished-dialog.is-editing .finished-dialog-content { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.finished-name-field { display: block; grid-column: 1 / -1; min-width: 0; }
+.finished-name-field > span { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 9px; font-size: 13px; }
+.finished-name-field em { color: #e66e7a; font-style: normal; }
+.finished-name-field small { color: var(--muted); font-size: 12px; }
+.finished-name-field input { box-sizing: border-box; width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); color: var(--text); font: inherit; font-size: 13px; }
+.finished-name-field input:focus { outline: 2px solid #986de9; outline-offset: 1px; }
+.finished-name-field input[aria-invalid="true"] { border-color: #e66e7a; }
 .finished-selected-section, .finished-picker-section { min-width: 0; }
 .finished-dialog.is-editing .finished-selected-resources { grid-template-columns: 1fr; }
 .finished-picker-section { border-left: 1px solid var(--line); padding-left: 24px; }

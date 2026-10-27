@@ -40,11 +40,12 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
   function resourceMarkup(resource,index,editable){return `<article class="finished-resource"><header><div><b>${escapeHtml(resourceTitle(resource,index))}</b><small>${typeLabel(resource)}</small></div>${editable?`<button type="button" class="finished-remove" data-remove-resource="${index}" aria-label="移除${escapeHtml(resourceTitle(resource,index))}">移除</button>`:''}</header>${preview(resource,index)}</article>`;}
   const cardState=mediaState(grid);
   function render(){
+    window.orchestraFinishedExamples?.ensure(team());
     closeMenu();release(cardState);const value=searches.get(searchScope())||'',keyword=normalizeSearch(value),all=entries().sort(newestFirst),items=keyword?all.filter(({work})=>normalizeSearch(work.name).includes(keyword)):all,covers=[];
     if(searchInput&&searchInput.value!==value)searchInput.value=value;
     if(clearSearchButton)clearSearchButton.hidden=!value;
     document.querySelector('#finishedWorkCount').textContent=keyword?`找到 ${items.length} 个成品，共 ${all.length} 个成品`:`共 ${items.length} 个成品`;
-    grid.innerHTML=items.map(({work,key})=>{const cover=(work.resources||[]).find(r=>typeOf(r)==='image'),index=covers.length;if(cover)covers.push(cover);const date=new Date(work.createdAt);return `<article class="finished-work-card" role="listitem" data-finished-key="${escapeHtml(key)}"><button type="button" class="finished-card-open" data-finished-view aria-label="查看${escapeHtml(work.name)}"><div class="finished-card-cover"><span class="finished-card-symbol">${musicIcon}</span>${cover?`<img data-finished-media="${index}" alt="" loading="lazy"><span data-media-error hidden></span>`:''}<span class="finished-card-count">${(work.resources||[]).length} 个资源</span></div><div class="finished-card-info"><h2 title="${escapeHtml(work.name)}">${escapeHtml(work.name)}</h2><time>创建于 ${Number.isNaN(date.getTime())?'—':date.toLocaleString('zh-CN',{hour12:false})}</time></div></button><button type="button" class="finished-card-more" data-finished-more aria-label="${escapeHtml(work.name)}的更多操作" aria-haspopup="menu" aria-expanded="false">⋯</button></article>`;}).join('')||'<p class="finished-empty">暂无成品，请先在待办的「成品组装」任务中组合成品并提交。</p>';
+    grid.innerHTML=items.map(({work,key})=>{const cover=(work.resources||[]).find(r=>typeOf(r)==='image'),index=covers.length;if(cover)covers.push(cover);const date=new Date(work.createdAt);return `<article class="finished-work-card" role="listitem" data-finished-key="${escapeHtml(key)}"><button type="button" class="finished-card-open" data-finished-view aria-label="查看${escapeHtml(work.name)}"><div class="finished-card-cover"><span class="finished-card-symbol">${musicIcon}</span>${cover?`<img data-finished-media="${index}" alt="" loading="lazy"><span data-media-error hidden></span>`:''}${work.finishedLibraryDemo?'<span class="finished-card-example">示例成品</span>':''}<span class="finished-card-count">${(work.resources||[]).length} 个资源</span></div><div class="finished-card-info"><h2 title="${escapeHtml(work.name)}">${escapeHtml(work.name)}</h2><time>创建于 ${Number.isNaN(date.getTime())?'—':date.toLocaleString('zh-CN',{hour12:false})}</time></div></button><button type="button" class="finished-card-more" data-finished-more aria-label="${escapeHtml(work.name)}的更多操作" aria-haspopup="menu" aria-expanded="false">⋯</button></article>`;}).join('')||'<p class="finished-empty">暂无成品，请先在待办的「成品组装」任务中组合成品并提交。</p>';
     if(keyword&&!items.length)grid.innerHTML='<p class="finished-empty">未找到匹配的成品，请尝试其他名称或清空搜索。</p>';
     hydrate(cardState,covers);
   }
@@ -106,25 +107,28 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
   function usedByOtherWorks(entry){
     return new Set((entry.project.works||[]).filter(work=>work.id!==entry.work.id&&String(work.runId)===String(entry.work.runId)).flatMap(work=>(work.resources||[]).map(resourceKey)));
   }
-  function commitEdit(entry,draft,original){
+  function commitEdit(entry,draft,original,name=entry.work.name,originalName=entry.work.name){
     if(entry.team!==team()||entry.account!==account())throw new Error('账号或团队已变更，请重新打开成品');
     const current=findEntry(entry.key);
+    const cleanName=String(name||'').trim();
+    if(!cleanName)throw Object.assign(new Error('请输入成品名称'),{field:'name'});
+    if(Array.from(cleanName).length>70)throw Object.assign(new Error('成品名称最多 70 个字符'),{field:'name'});
     if(draft.length<1||draft.length>10)throw new Error('每个成品需包含 1～10 个资源');
     if(new Set(draft.map(resourceKey)).size!==draft.length)throw new Error('同一资源不可重复添加');
-    if(JSON.stringify(current.work.resources||[])!==original)throw new Error('成品已更新，请关闭后重新编辑');
+    if(current.work.name!==originalName||JSON.stringify(current.work.resources||[])!==original)throw new Error('成品已更新，请关闭后重新编辑');
     const raw=localStorage.getItem(productionModelKey),snapshot=clone(raw?JSON.parse(raw):projectData),project=snapshot.find(p=>p.id===entry.project.id),work=project?.works?.find(w=>w.id===entry.work.id);
-    if(!work||JSON.stringify(work.resources||[])!==original||String(work.runId)!==String(entry.work.runId))throw new Error('成品已更新，请关闭后重新编辑');
+    if(!work||work.name!==originalName||JSON.stringify(work.resources||[])!==original||String(work.runId)!==String(entry.work.runId))throw new Error('成品已更新，请关闭后重新编辑');
     const source={...current,project,work},existing=new Map(JSON.parse(original).map(resource=>[resourceKey(resource),resource]));
     const catalog=workflowResources(source),occupied=usedByOtherWorks(source);
     const resources=draft.map(resource=>{const key=resourceKey(resource);if(existing.has(key))return clone(existing.get(key));const latest=catalog.find(item=>resourceKey(item)===key);if(!latest)throw new Error('待添加资源已不在该工作流运行中，请重新选择');if(occupied.has(key))throw new Error('该资源已被其他成品使用，请重新选择');return clone(latest);});
-    work.resources=resources;work.finishedEditedAt=new Date().toISOString();
+    work.name=cleanName;work.resources=resources;work.finishedEditedAt=new Date().toISOString();
     try{localStorage.setItem(productionModelKey,JSON.stringify(snapshot));}catch{throw new Error('保存失败，请检查浏览器存储空间');}
     current.project.works=project.works;return work;
   }
   function openWork(entry,editable){
-    const draft=clone(entry.work.resources||[]),original=JSON.stringify(draft),returnFocus=document.activeElement;
+    const draft=clone(entry.work.resources||[]),original=JSON.stringify(draft),originalName=entry.work.name,returnFocus=document.activeElement;
     const dialog=document.createElement('dialog');dialog.className=`finished-dialog${editable?' is-editing':''}`;dialog.setAttribute('aria-labelledby','finishedDialogTitle');
-    dialog.innerHTML=`<form><header class="finished-dialog-heading"><div><small>${editable?'编辑成品':'查看成品'}</small><h2 id="finishedDialogTitle">${escapeHtml(entry.work.name)}</h2></div><button type="button" data-close-finished aria-label="关闭">×</button></header><div class="finished-dialog-content"><section class="finished-selected-section"><h3>${editable?'当前资源':'全部资源'} <span data-resource-count></span></h3><div class="finished-selected-resources"></div></section>${editable?'<section class="finished-picker-section" aria-label="工作流选中与备选资源"><div class="finished-picker-results"></div></section>':''}</div><p class="finished-dialog-error" role="alert" hidden></p><footer>${editable?'<small>最多添加 10 个资源，点击保存后生效</small>':''}<div><button type="button" class="secondary-button" data-close-finished>${editable?'取消':'关闭'}</button>${editable?'<button type="submit" class="primary-button">保存</button>':''}</div></footer></form>`;
+    dialog.innerHTML=`<form novalidate><header class="finished-dialog-heading"><div><small>${editable?'编辑成品':'查看成品'}</small><h2 id="finishedDialogTitle">${escapeHtml(entry.work.name)}</h2></div><button type="button" data-close-finished aria-label="关闭">×</button></header><div class="finished-dialog-content">${editable?'<label class="finished-name-field"><span><b>成品名称 <em>*</em></b><small id="finishedNameCount" data-finished-name-count></small></span><input name="finishedName" type="text" maxlength="140" required placeholder="请输入成品名称" aria-describedby="finishedNameCount finishedDialogError" autocomplete="off"></label>':''}<section class="finished-selected-section"><h3>${editable?'当前资源':'全部资源'} <span data-resource-count></span></h3><div class="finished-selected-resources"></div></section>${editable?'<section class="finished-picker-section" aria-label="工作流选中与备选资源"><div class="finished-picker-results"></div></section>':''}</div><p id="finishedDialogError" class="finished-dialog-error" role="alert" hidden></p><footer>${editable?'<small>最多添加 10 个资源，名称与资源修改在保存后生效</small>':''}<div><button type="button" class="secondary-button" data-close-finished>${editable?'取消':'关闭'}</button>${editable?'<button type="submit" class="primary-button">保存</button>':''}</div></footer></form>`;
     document.body.append(dialog);dialogs.add(dialog);
     const selected=dialog.querySelector('.finished-selected-resources'),selectedState=mediaState(selected),results=dialog.querySelector('.finished-picker-results'),resultState=results?mediaState(results):null,form=dialog.querySelector('form'),errorNode=dialog.querySelector('.finished-dialog-error');
     let catalog=[];
@@ -141,12 +145,19 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
       }).join('');
       hydrate(resultState,catalog);
     }
-    function showError(error){errorNode.textContent=error.message;errorNode.hidden=false;}
+    const nameInput=dialog.querySelector('[name="finishedName"]');
+    if(nameInput){
+      nameInput.value=originalName;
+      const updateNameCount=()=>{dialog.querySelector('[data-finished-name-count]').textContent=`${Array.from(nameInput.value).length} / 70`;};
+      nameInput.addEventListener('input',()=>{nameInput.removeAttribute('aria-invalid');errorNode.hidden=true;updateNameCount();});
+      updateNameCount();
+    }
+    function showError(error){errorNode.textContent=error.message;errorNode.hidden=false;if(error.field==='name'&&nameInput){nameInput.setAttribute('aria-invalid','true');nameInput.focus();}}
     if(editable){try{catalog=workflowResources(entry);}catch(error){showError(error);}
       selected.addEventListener('click',event=>{const button=event.target.closest('[data-remove-resource]');if(!button)return;draft.splice(Number(button.dataset.removeResource),1);displaySelected();displayResults();});
       results.addEventListener('click',event=>{const button=event.target.closest('[data-add-resource]');if(!button||button.disabled)return;const record=catalog[Number(button.dataset.addResource)];if(!record||draft.length>=10||draft.some(r=>resourceKey(r)===resourceKey(record))||usedByOtherWorks(entry).has(resourceKey(record)))return;draft.push(clone(record));displaySelected();displayResults();});
     }
-    form.addEventListener('submit',event=>{event.preventDefault();if(!editable)return;try{commitEdit(entry,draft,original);dialog.close();render();showToast('成品已保存');}catch(error){showError(error);}});
+    form.addEventListener('submit',event=>{event.preventDefault();if(!editable)return;try{commitEdit(entry,draft,original,nameInput.value,originalName);dialog.close();render();showToast('成品已保存');}catch(error){showError(error);}});
     dialog.querySelectorAll('[data-close-finished]').forEach(button=>button.addEventListener('click',()=>dialog.close()));
     dialog.addEventListener('error',event=>{if(event.target.matches('[data-finished-media]'))mediaError(event.target);},true);
     dialog.addEventListener('play',event=>dialog.querySelectorAll('audio').forEach(audio=>{if(audio!==event.target)audio.pause();}),true);
@@ -180,7 +191,8 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
   window.addEventListener('resize',()=>closeMenu());window.addEventListener('scroll',()=>closeMenu(),true);
   const closeDialogs=()=>[...dialogs].forEach(dialog=>dialog.close());
   new MutationObserver(()=>{if(page.classList.contains('active'))render();else{closeMenu();release(cardState);closeDialogs();}}).observe(page,{attributes:true,attributeFilter:['class']});
-  document.querySelectorAll('.workspace-option').forEach(button=>button.addEventListener('click',()=>{closeDialogs();render();}));
+  // Delegation also covers teams created after this page initialized.
+  document.addEventListener('click',event=>{if(event.target.closest('.workspace-option')){closeDialogs();render();}});
   window.addEventListener('storage',event=>{if(event.key===productionModelKey){closeDialogs();try{const saved=JSON.parse(event.newValue);if(Array.isArray(saved))projectData.splice(0,projectData.length,...saved);}catch{}render();}});
   window.addEventListener('pagehide',()=>{closeMenu();closeDialogs();release(cardState,true);});
   document.addEventListener('DOMContentLoaded',render,{once:true});

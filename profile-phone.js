@@ -8,8 +8,9 @@
   dialog.setAttribute('aria-labelledby', 'changePhoneTitle');
   dialog.innerHTML = `<form novalidate>
     <header><h2 id="changePhoneTitle">更换手机号</h2><button type="button" data-phone-close aria-label="关闭更换手机号弹窗">×</button></header>
-    <p class="phone-intro">输入新手机号并完成短信验证码验证，更换后可使用新手机号登录。</p>
+    <p class="phone-intro">请输入原账号密码，并验证新手机号的短信验证码。</p>
     <p class="phone-current">当前手机号：<b data-current-phone></b></p>
+    <div class="phone-password-field" hidden><label for="profileCurrentPassword">原账号密码 <em>*</em></label><input id="profileCurrentPassword" name="currentPassword" type="password" autocomplete="current-password" minlength="6" maxlength="18" placeholder="请输入原账号密码" aria-describedby="profileCurrentPasswordHint changePhoneMessage"><p id="profileCurrentPasswordHint" class="phone-code-hint"></p><a href="./login.html" data-phone-login hidden>重新登录</a></div>
     <label for="profileNewPhone"><span data-phone-label>新手机号</span> <em>*</em></label>
     <input id="profileNewPhone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="11" placeholder="请输入十一位新手机号" required aria-describedby="changePhoneMessage">
     <label for="profilePhoneCode">验证码 <em>*</em></label>
@@ -21,29 +22,28 @@
   </form>`;
   document.body.append(dialog);
   const q = selector => dialog.querySelector(selector);
-  const form = q('form'), phone = q('[name="phone"]'), code = q('[name="code"]');
+  const form = q('form'), phone = q('[name="phone"]'), code = q('[name="code"]'), password = q('[name="currentPassword"]');
   const send = q('[data-phone-send]'), submit = q('[type="submit"]'), hint = q('#profilePhoneCodeHint'), message = q('#changePhoneMessage');
-  let timer, trigger, openedAccount;
+  let timer, trigger, openedAccount, submission;
+  function cancelSubmission() {submission?.abort();submission = null;submit.disabled = false;}
   function clearMessage() {
     message.textContent = '';
-    phone.removeAttribute('aria-invalid');code.removeAttribute('aria-invalid');
+    phone.removeAttribute('aria-invalid');code.removeAttribute('aria-invalid');password.removeAttribute('aria-invalid');
   }
   function report(error) {
     message.textContent = error.message;
-    const field = error.field === 'phone' ? phone : error.field === 'code' ? code : null;
+    const field = error.field === 'phone' ? phone : error.field === 'code' ? code : error.field === 'password' ? password : null;
     if (field) {field.setAttribute('aria-invalid', 'true');field.focus();}
   }
   function refresh() {
     try {
       const current = api.phoneFor();
-      document.querySelector('#profilePhoneNumber').textContent = current ? api.mask(current) : '未绑定手机号';
-      document.querySelector('#profilePhoneHint').textContent = current ? '更换手机号需通过短信验证码验证。' : '绑定后可使用手机号登录，并用于账号找回。';
       document.querySelector('#securityPhoneNumber').textContent = current ? api.mask(current) : '用于登录验证与账号找回';
       const status = document.querySelector('#securityPhoneStatus');
       status.textContent = current ? '已绑定' : '未绑定';status.className = 'setting-status ' + (current ? 'success' : 'warning');
       triggers.forEach(button => {button.disabled = false;button.textContent = current ? '更换手机号' : '绑定手机号';});
     } catch {
-      document.querySelector('#profilePhoneNumber').textContent = '手机号读取失败，请刷新后重试';
+      document.querySelector('#securityPhoneNumber').textContent = '手机号读取失败，请刷新后重试';
       triggers.forEach(button => {button.disabled = true;});
     }
   }
@@ -65,8 +65,12 @@
       const current = api.phoneFor(), action = current ? '更换手机号' : '绑定手机号';
       q('#changePhoneTitle').textContent = action;
       q('header [data-phone-close]').setAttribute('aria-label', `关闭${action}弹窗`);
-      q('.phone-intro').textContent = current ? '输入新手机号并完成短信验证码验证，更换后可使用新手机号登录。' : '当前账号尚未绑定手机号，请输入手机号并完成短信验证码验证。';
+      q('.phone-intro').textContent = current ? '请输入原账号密码，并验证新手机号的短信验证码。验证通过后可使用新手机号登录。' : '当前账号尚未绑定手机号，请输入手机号并完成短信验证码验证。';
       q('.phone-current').hidden = !current;q('[data-current-phone]').textContent = api.mask(current);
+      q('.phone-password-field').hidden = !current;password.disabled = !current;password.required = Boolean(current);password.value = '';
+      const canVerifyPassword = api.hasPasswordVerification();
+      q('#profileCurrentPasswordHint').textContent = canVerifyPassword ? '请输入当前账号密码，长度为 6～18 位。' : '当前演示会话尚无密码校验信息，请重新登录后再更换手机号。';
+      q('[data-phone-login]').hidden = !current || canVerifyPassword;
       q('[data-phone-label]').textContent = current ? '新手机号' : '手机号';
       phone.placeholder = current ? '请输入十一位新手机号' : '请输入十一位手机号';
       submit.textContent = current ? '验证并更换' : '验证并绑定';
@@ -76,21 +80,25 @@
   }));
   dialog.querySelectorAll('[data-phone-close]').forEach(button => button.addEventListener('click', () => dialog.close()));
   dialog.addEventListener('keydown', event => {if (event.key === 'Escape') event.stopPropagation();});
-  dialog.addEventListener('close', () => {clearInterval(timer);form.reset();clearMessage();trigger?.focus();});
-  phone.addEventListener('input', () => {phone.value = phone.value.replace(/\D/g, '').slice(0, 11);code.value = '';clearMessage();syncCountdown();});
-  code.addEventListener('input', () => {code.value = code.value.replace(/\D/g, '').slice(0, 6);clearMessage();});
+  dialog.addEventListener('close', () => {cancelSubmission();clearInterval(timer);form.reset();password.value = '';clearMessage();trigger?.focus();});
+  phone.addEventListener('input', () => {cancelSubmission();phone.value = phone.value.replace(/\D/g, '').slice(0, 11);code.value = '';clearMessage();syncCountdown();});
+  code.addEventListener('input', () => {cancelSubmission();code.value = code.value.replace(/\D/g, '').slice(0, 6);clearMessage();});
+  password.addEventListener('input', () => {cancelSubmission();clearMessage();});
   send.addEventListener('click', () => {
     if (send.disabled) return;
     clearMessage();
     try {api.sendCode(phone.value);code.value = '';syncCountdown();code.focus();} catch (error) {report(error);}
   });
-  form.addEventListener('submit', event => {
+  form.addEventListener('submit', async event => {
     event.preventDefault();if (submit.disabled) return;clearMessage();submit.disabled = true;
+    const attempt = new AbortController();submission = attempt;
     try {
       if (openedAccount !== api.currentAccount()) throw new Error('登录状态已变化，请重新打开弹窗。');
       const wasBound = Boolean(api.phoneFor());
-      api.confirmChange(phone.value, code.value);refresh();dialog.close();showToast(wasBound ? '手机号已更换，可使用新手机号登录' : '手机号绑定成功，可使用该手机号登录');
-    } catch (error) {report(error);} finally {submit.disabled = false;}
+      await api.confirmChange(phone.value, code.value, password.value, {signal:attempt.signal});
+      if (attempt.signal.aborted) return;
+      refresh();dialog.close();showToast(wasBound ? '手机号已更换，可使用新手机号登录' : '手机号绑定成功，可使用该手机号登录');
+    } catch (error) {if (!attempt.signal.aborted) report(error);} finally {if (submission === attempt) {submission = null;submit.disabled = false;}}
   });
   window.addEventListener('orchestra:phone-changed', refresh);
   window.addEventListener('storage', event => {

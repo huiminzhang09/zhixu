@@ -143,7 +143,7 @@ function commitRunComposition(project,run,drafts,outputTask=null){
  const project=projectData.find(p=>p.id==='orchestra-theme-album');
  if(project){
   const retainedFinishedEdits=(project.works||[]).filter(work=>work.finishedEditedAt).map(modelClone);
-  const retainedOutputRuns=(project.runs||[]).filter(run=>run.workOutputDemo).map(modelClone),retainedOutputIds=new Set(retainedOutputRuns.map(run=>run.id));
+  const retainedOutputRuns=(project.runs||[]).filter(run=>run.workOutputDemo||run.finishedLibraryDemo).map(modelClone),retainedOutputIds=new Set(retainedOutputRuns.map(run=>run.id));
   const retainedOutputPlans=(project.batches||[]).filter(plan=>retainedOutputRuns.some(run=>run.planId===plan.id)).map(modelClone);
   const retainedOutputWorks=(project.works||[]).filter(work=>retainedOutputIds.has(work.runId)).map(modelClone);
   const retainedOutputMetrics=(project.metricTasks||[]).filter(task=>retainedOutputIds.has(task.runId)).map(modelClone),retainedOutputCalls=(project.calls||[]).filter(call=>retainedOutputIds.has(call.runId)).map(modelClone);

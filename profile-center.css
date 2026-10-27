@@ -130,13 +130,6 @@ html[data-theme="dark"] .avatar-plan-row b { color: #dcb04d; }
 .profile-form input:focus,.profile-form textarea:focus,.profile-form select:focus { border-color: #8159e7; box-shadow: 0 0 0 3px #8159e714; }
 .profile-form label > small { display: block; margin-top: 5px; text-align: right; font-size: 8px; }
 .form-wide { grid-column: 1 / -1; }
-.profile-phone-field { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:16px; border:1px solid var(--line); border-radius:12px; background:var(--bg); }
-.profile-phone-field > div { min-width:0; }
-.profile-phone-field span,.profile-phone-field b,.profile-phone-field small { display:block; }
-.profile-phone-field span { font-size:10px; font-weight:650; }
-.profile-phone-field b { margin-top:8px; font-size:14px; font-weight:500; overflow-wrap:anywhere; }
-.profile-phone-field small { margin-top:6px; color:var(--muted); font-size:11px; }
-.profile-phone-field > button { flex-shrink:0; }
 .profile-phone-dialog { box-sizing:border-box; width:min(460px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); padding:26px; border:1px solid var(--line); border-radius:18px; color:var(--text); background:var(--surface); box-shadow:0 22px 80px #0006; }
 .profile-phone-dialog::backdrop { background:#090810b3; backdrop-filter:blur(4px); }
 .profile-phone-dialog header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
@@ -159,7 +152,9 @@ html[data-theme="dark"] .avatar-plan-row b { color: #dcb04d; }
 .profile-phone-dialog footer { display:flex; justify-content:flex-end; gap:10px; padding-top:8px; }
 .profile-phone-dialog footer button { min-height:38px; font-size:12px; }
 .profile-phone-dialog .phone-demo-note { margin:20px 0 0; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; line-height:1.6; }
-@media(max-width:420px) { .profile-phone-field { align-items:flex-start; flex-direction:column; gap:12px; } .profile-phone-dialog { padding:20px; } .profile-phone-dialog .phone-code-row button { flex-basis:108px; } }
+.profile-phone-dialog [hidden] { display:none!important; }
+.profile-phone-dialog [data-phone-login],.profile-password-dialog [data-password-login] { display:inline-block; margin:6px 0; color:#b795f2; font-size:12px; }
+@media(max-width:420px) { .profile-phone-dialog { padding:20px; } .profile-phone-dialog .phone-code-row button { flex-basis:108px; } }
 .form-actions { display: flex; justify-content: flex-end; gap: 9px; padding-top: 3px; }
 
 .security-list { margin-top: 6px; }

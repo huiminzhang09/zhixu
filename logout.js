@@ -3,6 +3,7 @@
  const key='orchestra-demo-signed-out';
  const redirect=()=>location.replace('./login.html');
  document.querySelector('#logoutButton').addEventListener('click',()=>{
+  try{sessionStorage.removeItem('orchestra-demo-password-verifier')}catch{}
   try{localStorage.setItem(key,'true')}catch{}
   document.querySelectorAll('audio,video').forEach(media=>media.pause());
   redirect();

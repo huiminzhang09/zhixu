@@ -1,4 +1,4 @@
-/* Demonstration only: credentials are validated locally and never persisted. */
+/* Local prototype: password changes persist salted verifiers; no plaintext password is stored. */
 (() => {
  const form=document.querySelector('form'),mode=form.dataset.mode;
  const account=form.elements.account,password=form.elements.password,confirm=form.elements.confirm;
@@ -9,7 +9,7 @@
   {id:'sound-lab',name:'Sound Lab',role:'团队管理员'},
   {id:'indie-makers',name:'Indie Makers',role:'生产者'}
  ];
- let organizations=[],loginAccount='',selectionMessage=null;
+ let organizations=[],loginAccount='',selectionMessage=null,authenticating=false;
  function membershipsForAccount(loginAccount){
   const initial=loginAccount==='18500760312'?[]:defaultOrganizations;
   const stored=JSON.parse(localStorage.getItem('orchestra-account-organizations:'+loginAccount)||'null');
@@ -115,8 +115,8 @@
   clearInterval(timer);timer=setInterval(()=>{seconds--;send.textContent=seconds?`${seconds}秒后重试`:'发送验证码';if(!seconds){clearInterval(timer);send.disabled=false}},1000);
  });
  account.addEventListener('input',()=>{account.setCustomValidity('');codeIssued=false;if(send){clearInterval(timer);send.disabled=false;send.textContent='发送验证码';document.querySelector('#codeHint').textContent=''}});
- form.addEventListener('submit',event=>{
-  event.preventDefault();if(!validateAccount())return;
+ form.addEventListener('submit',async event=>{
+  event.preventDefault();if(authenticating||!validateAccount())return;
   if(!password.value.trim()){show('密码不能全部为空格。');password.focus();return}
   if(password.value.length<6||password.value.length>18){show('密码长度为 6～18 位。');password.focus();return}
   if(confirm&&confirm.value!==password.value){confirm.setCustomValidity('两次输入的密码不一致，请重新输入。');confirm.reportValidity();return}
@@ -124,14 +124,17 @@
   if(mode==='login'){
    try{loginAccount=window.orchestraAccountPhone.resolveLogin(account.value.trim())}
    catch(error){show(error.message);account.focus();return}
+   authenticating=true;
+   try{await window.orchestraAccountPhone.rememberLoginPassword(loginAccount,password.value)}
+   catch(error){authenticating=false;show(error.message);return}
    try{
     organizations=membershipsForAccount(loginAccount);
     localStorage.setItem('orchestra-demo-signed-out','true');
     localStorage.setItem('orchestra-demo-account',loginAccount);
     localStorage.setItem('orchestra-login-organizations',JSON.stringify(organizations));
     localStorage.removeItem('orchestra-workspace');
-   }catch{show('无法保存登录状态，请允许本地存储后重试。');return}
-   form.reset();chooseOrganization();return;
+   }catch{authenticating=false;show('无法保存登录状态，请允许本地存储后重试。');return}
+   authenticating=false;form.reset();chooseOrganization();return;
   }
   form.reset();codeIssued=false;
   if(send){clearInterval(timer);send.disabled=false;send.textContent='发送验证码';document.querySelector('#codeHint').textContent=''}
