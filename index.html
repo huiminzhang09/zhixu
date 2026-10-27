@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" sizes="64x64" href="./assets/orchestra-logo.png?v=1" />
   <link rel="preconnect" href="https://images.unsplash.com" />
   <link rel="stylesheet" href="./styles.css?v=5" />
-  <link rel="stylesheet" href="./sidebar-states.css?v=7" />
+  <link rel="stylesheet" href="./sidebar-states.css?v=20261027-menu-offset" />
   <link rel="stylesheet" href="./projects.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./business.css?v=13" />
   <link rel="stylesheet" href="./project-create.css?v=17" />
@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="./team-invites.css?v=20261014-user-lookup">
   <link rel="stylesheet" href="./run-pagination.css?v=20261013">
   <link rel="stylesheet" href="./assignee-search.css?v=20261013">
-  <link rel="stylesheet" href="./no-organization.css?v=20261013">
+  <link rel="stylesheet" href="./no-organization.css?v=20261027-compact-menu">
   <script>try{const teams=JSON.parse(localStorage.getItem('orchestra-login-organizations')||'null');if(Array.isArray(teams)&&teams.length===0){window.noOrganizationMode=true;document.documentElement.classList.add('no-organization')}}catch{}</script>
   <link rel="stylesheet" href="./task-participation.css?v=20261014-task-card">
   <link rel="stylesheet" href="./reference-song-task.css?v=20261021-reference-picker">
@@ -39,7 +39,8 @@
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
-    <button class="brand" id="sidebarToggle" aria-label="切换侧栏"><span class="brand-mark"></span><b>orchestra</b></button>
+    <button class="brand" id="sidebarToggle" aria-label="收起菜单" aria-expanded="true" aria-controls="primaryNav"><span class="brand-mark" aria-hidden="true"></span><b>rchestra</b></button>
+    <button class="sidebar-create" id="sidebarCreate" type="button" aria-label="创建项目"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M16 1.5C15 12.3 12.3 15 1.5 16c10.8 1 13.5 3.7 14.5 14.5C17 19.7 19.7 17 30.5 16 19.7 15 17 12.3 16 1.5Z" fill="currentColor"/></svg><span class="sidebar-create-label-full">创建项目</span><span class="sidebar-create-label-short">创建</span></button>
     <nav id="primaryNav" aria-label="主导航"></nav>
   </aside>
 
@@ -710,7 +711,7 @@
   </footer>
   <div class="toast" id="toast" role="status"></div>
   <script src="./account-phone.js?v=20261026-account-security"></script>
-  <script src="./script.js?v=20261021-library-menu"></script>
+  <script src="./script.js?v=20261027-menu-sizing"></script>
   <script src="./profile-phone.js?v=20261026-account-security"></script>
   <script src="./profile-password.js?v=20261026-account-security"></script>
   <script src="./production-model.js?v=20261021-completed-no-actions"></script>

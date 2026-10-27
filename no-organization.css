@@ -1,5 +1,6 @@
 /* Accounts without a team only expose home, team creation, and sign out. */
 .no-organization #primaryNav .nav-item:not([data-page="home"]),
+.no-organization #sidebarCreate,
 .no-organization .page-view:not(#homePage),
 .no-organization #avatarMenu [data-profile-tab],
 .no-organization #teamManagementMenu,
