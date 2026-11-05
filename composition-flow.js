@@ -53,7 +53,7 @@ function showComposer(project,runId=''){
   item.querySelector('[data-remove-resource]').onclick=()=>{item.querySelectorAll('audio').forEach(player=>player.pause());item.remove();syncRows()};syncRows();
  }
  function add(){
-  const row=document.createElement('article');row.className='composition-work-card';row.innerHTML='<div class="composition-work-heading"><b data-work-heading></b><button type="button" data-delete-row>删除作品</button></div><label>作品名称<input name="name" maxlength="70" required placeholder="请输入作品名称"></label><div data-resource-list></div><div class="composition-resource-toolbar"><button type="button" data-add-resource>＋添加资源</button><small data-resource-count></small></div>';
+  const row=document.createElement('article');row.className='composition-work-card';row.innerHTML='<div class="composition-work-heading"><b data-work-heading></b><button type="button" data-delete-row>删除作品</button></div><label>作品名称<input name="name" maxlength="100" required placeholder="请输入作品名称"></label><div data-resource-list></div><div class="composition-resource-toolbar"><button type="button" data-add-resource>＋添加资源</button><small data-resource-count></small></div>';
   rows.append(row);addResource(row);row.querySelector('[data-add-resource]').onclick=()=>addResource(row);
   row.querySelector('[data-delete-row]').onclick=()=>{if(rows.children.length>1){row.querySelectorAll('audio').forEach(player=>player.pause());row.remove();syncRows();error.textContent=''}};syncRows();
  }
@@ -70,7 +70,7 @@ function showComposer(project,runId=''){
   for(const [i,row] of Array.from(rows.children).entries()){
    const input=row.querySelector('[name="name"]'),name=input.value.trim(),selects=[...row.querySelectorAll('[name="resource"]')];
    if(!name)return invalid(`请填写第${i+1}个作品的名称。`,input);
-   if(Array.from(name).length>70)return invalid(`第${i+1}个作品名称最多七十个字符。`,input);
+   if(Array.from(name).length>50)return invalid(`第${i+1}个作品名称最多 50 个字符。`,input);
    if(selects.length<1||selects.length>10)return invalid('每个作品需选择一至十个资源。',input);
    const chosen=[];
    for(const [j,select] of selects.entries()){
@@ -115,7 +115,7 @@ function commitRunComposition(project,run,drafts,outputTask=null){
  }
  if((!modelDone(run)&&!outputTask)||!drafts.length)throw Error('Invalid composition');
  const draftResources=drafts.flatMap(draft=>draft.resources||[]);
- if(drafts.some(draft=>!draft.name?.trim()||Array.from(draft.name.trim()).length>70||!draft.resources?.length||draft.resources.length>10)||new Set(draftResources.map(r=>r.id)).size!==draftResources.length)throw Error('Invalid or duplicate resources');
+ if(drafts.some(draft=>!draft.name?.trim()||Array.from(draft.name.trim()).length>50||!draft.resources?.length||draft.resources.length>10)||new Set(draftResources.map(r=>r.id)).size!==draftResources.length)throw Error('Invalid or duplicate resources');
  const currentRun=persistedRun||run,currentProject=persisted||project,availableResources=new Map(compositionAvailableResources(currentProject,currentRun).map(resource=>[resource.id,resource])),availableIds=new Set(availableResources.keys());
  if(outputTask)for(const [id,resource] of availableResources)if(!['selected','backup'].includes(resource.selectionState)){availableResources.delete(id);availableIds.delete(id)}
  if(drafts.some(draft=>(draft.resources||[]).some(resource=>!availableIds.has(resource.id))))throw Error('Resource already used');

@@ -3,7 +3,7 @@
  const trigger=document.querySelector('#inviteMembersButton');
  const users=[{phone:'18500760312',username:'创作用户十二',nickname:'音乐旅人'},{phone:'18500760311',username:'创作用户十一',nickname:'星河'}];
  const dialog=document.createElement('dialog');dialog.className='team-invite-dialog';dialog.setAttribute('aria-labelledby','inviteTitle');
- dialog.innerHTML=`<form novalidate><header><div><h2 id="inviteTitle">邀请成员</h2><p id="inviteTeamName"></p></div><button type="button" data-close aria-label="关闭邀请窗口">×</button></header><label class="invite-phone-label" for="invitePhone">手机号 <span aria-hidden="true">*</span></label><div class="invite-phone-query"><input id="invitePhone" type="tel" autocomplete="tel" inputmode="numeric" placeholder="请输入被邀请人的手机号" maxlength="11" required aria-describedby="invitePhoneHint inviteFeedback"><button type="button" id="queryInviteUser">查询</button></div><p id="invitePhoneHint" class="invite-phone-hint">查询用户信息，确认后再邀请加入当前组织。</p><section class="invite-user-result" aria-label="查询到的用户信息" hidden><h3>用户信息</h3><dl><div><dt>用户名</dt><dd id="inviteUsername"></dd></div><div><dt>昵称</dt><dd id="inviteNickname"></dd></div></dl></section><p id="inviteFeedback" class="invite-feedback" role="status" aria-live="polite"></p><footer><button type="button" data-close>取消</button><button type="submit" class="invite-submit" disabled>确认邀请</button></footer><p class="invite-demo-note">原型演示：可查询示例手机号 18500760312、18500760311，展示示例用户名及昵称；不会发送真实邀请。</p></form>`;
+ dialog.innerHTML=`<form novalidate><header><div><h2 id="inviteTitle">邀请成员</h2><p id="inviteTeamName" hidden></p></div><button type="button" data-close aria-label="关闭邀请窗口">×</button></header><p class="invite-intro">输入被邀请人手机号，查询用户信息，确认后再邀请加入当前组织。</p><label class="invite-phone-label" for="invitePhone">手机号 <span aria-hidden="true">*</span></label><div class="invite-phone-query"><input id="invitePhone" type="tel" autocomplete="tel" inputmode="numeric" placeholder="请输入被邀请人的手机号" maxlength="11" required aria-describedby="invitePhoneHint inviteFeedback"><button type="button" id="queryInviteUser">查询</button></div><p id="invitePhoneHint" class="invite-phone-hint" hidden>查询用户信息，确认后再邀请加入当前组织。</p><section class="invite-user-result" aria-label="查询到的用户信息" hidden><h3>用户信息</h3><dl><div><dt>用户名</dt><dd id="inviteUsername"></dd></div><div><dt>昵称</dt><dd id="inviteNickname"></dd></div></dl></section><p id="inviteFeedback" class="invite-feedback" role="status" aria-live="polite"></p><footer><button type="button" data-close>取消</button><button type="submit" class="invite-submit" disabled>确认邀请</button></footer><details class="account-demo-note"><summary>交互演示</summary><p>可查询 18500760312、18500760311，展示用户名及昵称；不会发送真实邀请。</p></details></form>`;
  document.body.append(dialog);
  const q=selector=>dialog.querySelector(selector),form=q('form'),phone=q('#invitePhone'),feedback=q('#inviteFeedback'),submit=q('[type="submit"]'),result=q('.invite-user-result');
  const pending=new Set();let teamId='',selectedUser=null;
@@ -15,7 +15,7 @@
  });
  dialog.querySelectorAll('[data-close]').forEach(button=>button.onclick=()=>dialog.close());
  dialog.addEventListener('close',()=>{form.reset();resetLookup();trigger.focus()});
- phone.addEventListener('input',resetLookup);
+ phone.addEventListener('input',()=>{phone.value=phone.value.replace(/\D/g,'').slice(0,11);resetLookup()});
  function query(){
   resetLookup();const value=phone.value.trim();phone.value=value;
   if(!/^1[3-9]\d{9}$/.test(value)){

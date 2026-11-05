@@ -1,5 +1,6 @@
 /* 展开横排图标与名称；收起为图标与短名称上下排列。 */
-.sidebar { --nav-muted: var(--muted); --nav-active: var(--text); --nav-highlight: var(--surface-2); }
+:root { --sidebar-expanded-width: 160px; }
+.sidebar { container-type: inline-size; --nav-muted: var(--muted); --nav-active: var(--text); --nav-highlight: var(--surface-2); }
 html[data-theme="dark"] .sidebar { --nav-muted: #b1b1b4; --nav-active: #f5f5f6; --nav-highlight: #28282b; background: #1d1d20; }
 html[data-theme="dark"] .sidebar .brand-mark::after { background: #1d1d20; }
 .sidebar #primaryNav { margin-top: 10px; gap: 9px; }
@@ -10,10 +11,10 @@ html[data-theme="dark"] .sidebar .brand-mark::after { background: #1d1d20; }
 .sidebar .nav-item .icon svg { display: block; width: 24px; height: 24px; flex: none; }
 body:not(.collapsed) .sidebar { padding-inline: 13px; }
 .sidebar .brand { height: 42px; padding: 0; gap: 1px; }
-.sidebar .brand b { font-size: 34px; font-weight: 650; line-height: 38px; letter-spacing: -.9px; }
+.sidebar .brand b { font-size: clamp(22px, 18cqi, 34px); font-weight: 650; line-height: 38px; letter-spacing: -.9px; }
 .sidebar .brand-mark {
-  width: 30px;
-  height: 30px;
+  width: clamp(24px, 19.5cqi, 30px);
+  height: clamp(24px, 19.5cqi, 30px);
   background: conic-gradient(from 25deg,#5b5b5e,#eeeeef 23%,#717174 44%,#e9e9eb 67%,#6b6b6e 84%,#5b5b5e);
   box-shadow: inset 0 0 0 1px #ffffff24;
 }
@@ -24,32 +25,37 @@ body:not(.collapsed) .sidebar { padding-inline: 13px; }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: clamp(6px, 4.5cqi, 10px);
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   height: 44px;
   margin: 24px 0 0;
-  padding: 0 12px;
+  padding: 0 clamp(8px, 6cqi, 12px);
   border: 0;
   border-radius: 14px;
   background: linear-gradient(105deg,#7428a5,#6c29b6 38%,#c34749);
   color: #fff;
-  font-size: 16px;
+  font-size: clamp(12px, 10.5cqi, 16px);
   font-weight: 400;
   line-height: 22px;
   cursor: pointer;
 }
-.sidebar-create svg { display: block; flex: none; width: 28px; height: 28px; }
+.sidebar-create svg { display: block; flex: none; width: clamp(20px, 16.5cqi, 28px); height: clamp(20px, 16.5cqi, 28px); }
+.sidebar-create-label-full { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-create:hover { filter: brightness(1.12); }
 .sidebar-create-label-short { display: none; }
 .sidebar-create:focus-visible,.sidebar .brand:focus-visible { outline: 2px solid #b79af0; outline-offset: 2px; }
 
 @media (min-width: 881px) {
-  :root { --sidebar: 224px; }
+  :root { --sidebar: calc(var(--sidebar-expanded-width) + 24px); }
   body:not(.collapsed) .sidebar {
     top: 0;
     bottom: 0;
     left: 12px;
-    width: 200px;
+    width: var(--sidebar-expanded-width);
     padding-top: 30px;
     padding-bottom: 20px;
     border: 0;
@@ -73,6 +79,7 @@ body:not(.collapsed) .sidebar { padding-inline: 13px; }
   }
   body.collapsed .sidebar::-webkit-scrollbar { display: none; }
   body.collapsed .sidebar .brand { height: 42px; justify-content: center; padding: 0; }
+  body.collapsed .sidebar .brand-mark { width: 30px; height: 30px; }
   body.collapsed .sidebar .brand b,
   body.collapsed .sidebar .side-bottom .user-meta { display: none; }
   body.collapsed .sidebar-create {
@@ -160,6 +167,7 @@ body:not(.collapsed) .sidebar { padding-inline: 13px; }
 .user-meta small { margin-top: 3px; color: var(--muted); font-size: 9px; }
 
 @media (max-width: 880px) {
+  .sidebar { width: var(--sidebar-expanded-width); }
   .sidebar #primaryNav .nav-item { height: 44px; padding: 0 10px; gap: 10px; }
   .sidebar #primaryNav .nav-item .icon { display: grid!important; }
   .sidebar #primaryNav .nav-label-full { display: block!important; }

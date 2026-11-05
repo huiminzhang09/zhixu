@@ -1,0 +1,9 @@
+/* Run actions follow results; the dock is restricted to the output viewport. */
+.task-output-run-panel{position:relative}
+[data-output-run-slot]{display:block;box-sizing:border-box;min-height:56px;padding-top:16px;margin:0;flex:none}
+.task-output-run-dock{position:absolute;z-index:5;border-radius:7px;box-shadow:0 -8px 16px #00000018,0 10px 0 0 #1e1e24}
+.task-output-run-dock[hidden]{display:none}
+:is([data-output-run-slot],.task-output-run-dock)>button{display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box;width:100%;min-height:40px;margin:0;padding:9px 14px;border-radius:7px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+:is([data-output-run-slot],.task-output-run-dock)>button:disabled{opacity:.45;cursor:not-allowed}
+:is([data-output-run-slot],.task-output-run-dock)>.ref-run-row{margin:0;min-height:40px}
+.task-output-run-dock button:focus-visible{outline:2px solid #b8a0ed;outline-offset:2px}

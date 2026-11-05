@@ -3,6 +3,8 @@
  const form=document.querySelector('form'),mode=form.dataset.mode;
  const account=form.elements.account,password=form.elements.password,confirm=form.elements.confirm;
  const message=document.querySelector('#message');
+ const remember=document.querySelector('#rememberLogin');
+ if(remember){try{remember.checked=localStorage.getItem('orchestra-keep-login')!=='false'}catch{}}
  // These memberships mirror the prototype's existing workspace switcher.
  const defaultOrganizations=[
   {id:'orchestra-studio',name:'Orchestra Studio',role:'团队最高管理员'},
@@ -17,7 +19,7 @@
  }
  function enterOrganization(organization,newMemberships=null,feedback=null){
   const memberships=newMemberships||organizations,accountKey='orchestra-account-organizations:'+loginAccount;
-  if(!organization&&memberships.length){show('请选择一个企业进行登录。');return false}
+  if(!organization&&memberships.length){show('请选择一个团队进行登录。');return false}
   const keys=['orchestra-login-organizations','orchestra-workspace','orchestra-demo-signed-out',...(newMemberships?[accountKey]:[])];
   let previous=[];
   try{
@@ -40,18 +42,19 @@
  function openCreateOrganization(){
   if(document.querySelector('.organization-create-dialog[open]'))return;
   const dialog=document.createElement('dialog');dialog.className='organization-create-dialog';dialog.setAttribute('aria-labelledby','createOrganizationTitle');
-  dialog.innerHTML='<form novalidate><header><h2 id="createOrganizationTitle">新建企业</h2><button type="button" class="organization-dialog-close" data-close aria-label="关闭新建企业弹窗">×</button></header><p class="organization-create-intro">创建成功后，将以管理员身份进入该企业。</p><label for="organizationName">企业名称 <span class="required-mark">*</span></label><input id="organizationName" name="organizationName" placeholder="请输入企业名称" required maxlength="50" autocomplete="organization" aria-describedby="organizationNameHint createOrganizationMessage" autofocus><p class="hint" id="organizationNameHint">必填，最多五十个字符。</p><p class="message" id="createOrganizationMessage" role="alert"></p><footer><button type="button" class="secondary" data-close>取消</button><button type="submit" class="primary">创建并进入</button></footer></form>';
+  dialog.innerHTML='<form novalidate><header><h2 id="createOrganizationTitle">新建团队</h2><button type="button" class="organization-dialog-close" data-close aria-label="关闭新建团队弹窗">×</button></header><p class="organization-create-intro">新团队将拥有独立的工作空间</p><div class="account-team-notice"><b>⚠ 重要提示</b><p>新团队将独立管理资产，初始积分为 0，请创建后为团队补充创作积分。</p></div><label for="organizationName">团队名称 <span class="required-mark">*</span></label><div class="account-team-name"><i aria-hidden="true">T</i><input id="organizationName" name="organizationName" placeholder="请输入团队名称" required maxlength="100" autocomplete="organization" aria-describedby="organizationNameHint createOrganizationMessage" autofocus></div><p class="hint" id="organizationNameHint">团队名称长度需在 1～50 个字符之间</p><p class="message" id="createOrganizationMessage" role="alert"></p><footer><button type="button" class="secondary" data-close>取消</button><button type="submit" class="primary" disabled>确认创建</button></footer></form>';
   const createForm=dialog.querySelector('form'),nameInput=dialog.querySelector('input'),feedback=dialog.querySelector('.message');
   dialog.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>dialog.close()));
   dialog.addEventListener('close',()=>dialog.remove(),{once:true});
-  nameInput.addEventListener('input',()=>{feedback.textContent='';nameInput.removeAttribute('aria-invalid')});
+  nameInput.addEventListener('input',()=>{const length=Array.from(nameInput.value.trim()).length;feedback.textContent=length>50?'团队名称最多 50 个字符。':'';if(length>50)nameInput.setAttribute('aria-invalid','true');else nameInput.removeAttribute('aria-invalid');createForm.querySelector('[type="submit"]').disabled=length<1||length>50});
+  nameInput.addEventListener('blur',()=>{if(!nameInput.value.trim()){feedback.textContent='请输入团队名称。';nameInput.setAttribute('aria-invalid','true')}});
   createForm.addEventListener('submit',event=>{
    event.preventDefault();
    const name=nameInput.value.trim();nameInput.value=name;
    let error='';
-   if(!name)error='请输入企业名称。';
-   else if(name.length>50)error='企业名称最多五十个字符。';
-   else if(organizations.some(item=>item.name.toLowerCase()===name.toLowerCase()))error='企业名称已存在，请更换名称。';
+   if(!name)error='请输入团队名称。';
+   else if(Array.from(name).length>50)error='团队名称最多五十个字符。';
+   else if(organizations.some(item=>item.name.toLowerCase()===name.toLowerCase()))error='团队名称已存在，请更换名称。';
    if(error){feedback.textContent=error;nameInput.setAttribute('aria-invalid','true');nameInput.focus();return}
    const organization={id:'team-'+crypto.randomUUID(),name,role:'团队最高管理员',createdLocally:true};
    const submit=createForm.querySelector('[type="submit"]');submit.disabled=true;
@@ -65,29 +68,33 @@
   try{localStorage.setItem('orchestra-demo-signed-out','true')}catch{}
   form.hidden=true;
   document.querySelector('.auth-links').hidden=true;
-  document.querySelector('h1').textContent='选择企业';
-  document.querySelector('.intro').textContent=organizations.length?'请选择一个企业进行登录':'新建企业或跳过进入首页';
+  const heading=document.querySelector('h1');heading.textContent='选择团队';heading.classList.remove('sr-only');
+  document.querySelector('.auth-card')?.classList.add('is-organization');
+  document.querySelector('.auth-branding')?.prepend(heading);
+  document.querySelector('.intro').textContent=organizations.length?'请选择一个团队进入系统':'新建团队后即可进入系统';
+  document.querySelector('.auth-panel')?.setAttribute('aria-label','选择团队');
   const selection=document.createElement('form');selection.className='organization-selection';
   const group=document.createElement('fieldset');
-  const legend=document.createElement('legend');legend.textContent='可登录的企业';group.append(legend);
-  organizations.forEach(organization=>{
+  const legend=document.createElement('legend');legend.textContent='可选择的团队';group.append(legend);
+  organizations.forEach((organization,index)=>{
    const label=document.createElement('label');label.className='organization-option';
-   const radio=document.createElement('input');radio.type='radio';radio.name='organization';radio.value=organization.id;radio.required=true;
+   const radio=document.createElement('input');radio.type='radio';radio.name='organization';radio.value=organization.id;radio.required=true;radio.checked=index===0;
+   const avatar=document.createElement('i');avatar.className='organization-avatar';avatar.textContent=Array.from(organization.name)[0]?.toUpperCase()||'团';avatar.setAttribute('aria-hidden','true');
    const details=document.createElement('span');const name=document.createElement('b');name.textContent=organization.name;
-   const role=document.createElement('small');role.textContent=organization.role;details.append(name,role);label.append(radio,details);group.append(label);
+   const role=document.createElement('small'),badge=document.createElement('em'),description=document.createElement('span');badge.className='organization-role';badge.textContent=organization.role;description.textContent=({'orchestra-studio':'AI 音乐创作团队','sound-lab':'声音实验与协作','indie-makers':'独立音乐创作团队'})[organization.id]||'独立创作空间';role.append(badge,description);details.append(name,role);label.append(radio,avatar,details);group.append(label);
   });
   if(!organizations.length){
    const empty=document.createElement('div');empty.className='organization-empty';
-   empty.innerHTML='<span class="organization-empty-icon" aria-hidden="true">＋</span><b>暂无可登录的企业</b><p>你还未加入任何企业，可以新建企业，或跳过进入首页。</p>';
+   empty.innerHTML='<span class="organization-empty-icon" aria-hidden="true"><svg viewBox="0 0 180 130" fill="none" stroke="currentColor" stroke-width="1"><g stroke-dasharray="2 2"><circle cx="86" cy="46" r="17"/><circle cx="48" cy="57" r="13"/><circle cx="125" cy="57" r="13"/><path d="M59 101V86a27 27 0 0 1 54 0v15M24 99V87a24 24 0 0 1 35-21m54 0a24 24 0 0 1 35 21v12M143 12h27v25h-27z"/></g><ellipse cx="86" cy="103" rx="70" ry="8"/><path d="M84 14V2m-14 17-7-7m35 7 7-7M20 14l36 4v23l-36-4zM39 24l10 2m-10 5 10 2"/><circle cx="29" cy="25" r="5"/><circle cx="111" cy="95" r="11"/><path d="M111 90v10m-5-5h10"/></svg></span><b>暂无可选择团队</b><p>你还未加入任何团队，可以新建团队后继续，或跳过进入首页。</p>';
    group.append(empty);
   }
-  const submit=document.createElement('button');submit.type='submit';submit.className='primary';submit.textContent='登录所选企业';submit.disabled=true;submit.hidden=!organizations.length;
-  const create=document.createElement('button');create.type='button';create.className=`organization-create ${organizations.length?'secondary':'primary'}`;create.textContent='＋ 新建企业';create.addEventListener('click',openCreateOrganization);
+  const submit=document.createElement('button');submit.type='submit';submit.className='primary';submit.textContent='登录所选企业';submit.disabled=!organizations.length;submit.hidden=!organizations.length;
+  const create=document.createElement('button');create.type='button';create.className=`organization-create ${organizations.length?'secondary':'primary'}`;create.textContent='＋ 新建团队';create.addEventListener('click',openCreateOrganization);
   selectionMessage=document.createElement('p');selectionMessage.className='message';selectionMessage.setAttribute('role','status');selectionMessage.setAttribute('aria-live','polite');
   const back=document.createElement('a');back.href='./login.html';back.className='organization-back';back.textContent='返回登录';
-  selection.append(group,selectionMessage,submit,create);
+  selection.append(group,create,selectionMessage,submit);
   if(!organizations.length){
-   const skip=document.createElement('button');skip.type='button';skip.className='organization-skip secondary';skip.textContent='跳过';skip.setAttribute('aria-label','跳过企业选择，进入首页');
+   const skip=document.createElement('button');skip.type='button';skip.className='organization-skip secondary';skip.textContent='跳过';skip.setAttribute('aria-label','跳过团队选择，进入首页');
    skip.addEventListener('click',()=>{skip.disabled=true;if(!enterOrganization(null))skip.disabled=false});
    selection.append(skip);
   }
@@ -108,13 +115,14 @@
  account.addEventListener('blur',()=>{account.value=account.value.trim()});
  form.addEventListener('input',()=>{show('');if(confirm)confirm.setCustomValidity('');});
  const send=document.querySelector('#sendCode');
+ if(send)send.disabled=true;
  if(send)send.addEventListener('click',()=>{
   if(send.disabled||!validateAccount())return;
   codeIssued=true;document.querySelector('#codeHint').textContent='演示验证码：123456（未发送真实短信）';
   let seconds=60;send.disabled=true;send.textContent=`${seconds}秒后重试`;
   clearInterval(timer);timer=setInterval(()=>{seconds--;send.textContent=seconds?`${seconds}秒后重试`:'发送验证码';if(!seconds){clearInterval(timer);send.disabled=false}},1000);
  });
- account.addEventListener('input',()=>{account.setCustomValidity('');codeIssued=false;if(send){clearInterval(timer);send.disabled=false;send.textContent='发送验证码';document.querySelector('#codeHint').textContent=''}});
+ account.addEventListener('input',()=>{account.value=account.value.replace(/\D/g,'').slice(0,11);account.setCustomValidity('');codeIssued=false;if(send){clearInterval(timer);send.disabled=!/^1[3-9]\d{9}$/.test(account.value);send.textContent='发送验证码';document.querySelector('#codeHint').textContent=''}});
  form.addEventListener('submit',async event=>{
   event.preventDefault();if(authenticating||!validateAccount())return;
   if(!password.value.trim()){show('密码不能全部为空格。');password.focus();return}
@@ -131,13 +139,14 @@
     organizations=membershipsForAccount(loginAccount);
     localStorage.setItem('orchestra-demo-signed-out','true');
     localStorage.setItem('orchestra-demo-account',loginAccount);
+    if(remember)localStorage.setItem('orchestra-keep-login',String(remember.checked));
     localStorage.setItem('orchestra-login-organizations',JSON.stringify(organizations));
     localStorage.removeItem('orchestra-workspace');
    }catch{authenticating=false;show('无法保存登录状态，请允许本地存储后重试。');return}
    authenticating=false;form.reset();chooseOrganization();return;
   }
   form.reset();codeIssued=false;
-  if(send){clearInterval(timer);send.disabled=false;send.textContent='发送验证码';document.querySelector('#codeHint').textContent=''}
+  if(send){clearInterval(timer);send.disabled=true;send.textContent='发送验证码';document.querySelector('#codeHint').textContent=''}
   show(mode==='register'?'注册流程演示完成，未创建真实账号。请点击“返回登录”继续。':'密码修改流程演示完成，未修改真实账号。请点击“返回登录”继续。',true);
  });
 })();

@@ -33,7 +33,37 @@
    '副歌情绪仍不够突出，请增强情绪递进，并保留已确认的主歌内容。'
   ].map((remark,index)=>({id:`multiple-return-demo-${index+1}`,remark,fromNodeId:returnedContext.snapshot.nodes[1]?.id||returnedNode.id,fromNodeTitle:returnedContext.snapshot.nodes[1]?.title||returnedNode.title,toNodeId:returnedNode.id,toNodeTitle:returnedNode.title,returnedAt:new Date(seedTime-(3-index)*40*60*1000).toISOString()}));
   Object.assign(task,{workName:returnedRun.name,status:'in_progress',requiresHuman:true,executionMode:'manual',participationDemo:true,assignmentCreated:true,returnHistory:history,returnNote:history[history.length-1],executionCount:Math.max(history.length+1,Number(task.executionCount)||1),updatedAt:seedTime+5,updatedLabel:'刚刚'});
+  if(!task.failureDemoSeeded){if(!task.candidates?.length)task.generationStage='failed';task.failureDemoSeeded=true;}
   returnedRun.status='制作中';returnedRun.stage=returnedNode.title;returnedRun.startedAt||=new Date(seedTime).toISOString();delete returnedRun.waitingNodeIndex;
+ }
+ // Seed one editable AI-lyrics task without resetting saved work on reload.
+ const aiPlanId='DEMO-AI-LYRICS-PLAN',aiRunId='DEMO-AI-LYRICS-001';
+ if(!project.batches.some(plan=>plan.id===aiPlanId))project.batches.push({id:aiPlanId,name:'AI歌词创作示例',quantity:1,workflowId:'ai-lyrics-demo-production',workflowName:'AI歌词创作流程',workflowVersion:'V1.0',delivery:'2026-11-30',notes:'通过提示词生成歌词，选择输出后提交审核。'});
+ if(!project.runs.some(run=>run.id===aiRunId))project.runs.push({id:aiRunId,serial:reserveDailyProductionNumbers({flow:1})?.flow[0]||aiRunId,name:'AI生成歌词示例',planId:aiPlanId,planName:'AI歌词创作示例',status:'制作中',stage:'AI生成歌词',owner:member.name,createdAt:new Date(seedTime).toISOString(),startedAt:new Date(seedTime).toISOString(),resources:[]});
+ const aiRun=project.runs.find(run=>run.id===aiRunId),aiContext=resolveTaskWorkflowContext(project,aiRun),aiNode=aiContext?.snapshot.nodes[0];
+ if(aiNode&&!modelDone(aiRun)&&!productionTasks.some(task=>task.projectId===project.id&&String(task.workId)===aiRunId)){
+  aiRun.nodeAssignments||={};
+  aiContext.snapshot.nodes.forEach(node=>{aiRun.nodeAssignments[projectWorkAssignmentKey(aiContext,node.id)]={workflowId:aiContext.plan.workflowId,workflowVersion:aiContext.plan.workflowVersion,nodeId:node.id,nodeName:node.title,memberId:member.id,memberName:member.name,assignedAt:seedTime};});
+  const task=createProductionTask(aiContext,aiNode,0,'in_progress',seedTime+8);
+  Object.assign(task,{workName:'AI生成歌词示例',requiresHuman:true,executionMode:'manual',participationDemo:true,assignmentCreated:true,generationStage:'generated',updatedLabel:'刚刚',formValues:{prompt:'写一首关于海边告别的中文流行歌词。主歌用晚风、潮汐和车站描绘离别，副歌保留温柔与希望，句子自然、适合演唱。',count:'2'},selectedCandidateId:'',backupCandidateIds:[],candidates:[
+   {id:'ai-lyrics-demo-a',generationId:crypto.randomUUID(),title:'潮汐的告别',type:'lyrics',content:'【主歌】\n晚风把最后一班车吹远\n海浪轻轻翻过旧的留言\n你站在路灯照不到的那边\n把再见说得像明天还会见\n\n【副歌】\n让潮汐带走没说完的想念\n让星光陪你走过新的季节\n如果有天我们在海边遇见\n愿你笑着说一切都如愿'},
+   {id:'ai-lyrics-demo-b',generationId:crypto.randomUUID(),title:'晚风寄来的信',type:'lyrics',content:'【主歌】\n车站的钟慢过了晚霞\n你把沉默放进我的手掌\n海风吹散没说完的话\n留下灯塔守着远方\n\n【副歌】\n我把祝福写成一封信\n交给晚风慢慢走向你\n就算明天隔着万里\n也愿你一路遇见晴空与欢喜'}
+  ]});
+  productionTasks.push(task);
+ }
+ // Independent failed run: retry it without affecting the original lyrics example.
+ const failedId='DEMO-AI-LYRICS-FAILED',failedPlan='DEMO-AI-LYRICS-RETRY';
+ if(!project.batches.some(p=>p.id===failedPlan))project.batches.push({...project.batches.find(p=>p.id===aiPlanId),id:failedPlan,name:'歌词重试示例'});
+ let failedRun=project.runs.find(r=>r.id===failedId);
+ if(!failedRun){
+  failedRun={id:failedId,serial:reserveDailyProductionNumbers({flow:1})?.flow[0]||failedId,name:'AI生成歌词 · 运行失败示例',planId:failedPlan,planName:'歌词重试示例',status:'制作中',stage:'AI生成歌词',owner:member.name,createdAt:new Date(seedTime).toISOString(),startedAt:new Date(seedTime).toISOString(),resources:[]};
+  project.runs.push(failedRun);
+ }
+ const retryContext=resolveTaskWorkflowContext(project,failedRun);
+ if(retryContext&&!modelDone(failedRun)&&!productionTasks.some(t=>t.projectId===project.id&&String(t.workId)===failedId)){
+  failedRun.nodeAssignments||={};
+  for(const node of retryContext.snapshot.nodes)failedRun.nodeAssignments[projectWorkAssignmentKey(retryContext,node.id)]={workflowId:retryContext.plan.workflowId,workflowVersion:retryContext.plan.workflowVersion,nodeId:node.id,nodeName:node.title,memberId:member.id,memberName:member.name,assignedAt:seedTime};
+  productionTasks.push(Object.assign(createProductionTask(retryContext,retryContext.snapshot.nodes[0],0,'in_progress',seedTime+9),{assignmentCreated:true,generationStage:'failed',formValues:{prompt:'以雨后的街道为主题，写一首温暖的城市民谣。',count:'2'},candidates:[],updatedLabel:'刚刚'}));
  }
  // A separate playlist workflow keeps the four-audio example linked to a real run and review node.
  const playlistPlanId='DEMO-PLAYLIST-PLAN',playlistRunId='DEMO-PLAYLIST-001';

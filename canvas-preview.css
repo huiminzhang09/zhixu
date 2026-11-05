@@ -1,0 +1,24 @@
+#canvasPage #copyShowcaseWorkflow[hidden],
+#canvasPage #canvasReadonlyNotice[hidden] { display: none; }
+#canvasPage #copyShowcaseWorkflow { display: inline-flex; align-items: center; gap: 8px; }
+#canvasPage .canvas-readonly-notice { color: var(--muted); font-size: 12px; white-space: nowrap; }
+#canvasPage.is-readonly .draft-state,
+#canvasPage.is-readonly .canvas-published-state,
+#canvasPage.is-readonly .canvas-action-dock,
+#canvasPage.is-readonly #nodePalette,
+#canvasPage.is-readonly #versionPanel,
+#canvasPage.is-readonly #canvasEmptyHint,
+#canvasPage.is-readonly .node-remove,
+#canvasPage.is-readonly .node-collapse,
+#canvasPage.is-readonly .node-more-fields,
+#canvasPage.is-readonly .node-run-row { display: none; }
+#canvasPage.is-readonly .canvas-name { cursor: default; }
+#canvasPage.is-readonly .node-head { cursor: default; }
+#canvasPage.is-readonly .node-port { pointer-events: none; }
+#canvasPage.is-readonly .node-body input,
+#canvasPage.is-readonly .node-body textarea { cursor: text; }
+#canvasPage.is-readonly .node-body textarea { resize: none; }
+#canvasPage.is-readonly .node-body select:disabled { opacity: 1; cursor: default; }
+#canvasPage.is-readonly .upload-drop,
+#canvasPage.is-readonly .feature-choice:disabled { cursor: default; pointer-events: none; }
+@media(max-width:1180px) { #canvasPage .canvas-readonly-notice { display: none; } }

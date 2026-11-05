@@ -14,8 +14,8 @@
     return (context.work.resources||[]).filter(resource=>['selected','backup'].includes(resource.selectionState));
   }
   function draftsFor(task){
-    if(!Array.isArray(task.outputDrafts))task.outputDrafts=[{name:'晨间来信',resourceIds:resourcesFor(task).filter(resource=>resource.selectionState==='selected').slice(0,10).map(resource=>resource.id)}];
-    task.outputDrafts.forEach(draft=>{draft.resourceIds=(draft.resourceIds||[]).filter(Boolean)});
+    if(!Array.isArray(task.outputDrafts))task.outputDrafts=[{name:'',nameManual:false,resourceIds:[]}];
+    task.outputDrafts.forEach(draft=>{draft.resourceIds=(draft.resourceIds||[]).filter(Boolean);draft.name=String(draft.name||'');if(draft.nameManual===undefined)draft.nameManual=Boolean(draft.name)});
     return task.outputDrafts;
   }
   function mediaURL(resource){
@@ -36,7 +36,7 @@
     return drafts.map((draft,index)=>{
       const name=String(draft.name||'').trim();
       if(!name)throw Error(`请填写成品 ${index+1} 的名称`);
-      if(Array.from(name).length>70)throw Error(`成品 ${index+1} 的名称最多 70 个字符`);
+      if(Array.from(name).length>50)throw Error(`成品 ${index+1} 的名称最多 50 个字符`);
       if(!draft.resourceIds?.length||draft.resourceIds.length>10)throw Error(`成品 ${index+1} 需要选择 1～10 个资源`);
       const chosen=draft.resourceIds.map(id=>{
         if(!resources.has(id))throw Error(`请为成品 ${index+1} 选择有效资源`);
@@ -48,7 +48,7 @@
   }
   function editorState(task){
     const key=session()+':'+task.id;
-    if(!editorStates.has(key))editorStates.set(key,{active:0,collapsed:new Set()});
+    if(!editorStates.has(key))editorStates.set(key,{active:0,collapsed:new Set(),type:'text',hideAdded:false});
     const state=editorStates.get(key);state.active=Math.max(0,Math.min(state.active,draftsFor(task).length-1));return state;
   }
   const nodeName=resource=>resource.node||resource.nodeTitle||'未记录产出节点';
@@ -63,35 +63,75 @@
     const audio=kind(resource)==='音频';
     return `<button type="button" class="output-preview-button${audio?' is-audio':''}" data-output-preview="${escapeHtml(resource.id)}" aria-label="${audio?'试听':'预览'}${escapeHtml(title(resource))}">${audio?'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M5 2.5 13 8l-8 5.5z"/></svg>':''}${audio?'试听':'预览'}</button>`;
   }
+  const resourceType=resource=>kind(resource)==='音频'?'audio':['图片','封面'].includes(kind(resource))?'image':'text';
+  const resourceTypes=[['text','文本'],['audio','音频'],['image','图片']];
+  const assemblyIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 5 3v6l-5 3-5-3V5zM7 11l-5 3v6l5 3 5-3v-6m5-3 5 3v6l-5 3-5-3M7 5l5 3 5-3M12 8v6M2 14l5 3 5-3 5 3 5-3M7 17v6m10-6v6"/></svg>';
+  function inlineMedia(resource){
+    const type=resourceType(resource),url=mediaURL(resource);
+    if(type==='text')return `<pre class="output-text-content" tabindex="0" aria-label="${escapeHtml(title(resource))}正文">${escapeHtml(resource.content||'暂无文本内容')}</pre>`;
+    if(type==='audio')return preview(resource);
+    return url?`<button type="button" class="output-image-button" data-output-preview="${escapeHtml(resource.id)}" aria-label="预览${escapeHtml(title(resource))}"><img src="${escapeHtml(url)}" alt="${escapeHtml(title(resource))}" loading="lazy" draggable="false"></button>`:'<p class="output-media-empty">暂无图片</p>';
+  }
   function workCard(task,draft,index,resources,workCount){
     const state=editorState(task),active=state.active===index,collapsed=state.collapsed.has(index);
-    return `<article class="output-work-card${active?' is-active':''}" data-output-work="${index}" aria-label="成品 ${index+1}"><header>
-      <button type="button" class="output-card-select" data-output-select-work="${index}" aria-pressed="${active}" aria-controls="outputWorkBody-${index}"><span class="output-work-number">${index+1}</span><b>成品 ${index+1}</b><small data-output-current ${active?'':'hidden'}>当前编辑</small></button>
-      <div class="output-card-actions"><button type="button" class="output-icon-button output-delete-work" data-output-remove-work="${index}" ${workCount===1?'disabled':''} aria-label="删除成品 ${index+1}" title="删除成品">${trashIcon}</button><button type="button" class="output-icon-button output-collapse" data-output-collapse-work="${index}" aria-expanded="${!collapsed}" aria-controls="outputWorkBody-${index}" aria-label="${collapsed?'展开':'收起'}成品 ${index+1}">${chevronIcon}</button></div></header>
-      <div id="outputWorkBody-${index}" ${collapsed?'hidden':''}>
-      <label class="output-name-field"><span class="output-name-label"><span>成品名称 <em>*</em></span><small data-output-name-count="${index}">${Array.from(draft.name).length} / 70</small></span><input data-output-name="${index}" value="${escapeHtml(draft.name)}" maxlength="140" placeholder="请输入成品名称" required></label>
-      <div class="output-resource-heading"><span>已选资源</span><span>${draft.resourceIds.length} / 10</span></div>
-      <div class="output-selected-resources">${draft.resourceIds.map((id,slot)=>{
-        const resource=resources.find(item=>item.id===id);
-        return `<div class="output-selected-resource">${resource?`${resourceIcon(resource)}<div class="output-resource-info"><b>${escapeHtml(title(resource))}</b><small>${escapeHtml(nodeName(resource))}</small></div>${previewButton(resource)}`:'<span class="output-resource-info output-invalid-resource">资源已失效，请移除后重新添加</span>'}<button type="button" class="output-icon-button output-remove-resource" data-output-remove-resource="${index}:${slot}" aria-label="移除成品 ${index+1} 的资源 ${slot+1}" title="移除资源">×</button></div>`;
-      }).join('')||'<p class="output-empty-selection">暂无资源，请从右侧资源列表添加。</p>'}</div></div></article>`;
+    const rows=draft.resourceIds.map((id,slot)=>({resource:resources.find(item=>item.id===id),slot}));
+    return `<article class="output-work-card${active?' is-active':''}" data-output-work="${index}" aria-label="成品 ${index+1}">
+      <header><p class="output-name-hint">配置资源后自动匹配名称，可手动修改名称</p><div class="output-work-title">
+      <button type="button" class="output-card-select" data-output-select-work="${index}" aria-label="选择成品 ${index+1}" aria-pressed="${active}" aria-controls="outputWorkBody-${index}"><span class="output-work-number">${String(index+1).padStart(2,'0')}</span></button>
+      <input class="output-name-input" data-output-name="${index}" value="${escapeHtml(draft.name)}" maxlength="100" placeholder="未命名" aria-label="成品 ${index+1} 名称，最多 50 个字符" required>
+      <span class="output-name-counter" data-output-name-count="${index}">${Array.from(draft.name).length} / 50</span>
+      <div class="output-card-actions">${workCount>1?`<button type="button" class="output-icon-button output-delete-work" data-output-remove-work="${index}" aria-label="删除成品 ${index+1}" title="删除成品">${trashIcon}</button>`:''}<button type="button" class="output-collapse" data-output-collapse-work="${index}" aria-expanded="${!collapsed}" aria-controls="outputWorkBody-${index}">${collapsed?'展开':'折叠'} ${chevronIcon}</button></div></div></header>
+      <div class="output-work-content" id="outputWorkBody-${index}" ${collapsed?'hidden':''}>
+      ${resourceTypes.map(([type,label])=>{
+        const items=rows.filter(row=>row.resource&&resourceType(row.resource)===type);
+        return `<section class="output-selected-group is-${type}"><h4>${resourceIcon({type})}${label}${items.length?`<small>${items.length}</small>`:''}</h4>
+        <div class="output-drop-area${items.length?' has-resources':''}" data-output-drop-work="${index}" data-output-drop-type="${type}" aria-label="成品 ${index+1} 的${label}资源">
+        ${items.length?items.map(({resource,slot})=>`<article class="output-selected-resource is-${type}"><header><b title="${escapeHtml(title(resource))}">${escapeHtml(title(resource))}</b><div>${type==='image'?'':previewButton(resource)}<button type="button" class="output-icon-button output-remove-resource" data-output-remove-resource="${index}:${slot}" aria-label="移除成品 ${index+1} 的资源 ${escapeHtml(title(resource))}" title="移除资源">×</button></div></header>${inlineMedia(resource)}</article>`).join(''):
+        `<button type="button" class="output-empty-drop" data-output-open-type="${type}" data-output-target-work="${index}" aria-label="为成品 ${index+1} 选择${label}资源"><span aria-hidden="true">＋</span><small>可从左侧资源列表拖拽至此进行添加</small></button>`}</div></section>`;
+      }).join('')}
+      ${rows.filter(row=>!row.resource).map(({slot})=>`<p class="output-invalid-resource">资源已失效，请移除后重新添加 <button type="button" data-output-remove-resource="${index}:${slot}">移除</button></p>`).join('')}</div></article>`;
   }
   function sourcePanel(task,resources){
-    const drafts=draftsFor(task),state=editorState(task),full=(drafts[state.active]?.resourceIds.length||0)>=10;
-    return `<div class="output-section-heading"><div><h3>结果资源信息</h3><p>${resources.length} 个资源可用于组装</p></div></div><p class="output-target-hint" role="status">添加至：<b>成品 ${state.active+1}</b>${full?' · 已达 10 个资源上限':''}</p><div class="output-source-groups">${[['selected','输出资源'],['backup','备选资源']].map(([status,label])=>`<section class="output-source-group"><h4>${label} <span>${resources.filter(resource=>resource.selectionState===status).length}</span></h4>${resources.filter(resource=>resource.selectionState===status).map(resource=>{
-      const owner=drafts.findIndex(draft=>draft.resourceIds.includes(resource.id)),added=owner===state.active,occupied=owner!==-1;
-      const label=added?'✓ 已添加':occupied?`成品 ${owner+1} 已用`:'＋ 添加';
-      return `<article class="output-source-resource">${resourceIcon(resource)}<div class="output-resource-info"><b>${escapeHtml(title(resource))}</b><small>${escapeHtml(nodeName(resource))}</small></div><div class="output-source-actions"><button type="button" class="output-pick-resource${added?' is-added':''}" data-output-pick-resource="${escapeHtml(resource.id)}" ${occupied||full?'disabled':''} title="${occupied?`已添加至成品 ${owner+1}`:full?'当前成品最多添加 10 个资源':`添加至成品 ${state.active+1}`}">${label}</button>${previewButton(resource)}</div></article>`;
-    }).join('')||'<p class="output-media-empty">暂无资源</p>'}</section>`).join('')}</div>`;
+    const drafts=draftsFor(task),state=editorState(task),draft=drafts[state.active],selected=draft?.resourceIds||[],full=selected.length>=10;
+    const count=selected.filter(id=>resources.some(resource=>resource.id===id&&resourceType(resource)===state.type)).length;
+    const typeLabel=resourceTypes.find(([type])=>type===state.type)[1];
+    const filtered=resources.filter(resource=>resourceType(resource)===state.type&&(!state.hideAdded||!drafts.some(item=>item.resourceIds.includes(resource.id))));
+    return `<div class="output-source-header"><div class="output-section-heading"><h3>结果资源信息</h3><div class="output-visibility" role="group" aria-label="资源显示范围"><button type="button" data-output-visibility="all" aria-pressed="${!state.hideAdded}">全部显示</button><button type="button" data-output-visibility="available" aria-pressed="${state.hideAdded}">隐藏已添加</button></div></div>
+      <div class="output-type-tabs" role="tablist" aria-label="结果资源类型">${resourceTypes.map(([type,label])=>`<button type="button" role="tab" id="outputTab-${type}" data-output-type="${type}" aria-selected="${state.type===type}" aria-controls="outputResourceList" tabindex="${state.type===type?'0':'-1'}">${label}</button>`).join('')}</div></div>
+      <div class="output-source-groups" id="outputResourceList" role="tabpanel" aria-labelledby="outputTab-${state.type}" tabindex="0"><p class="output-source-hint">最多添加 10 个资源，已选择 ${count} 个${typeLabel}，还可选择 ${Math.max(0,10-selected.length)} 个资源${drafts.length>1?`<br>当前添加至：成品 ${state.active+1}`:''}</p>
+      ${[['selected','输出资源'],['backup','备选资源']].map(([status,label])=>{
+        const items=filtered.filter(resource=>resource.selectionState===status);
+        return `<section class="output-source-group"><h4>${label} <span>${items.length}</span></h4><div class="output-source-items is-${state.type}">${items.map(resource=>{
+          const owner=drafts.findIndex(item=>item.resourceIds.includes(resource.id)),occupied=owner!==-1,added=owner===state.active;
+          const label=added?'已添加':occupied?`成品 ${owner+1} 已用`:'添加';
+          const add=`<button type="button" class="output-pick-resource${occupied?' is-added':''}" data-output-pick-resource="${escapeHtml(resource.id)}" ${occupied||full?'disabled':''} title="${occupied?`已添加至成品 ${owner+1}`:full?'当前成品最多添加 10 个资源':`添加至成品 ${state.active+1}`}">${label}</button>`;
+          return `<article class="output-source-resource is-${state.type}" data-output-drag-resource="${escapeHtml(resource.id)}" draggable="${!occupied&&!full}" title="${escapeHtml(nodeName(resource))}">${state.type==='image'?`<div class="output-source-image">${inlineMedia(resource)}${add}</div><b class="output-image-name">${escapeHtml(title(resource))}</b>`:`<header><b>${escapeHtml(title(resource))}</b>${add}</header>${inlineMedia(resource)}`}</article>`;
+        }).join('')}</div>${items.length?'':`<p class="output-media-empty">${state.hideAdded&&resources.some(resource=>resource.selectionState===status&&resourceType(resource)===state.type)?'该分类资源已全部添加':'暂无资源'}</p>`}</section>`;
+      }).join('')}</div>`;
+  }
+  function composerHint(task){
+    const state=editorState(task),count=draftsFor(task)[state.active]?.resourceIds.length||0;
+    return `选择左侧输出与备选资源进行成品组合。每个成品可添加 1～10 个资源，已选择 ${count} 个资源，还可选择 ${Math.max(0,10-count)} 个资源`;
+  }
+  function syncSubmitState(task){
+    let valid=true;try{validateDrafts(task)}catch{valid=false}
+    const button=taskDetailPanel.querySelector('[data-output-submit]');if(button)button.disabled=!valid;
+    const badge=taskDetailPanel.querySelector('[data-output-config-status]');if(badge)badge.textContent=valid?'已配置':'待配置';
+  }
+  function refreshSourcePanel(task){
+    const source=taskDetailPanel.querySelector('.output-source-panel');if(!source)return;
+    const top=source.querySelector?.('.output-source-groups')?.scrollTop||0;
+    source.innerHTML=sourcePanel(task,resourcesFor(task));
+    const list=source.querySelector?.('.output-source-groups');if(list)list.scrollTop=top;
   }
   function updateEditingState(task){
     const state=editorState(task);
     taskDetailPanel.querySelectorAll('[data-output-work]').forEach(card=>{
       const active=Number(card.dataset.outputWork)===state.active;card.classList.toggle('is-active',active);
       card.querySelector('[data-output-select-work]')?.setAttribute('aria-pressed',String(active));
-      const label=card.querySelector('[data-output-current]');if(label)label.hidden=!active;
     });
-    const source=taskDetailPanel.querySelector('.output-source-panel');if(source)source.innerHTML=sourcePanel(task,resourcesFor(task));
+    refreshSourcePanel(task);
+    const hint=taskDetailPanel.querySelector('[data-output-composer-hint]');if(hint)hint.textContent=composerHint(task);
   }
   function selectWork(task,index){
     if(!Number.isInteger(index)||!draftsFor(task)[index])return;
@@ -105,17 +145,20 @@
     previewDialogs.add(dialog);dialog.addEventListener('close',()=>{previewDialogs.delete(dialog);if(trigger?.isConnected)trigger.focus()},{once:true});
   }
   function render(task){
-    if(mountedTask!==task.id||mountedSession!==session())closePreviews();
+    const same=mountedTask===task.id&&mountedSession===session();
+    const scrolls=['.output-work-list','.output-source-groups'].map(selector=>[selector,same?(taskDetailPanel.querySelector(selector)?.scrollTop||0):0]);
+    if(!same)closePreviews();stopAudio();
     mountedTask=task.id;mountedSession=session();
     const context=taskContextByTask(task),resources=resourcesFor(task),active=task.status==='in_progress',status=taskStatusMeta[task.status];
     const drafts=active?draftsFor(task):[],used=new Set(drafts.flatMap(draft=>draft.resourceIds));
     const works=(context?.project.works||[]).filter(work=>work.runId===task.workId);
-    taskDetailPanel.innerHTML=`<div class="work-output-workbench"><header class="task-detail-header output-task-header"><div class="task-detail-title"><i class="task-node-icon output" aria-hidden="true">成</i><div><span class="task-detail-kicker">WORK ASSEMBLY</span><h2>成品组装</h2><p><span data-task-display-name>${escapeHtml(task.workName)}</span></p></div><span class="task-status ${status.className}">${status.label}</span></div><div class="task-detail-context"><span>${escapeHtml(task.projectName)}</span><span>来源运行：${escapeHtml(context?.work.serial||task.workId)}</span></div></header>
-      ${active?`<div class="output-task-body"><section class="output-composer" aria-label="成品组装"><div class="output-section-heading"><div><h3>成品组装 <span class="output-work-total">${drafts.length}</span></h3><p>组合本次运行的输出与备选资源</p></div><button type="button" class="output-secondary" data-output-add-work ${used.size>=resources.length?'disabled':''}>＋ 新增成品</button></div><p class="output-guidance">每个成品可添加 1～10 个资源，类型不限。</p>
-      <div class="output-work-list">${drafts.map((draft,index)=>workCard(task,draft,index,resources,drafts.length)).join('')}</div></section>
-      <aside class="output-source-panel" aria-label="结果资源信息">${sourcePanel(task,resources)}</aside></div>
-      <footer class="output-task-footer"><p class="output-form-error" role="alert" hidden></p><small>共 ${drafts.length} 个成品 · 已选择 ${used.size} 个资源</small><div><button type="button" class="task-return-button" data-task-action="return">打回</button><button type="button" class="output-submit" data-output-submit>确认提交</button></div></footer>`:
+    taskDetailPanel.innerHTML=`<div class="work-output-workbench"><header class="task-detail-header output-task-header"><div class="output-task-title"><span class="task-detail-kicker" hidden></span><h2>成品组装</h2>${active?'<span class="output-config-badge"><span aria-hidden="true">▤</span> <span data-output-config-status>待配置</span></span>':''}</div><p>${assemblyIcon}<span>组合当前工作流的输出与备选资源，提交后生成成品。</span></p><span class="output-run-status ${active?'is-running':''}">· ${escapeHtml(status.label)}</span></header>
+      ${active?`<div class="output-task-body"><aside class="output-source-panel" aria-label="结果资源信息">${sourcePanel(task,resources)}</aside><section class="output-composer" aria-label="成品组装"><div class="output-composer-header"><div class="output-section-heading"><h3>成品</h3><button type="button" class="output-secondary" data-output-add-work ${used.size>=resources.length?'disabled':''}>＋ 新增成品</button></div><p data-output-composer-hint>${composerHint(task)}</p></div>
+      <div class="output-work-list">${drafts.map((draft,index)=>workCard(task,draft,index,resources,drafts.length)).join('')}</div>
+      <footer class="output-task-footer"><p class="output-form-error" role="alert" hidden></p><div><button type="button" class="task-return-button" data-task-action="return">打回</button><button type="button" class="output-submit" data-output-submit disabled>确认提交</button></div></footer></section></div>`:
       `<section class="output-completed" aria-label="已输出成品"><div class="output-section-heading"><div><h3>${works.length?'成品已输出':'该任务已结束'}</h3><p>${works.length?`已生成 ${works.length} 个成品，可查看全部资源。`:'该任务未输出成品。'}</p></div>${works.length?'<button type="button" class="output-secondary" data-output-view-finished>查看成品</button>':''}</div>${works.map(work=>`<article class="output-work-card"><header><h3>${escapeHtml(work.name)}</h3><span>${work.resources.length} 个资源</span></header>${work.resources.map(resource=>`<div class="output-completed-resource"><header><b>${escapeHtml(title(resource))}</b><small>${escapeHtml(nodeName(resource))}</small></header>${preview(resource)}</div>`).join('')}</article>`).join('')}</section>`}</div>`;
+    scrolls.forEach(([selector,top])=>{const list=taskDetailPanel.querySelector(selector);if(list)list.scrollTop=top});
+    if(active)syncSubmitState(task);
   }
   function showError(message){const node=taskDetailPanel.querySelector('.output-form-error');if(node){node.textContent=message;node.hidden=!message}if(message)showToast(message,'error')}
   function activeTask(){
@@ -149,6 +192,27 @@
       }catch(error){committing=false;dialog.close();showError(error.message==='Invalid or duplicate resources'?'请检查成品名称和资源选择':error.message==='Resource already used'?'资源已被其他成品使用，请重新选择':'输出失败：'+error.message)}
     };
   }
+  function autoName(draft,resources){
+    if(draft.nameManual)return;
+    const first=resources.find(resource=>resource.id===draft.resourceIds[0]);
+    draft.name=first?Array.from(title(first)).slice(0,50).join(''):'';
+  }
+  function addResource(task,id,index,type){
+    const resources=resourcesFor(task),resource=resources.find(item=>item.id===id),drafts=draftsFor(task),draft=drafts[index];
+    if(!resource){showError('资源已失效，请刷新后重试');return false}
+    if(type&&resourceType(resource)!==type){showError('请将资源拖入对应类型的区域');return false}
+    if(drafts.some(item=>item.resourceIds.includes(id))){showError('该资源已添加至成品，请先移除再添加');return false}
+    if(!draft)return false;
+    if(draft.resourceIds.length>=10){showError('每个成品最多添加 10 个资源');return false}
+    draft.resourceIds.push(id);autoName(draft,resources);
+    const state=editorState(task);state.active=index;state.collapsed.delete(index);return true;
+  }
+  function setResourceType(task,type,focus=false){
+    if(!resourceTypes.some(([key])=>key===type))return;
+    editorState(task).type=type;refreshSourcePanel(task);
+    const list=taskDetailPanel.querySelector('.output-source-groups');if(list)list.scrollTop=0;
+    if(focus)taskDetailPanel.querySelector(`[data-output-type="${type}"]`)?.focus?.({preventScroll:true});
+  }
   taskDetailPanel.addEventListener('focusin',event=>{
     const input=event.target.closest('[data-output-name]'),task=activeTask();if(task&&input)selectWork(task,Number(input.dataset.outputName));
   });
@@ -156,11 +220,21 @@
     if(!event.target.matches('[data-output-name]'))return;
     const task=activeTask();if(!task)return;
     const index=Number(event.target.dataset.outputName),draft=draftsFor(task)[index];if(!draft)return;
-    draft.name=event.target.value;selectWork(task,index);
-    const length=Array.from(draft.name).length,counter=taskDetailPanel.querySelector(`[data-output-name-count="${index}"]`);
-    if(counter)counter.textContent=`${length} / 70`;
-    event.target.setCustomValidity?.(length>70?'成品名称最多 70 个字符':'');
-    saveDraft(task,false);
+    if(event.isComposing)return;
+    draft.name=Array.from(event.target.value).slice(0,50).join('');draft.nameManual=true;
+    if(event.target.value!==draft.name)event.target.value=draft.name;
+    selectWork(task,index);
+    const counter=taskDetailPanel.querySelector(`[data-output-name-count="${index}"]`);if(counter)counter.textContent=`${Array.from(draft.name).length} / 50`;
+    event.target.setCustomValidity?.('');syncSubmitState(task);saveDraft(task,false);
+  });
+  taskDetailPanel.addEventListener('compositionend',event=>{
+    if(event.target.matches('[data-output-name]'))event.target.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  taskDetailPanel.addEventListener('keydown',event=>{
+    const tab=event.target.closest('[data-output-type]'),task=activeTask();if(!tab||!task)return;
+    const index=resourceTypes.findIndex(([type])=>type===tab.dataset.outputType);
+    const target=event.key==='Home'?0:event.key==='End'?2:event.key==='ArrowRight'?(index+1)%3:event.key==='ArrowLeft'?(index+2)%3:-1;
+    if(target!==-1){event.preventDefault();setResourceType(task,resourceTypes[target][0],true)}
   });
   taskDetailPanel.addEventListener('click',event=>{
     if(event.target.closest('[data-output-view-finished]')){switchPage('finished');renderFinishedLibrary();return}
@@ -171,33 +245,33 @@
     if(!button)return;
     if(button.hasAttribute('data-output-submit')){requestSubmit(task);return}
     const drafts=draftsFor(task),state=editorState(task),resources=resourcesFor(task),used=new Set(drafts.flatMap(draft=>draft.resourceIds));let changed=false;
+    if(button.hasAttribute('data-output-type')){setResourceType(task,button.dataset.outputType,true);return}
+    if(button.hasAttribute('data-output-visibility')){state.hideAdded=button.dataset.outputVisibility==='available';refreshSourcePanel(task);taskDetailPanel.querySelector(`[data-output-visibility="${button.dataset.outputVisibility}"]`)?.focus?.({preventScroll:true});return}
+    if(button.hasAttribute('data-output-open-type')){
+      selectWork(task,Number(button.dataset.outputTargetWork));setResourceType(task,button.dataset.outputOpenType,true);
+      taskDetailPanel.querySelector('.output-source-panel [data-output-pick-resource]:not(:disabled)')?.focus?.({preventScroll:true});return;
+    }
     if(button.hasAttribute('data-output-select-work')){
       const index=Number(button.dataset.outputSelectWork);selectWork(task,index);
-      if(state.collapsed.delete(index))render(task);return;
+      if(state.collapsed.delete(index))renderTaskCenter();return;
     }
     if(button.hasAttribute('data-output-collapse-work')){
       const index=Number(button.dataset.outputCollapseWork);if(!drafts[index])return;
       if(state.collapsed.has(index))state.collapsed.delete(index);else state.collapsed.add(index);
-      render(task);taskDetailPanel.querySelector(`[data-output-collapse-work="${index}"]`)?.focus?.();return;
+      renderTaskCenter();taskDetailPanel.querySelector(`[data-output-collapse-work="${index}"]`)?.focus?.({preventScroll:true});return;
     }
     if(button.hasAttribute('data-output-preview')){openResourcePreview(task,button.dataset.outputPreview);return}
-    if(button.hasAttribute('data-output-add-work')&&used.size<resources.length){drafts.push({name:'',resourceIds:[]});state.active=drafts.length-1;changed=true}
+    if(button.hasAttribute('data-output-add-work')&&used.size<resources.length){drafts.push({name:'',nameManual:false,resourceIds:[]});state.active=drafts.length-1;changed=true}
     if(button.hasAttribute('data-output-remove-work')&&drafts.length>1){
       const index=Number(button.dataset.outputRemoveWork);if(!drafts[index])return;
       drafts.splice(index,1);state.active=Math.max(0,Math.min(state.active-(index<state.active?1:0),drafts.length-1));
       state.collapsed=new Set([...state.collapsed].filter(i=>i!==index).map(i=>i>index?i-1:i));changed=true;
     }
-    if(button.hasAttribute('data-output-pick-resource')){
-      const id=button.dataset.outputPickResource,draft=drafts[state.active];
-      if(!resources.some(resource=>resource.id===id)){showError('资源已失效，请刷新后重试');return}
-      if(used.has(id)){showError('该资源已添加至成品，请先移除再添加');return}
-      if(!draft||draft.resourceIds.length>=10){showError('每个成品最多添加 10 个资源');return}
-      draft.resourceIds.push(id);state.collapsed.delete(state.active);changed=true;
-    }
+    if(button.hasAttribute('data-output-pick-resource'))changed=addResource(task,button.dataset.outputPickResource,state.active);
     if(button.hasAttribute('data-output-remove-resource')){
       const [work,slot]=button.dataset.outputRemoveResource.split(':').map(Number),draft=drafts[work];
       if(!draft||slot<0||slot>=draft.resourceIds.length)return;
-      state.active=work;draft.resourceIds.splice(slot,1);changed=true;
+      state.active=work;draft.resourceIds.splice(slot,1);autoName(draft,resources);changed=true;
     }
     if(changed){
       saveDraft(task);
@@ -205,8 +279,38 @@
       if(button.hasAttribute('data-output-add-work'))focus=taskDetailPanel.querySelector(`[data-output-name="${state.active}"]`);
       else if(button.hasAttribute('data-output-pick-resource'))focus=taskDetailPanel.querySelector('.output-source-panel [data-output-pick-resource]:not(:disabled)');
       focus||=taskDetailPanel.querySelector(`[data-output-select-work="${state.active}"]`);focus?.focus?.({preventScroll:true});
+      if(button.hasAttribute('data-output-add-work'))taskDetailPanel.querySelector(`[data-output-work="${state.active}"]`)?.scrollIntoView?.({block:'nearest'});
     }
   });
+  let dragResource=null;
+  const dragMime='application/x-orchestra-assembly-resource';
+  function clearDropHighlight(){taskDetailPanel.querySelectorAll('.output-drop-area.is-drag-over').forEach(area=>area.classList.remove('is-drag-over'))}
+  taskDetailPanel.addEventListener('dragstart',event=>{
+    const source=event.target.closest('[data-output-drag-resource]'),task=activeTask();
+    if(!source||!task||source.getAttribute('draggable')!=='true'||!event.dataTransfer){event.preventDefault();return}
+    const id=source.dataset.outputDragResource;
+    dragResource={id,taskId:task.id,session:session()};event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData(dragMime,id);
+  });
+  taskDetailPanel.addEventListener('dragover',event=>{
+    const area=event.target.closest('[data-output-drop-work]'),task=activeTask();
+    if(!area||!task||dragResource?.taskId!==task.id||dragResource.session!==session())return;
+    event.preventDefault();
+    const resource=resourcesFor(task).find(item=>item.id===dragResource.id),matches=resource&&resourceType(resource)===area.dataset.outputDropType;
+    if(event.dataTransfer)event.dataTransfer.dropEffect=matches?'copy':'none';
+    clearDropHighlight();if(matches)area.classList.add('is-drag-over');
+  });
+  taskDetailPanel.addEventListener('dragleave',event=>{
+    const area=event.target.closest('[data-output-drop-work]');if(area&&!area.contains(event.relatedTarget))area.classList.remove('is-drag-over');
+  });
+  taskDetailPanel.addEventListener('drop',event=>{
+    const area=event.target.closest('[data-output-drop-work]'),task=activeTask();clearDropHighlight();
+    if(!area||!task||!dragResource)return;
+    event.preventDefault();
+    const drag=dragResource;dragResource=null;
+    if(drag.taskId!==task.id||drag.session!==session()||event.dataTransfer?.getData(dragMime)!==drag.id)return;
+    if(addResource(task,drag.id,Number(area.dataset.outputDropWork),area.dataset.outputDropType))saveDraft(task);
+  });
+  taskDetailPanel.addEventListener('dragend',()=>{dragResource=null;clearDropHighlight()});
   taskDetailPanel.addEventListener('play',event=>{
     if(event.target.closest('.work-output-workbench'))taskDetailPanel.querySelectorAll('audio').forEach(audio=>{if(audio!==event.target)audio.pause()});
   },true);

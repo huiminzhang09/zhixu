@@ -93,7 +93,7 @@ const legacyRenderRuns=renderProjectWorks;
 renderProjectWorks=function(project){legacyRenderRuns(project);const head=projectWorksGrid.querySelector('.head');head.innerHTML='<div><input type="checkbox" data-work-select-all aria-label="全选未完成运行"></div>'+['运行编号','所属计划','工作流及版本','状态','当前节点','负责人¹','开始时间','结束时间','关联作品数','操作'].map(s=>`<span>${s}</span>`).join('');syncProjectWorkSelectionUI(visibleProjectWorks(project));renderProjectRunStatistics(project);};
 const oldVisibleSelection=setVisibleProjectWorksSelection;
 setVisibleProjectWorksSelection=function(checked){oldVisibleSelection(checked);const p=modelProject();p.runs.filter(modelDone).forEach(r=>selectedProjectWorkIds.delete(String(r.id)));renderProjectWorks(p)};
-function showFormalWork(project,work){const d=modelDialog('作品详情 · 资源追溯',`<p>${escapeHtml(work.id)} · 来源运行 ${escapeHtml(work.runId)}</p><label>作品名称 <input id="formalName" maxlength="100" value="${escapeHtml(work.name)}"></label><button type="button" id="saveFormalName">保存名称</button><p>创建人：${escapeHtml(work.creator)} · ${modelTime(work.createdAt)}</p>${work.resources.map(r=>`<article class="model-resource"><b>${escapeHtml(r.kind)} · ${escapeHtml(r.version)}</b><small>${escapeHtml(r.id)} · 来源运行 ${escapeHtml(r.runId)} · 节点 ${escapeHtml(r.node)}</small>${r.kind==='歌词'?`<pre>${escapeHtml(r.content)}</pre>`:`<audio controls src="${escapeHtml(r.url)}"></audio>`}</article>`).join('')}`);d.querySelector('#saveFormalName').onclick=()=>{const input=d.querySelector('#formalName'),name=input.value.trim();if(!name){input.setCustomValidity('请输入作品名称');input.reportValidity();return}const old=work.name;work.name=name;if(!modelPersist()){work.name=old;return}renderProjectDetail();if(typeof renderFinishedLibrary==='function')renderFinishedLibrary();d.close();showToast('作品名称已更新，作品数不变')}}
+function showFormalWork(project,work){const d=modelDialog('作品详情 · 资源追溯',`<p>${escapeHtml(work.id)} · 来源运行 ${escapeHtml(work.runId)}</p><label>作品名称 <input id="formalName" maxlength="100" value="${escapeHtml(work.name)}"></label><button type="button" id="saveFormalName">保存名称</button><p>创建人：${escapeHtml(work.creator)} · ${modelTime(work.createdAt)}</p>${work.resources.map(r=>`<article class="model-resource"><b>${escapeHtml(r.kind)} · ${escapeHtml(r.version)}</b><small>${escapeHtml(r.id)} · 来源运行 ${escapeHtml(r.runId)} · 节点 ${escapeHtml(r.node)}</small>${r.kind==='歌词'?`<pre>${escapeHtml(r.content)}</pre>`:`<audio controls src="${escapeHtml(r.url)}"></audio>`}</article>`).join('')}`);d.querySelector('#saveFormalName').onclick=()=>{const input=d.querySelector('#formalName'),name=input.value.trim();input.setCustomValidity('');if(!name||Array.from(name).length>50){input.setCustomValidity(!name?'请输入成品名称':'成品名称最多 50 个字符');input.reportValidity();return}const old=work.name;work.name=name;if(!modelPersist()){work.name=old;return}renderProjectDetail();if(typeof renderFinishedLibrary==='function')renderFinishedLibrary();d.close();showToast('作品名称已更新，作品数不变')}}
 function modelApplyDatePreset(state,preset,now=new Date()){
  const today=modelDate(now);state.datePreset=preset;state.to=today;
  if(preset==='seven'){state.rangeStart=now.getTime()-7*24*60*60*1000;state.rangeEnd=now.getTime();state.from=modelDate(state.rangeStart)}
@@ -159,11 +159,18 @@ function modelPeopleRunSummary(project,calls,state){
 function modelEfficiencyReturns(...sources){
  const records=new Map();
  for(const source of sources){
+  if(!source)continue;
+  const nodeId=source.nodeId||String(source.id||'').split('::')[2]||'';
   const history=taskReturnRecords(source);
-  if(source?.firstReview==='未通过'&&source.reviewAt)history.push({returnedAt:source.reviewAt,remark:'审核未通过，已退回修改'});
+  if(!history.length&&source.firstReview==='未通过'&&source.reviewAt){
+   history.push({returnedAt:source.reviewAt,remark:'审核未通过，已退回修改',toNodeId:nodeId});
+  }
   for(const record of history){
-   const key=record.id||JSON.stringify([record.returnedAt,record.remark,record.fromNodeId]);
-   records.set(key,record);
+   // A return belongs only to its destination node, even if other tasks carry a copy.
+   if(record.toNodeId&&record.toNodeId!==nodeId)continue;
+   const normalized={...record,toNodeId:record.toNodeId||nodeId};
+   const key=JSON.stringify([source.runId||source.workId||'',record.id||[record.returnedAt,record.remark,record.fromNodeId,normalized.toNodeId]]);
+   records.set(key,normalized);
   }
  }
  return [...records.values()].sort((a,b)=>(Date.parse(a.returnedAt)||0)-(Date.parse(b.returnedAt)||0));
@@ -179,7 +186,7 @@ function modelEfficiencyTasks(project){
   const previous=tasks.get(String(task.id));
   tasks.set(String(task.id),{
    ...previous,id:task.id,person:task.actualSubmitter||task.assigneeName||previous?.person,
-   planId:task.planId,runId:task.workId,nodeTitle:task.nodeTitle,status:task.status,
+   planId:task.planId,runId:task.workId,nodeId:task.nodeId,nodeTitle:task.nodeTitle,status:task.status,
    assignedAt:previous?.assignedAt||task.assignedAt||task.createdAt,
    completedAt:task.completedAt||previous?.completedAt||null,
    returnHistory:modelEfficiencyReturns(previous,task)
@@ -203,7 +210,7 @@ function modelEfficiencyUnits(project,state){
   const run=project.runs?.find(run=>String(run.id)===String(unit.tasks[0].runId));
   const completedAt=state.dimension==='flow'?run?.completedAt:unit.tasks[0].completedAt;
   const completed=(state.dimension!=='flow'||Boolean(run&&modelDone(run)))&&beforeEnd(completedAt)&&(!latestReturn||new Date(latestReturn.returnedAt)<=new Date(completedAt));
-  return {...unit,completedAt,completed,returned:history.length>0,latestReturn,run,history};
+  return {...unit,completedAt,completed,returned:history.length>0,returnCount:history.length,latestReturn,run,history};
  });
 }
 function modelEfficiencyHelp(label,description){
@@ -214,23 +221,23 @@ function modelEfficiencyTable(project,state,calls){
  const units=modelEfficiencyUnits(project,state);
  const people=[...new Set([...units.map(unit=>unit.person),...calls.map(modelCallPerson),...(project.works||[]).map(work=>work.creator)].filter(Boolean))].filter(person=>state.person==='all'||person===state.person);
  const headers=['人员','总数量','已完成数量',
-  modelEfficiencyHelp('打回数量','当前统计范围内被打回过的任务或运行数量。同一任务多次打回只计 1 个；运行维度按人员和运行去重，只统计该人员参与的任务被打回的运行。'),
+  modelEfficiencyHelp('打回数量','仅统计被打回的目标节点次数，每打回一次计 1 次。同一节点多次打回累计计数，打回涉及的中间节点不增加次数。'),
   modelEfficiencyHelp('完成率','完成率 =（已完成数量 ÷ 总数量）× 100%'),
-  modelEfficiencyHelp('打回率','打回率 =（打回数量 ÷ 总数量）× 100%。打回后完成的任务或运行仍计入打回数量；总数量为 0 时显示“—”。')];
+  modelEfficiencyHelp('打回率','打回率 =（目标节点累计被打回次数 ÷ 总数量）× 100%。多次打回分别计数，结果可能超过 100%；打回后完成仍保留次数，总数量为 0 时显示“—”。')];
  const metric=(person,type,value)=>`<button type="button" data-efficiency-person="${escapeHtml(person)}" data-efficiency-type="${type}">${escapeHtml(value)}</button>`;
  return modelTable(headers,people.map(person=>{
-  const cohort=units.filter(unit=>unit.person===person),total=cohort.length,completed=cohort.filter(unit=>unit.completed).length,returned=cohort.filter(unit=>unit.returned).length;
+  const cohort=units.filter(unit=>unit.person===person),total=cohort.length,completed=cohort.filter(unit=>unit.completed).length,returned=cohort.reduce((sum,unit)=>sum+unit.returnCount,0);
   return [modelButton('data-stat-person',person,person),metric(person,'all',String(total)),metric(person,'completed',String(completed)),metric(person,'returned',String(returned)),metric(person,'all',modelEfficiencyRate(completed,total)),metric(person,'returned',modelEfficiencyRate(returned,total))];
  }),'efficiency-summary-table');
 }
 function modelEfficiencyDetails(project,state,person,type){
  const units=modelEfficiencyUnits(project,state).filter(unit=>unit.person===person&&(type==='returned'?unit.returned:type==='completed'?unit.completed:true));
  const flow=state.dimension==='flow',unitName=flow?'运行':'任务';
- const headers=[`${unitName}编号`,flow?'参与节点数':'节点','人员','完成时间','是否被打回','最近打回时间','最近打回原因'];
+ const headers=[`${unitName}编号`,flow?'参与节点数':'节点','人员','完成时间','打回次数','最近打回时间','最近打回原因'];
  const rows=units.map(unit=>[
-  escapeHtml(flow?(unit.run?.serial||unit.id):unit.id),flow?unit.tasks.length:escapeHtml(unit.tasks[0].nodeTitle||'—'),escapeHtml(person),unit.completed?modelTime(unit.completedAt):'—',unit.returned?'是':'否',unit.latestReturn?modelTime(unit.latestReturn.returnedAt):'—',escapeHtml(unit.latestReturn?.remark||'—')
+  escapeHtml(flow?(unit.run?.serial||unit.id):unit.id),flow?unit.tasks.length:escapeHtml(unit.tasks[0].nodeTitle||'—'),escapeHtml(person),unit.completed?modelTime(unit.completedAt):'—',String(unit.returnCount),unit.latestReturn?modelTime(unit.latestReturn.returnedAt):'—',escapeHtml(unit.latestReturn?.remark||'—')
  ]);
- const note=`按筛选期间分配的${flow?'参与任务对应的运行':'节点任务'}统计截至结束时间的结果。同一人同一${unitName}只计 1 个，多次打回不重复计数。打回率 =（打回数量 ÷ 总数量）× 100%；打回后完成仍计入打回数量。`;
+ const note=`按筛选期间分配的${flow?'参与任务对应的运行':'节点任务'}统计截至结束时间的结果。总数量按同一人同一${unitName}去重。打回数量只累计目标节点的被打回次数，每次加 1，中间节点不增加。运行维度汇总该人员负责的目标节点打回次数。打回率 =（累计打回次数 ÷ 总数量）× 100%，可能超过 100%；打回后完成仍保留次数。`;
  modelDialog(`${type==='returned'?'打回':type==='completed'?'已完成':'计算'}明细 · ${person}`,`<p>${note}</p>${modelTable(headers,rows,'efficiency-detail-table')}`);
 }
 function renderModelStats(project,kind){

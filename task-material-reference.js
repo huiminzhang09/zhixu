@@ -32,7 +32,7 @@
   popup.className = 'task-material-reference'; popup.hidden = true;
   popup.setAttribute('aria-label', '引用文本素材');
   popup.innerHTML = `<header><div><b>引用文本素材</b><small>选择后将正文插入当前输入框</small></div><button type="button" data-reference-close aria-label="关闭素材选择">×</button></header>
-    <div class="task-material-reference-libraries" role="group" aria-label="文本来源"><button type="button" data-reference-library="personal" aria-pressed="true">个人素材</button><button type="button" data-reference-library="team" aria-pressed="false">团队素材</button><button type="button" data-reference-library="workflow" aria-pressed="false">结果资源<span class="task-result-reference-info" role="img" aria-label="仅展示当前工作流本次运行中已设为输出或备选的资源。" title="仅展示当前工作流本次运行中已设为输出或备选的资源。">ⓘ</span></button></div>
+    <div class="task-material-reference-libraries" role="group" aria-label="文本来源"><button type="button" data-reference-library="personal" aria-pressed="true">个人素材库</button><button type="button" data-reference-library="team" aria-pressed="false">团队素材库</button><button type="button" data-reference-library="workflow" aria-pressed="false">结果资源<span class="task-result-reference-info" role="img" aria-label="仅展示当前工作流本次运行中已设为输出或备选的资源。" title="仅展示当前工作流本次运行中已设为输出或备选的资源。">ⓘ</span></button></div>
     <p class="task-material-reference-status" role="status"></p><div id="taskTextMaterialOptions" class="task-material-reference-options" role="listbox" aria-label="文本素材"></div>
     <footer>输入 @ 后继续搜索 · ↑↓ 选择 · Enter 引用 · Esc 关闭</footer>`;
   document.body.append(popup);

@@ -38,7 +38,10 @@ const tools=[['▣','金曲翻唱','上传歌曲，探索表达方式','#6255ff'
 document.querySelector('#createTools').innerHTML=tools.map(([i,t,d,c])=>`<button class="tool" style="--accent:${c}" data-toast="已选择：${t}"><span class="tool-icon">${i}</span><span><b>${t}</b><small>${d}</small></span></button>`).join('');
 const filterNames=['精选','排行榜','欧美','电音','情歌','摇滚','华语','Jazz','Hip-Hop/Rap','•••'];
 document.querySelector('#filters').innerHTML=filterNames.map((x,i)=>`<button class="filter ${i===0?'active':''}">${x}</button>`).join('');
-const grid=document.querySelector('#musicGrid');grid.innerHTML=photos.map((p,i)=>`<article class="card" data-index="${i}"><div class="art-wrap"><img src="${url(p)}" alt="${titles[i]} 封面" loading="lazy"><span class="badge ${i%3?'video':''}">${i%3?'视频':'音频'}</span><span class="duration">05:10</span><button class="hover-play" aria-label="播放 ${titles[i]}">▶</button></div><h3>${titles[i]}</h3><small>${i%3===1?'氛围短片':'城市流行 Demo'}</small><div class="stats"><span>▷ 344</span><span>♡ 128</span><span>▢ 4</span></div></article>`).join('');
+// Showcase cards use existing demo workflows as their preview destinations.
+const showcaseWorkflowIds=['midnight-melody','reference-lab'];
+const showcaseWorkflowIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 12h3a2 2 0 0 0 2-2V6h3M11 12a2 2 0 0 1 2 2v4h3"/><rect x="2" y="9" width="6" height="6" rx="1.6"/><rect x="16" y="3" width="6" height="6" rx="1.6"/><rect x="16" y="15" width="6" height="6" rx="1.6"/></svg>';
+const grid=document.querySelector('#musicGrid');grid.innerHTML=photos.map((p,i)=>`<article class="card" data-index="${i}"><div class="art-wrap"><img src="${url(p)}" alt="${titles[i]} 封面" loading="lazy"><span class="badge ${i%3?'video':''}">${i%3?'视频':'音频'}</span><span class="duration">05:10</span><button class="hover-play" aria-label="播放 ${titles[i]}">▶</button></div><h3>${titles[i]}</h3><small>${i%3===1?'氛围短片':'城市流行 Demo'}</small><div class="stats"><div class="music-card-metrics"><span>▷ 344</span><span>♡ 128</span><span>▢ 4</span></div><button type="button" class="music-workflow-button" data-showcase-workflow="${showcaseWorkflowIds[i%showcaseWorkflowIds.length]}" aria-label="查看「${titles[i]}」的创作流程">${showcaseWorkflowIcon}<span class="music-workflow-tooltip" aria-hidden="true">查看创作流程</span></button></div></article>`).join('');
 const projectData=[
   {id:'orchestra-theme-album',title:'项目名称',desc:'客户：番茄平台    负责人：张三',type:'团队专辑',progress:68,date:'今天 10:20',color:'linear-gradient(135deg,#4f28c8,#c34767)',members:['H','L','M','+3'],scope:'owned',risk:false},
   {id:'indie-artist-support',title:'独立音乐人扶持计划',desc:'为新锐音乐人提供制作与发行支持',type:'团队企划',progress:52,date:'8月24日',color:'linear-gradient(135deg,#057b8c,#41bd9c)',members:['H','Y','K'],scope:'owned',risk:true},
@@ -303,6 +306,43 @@ const lyricFormatLabels={standard:'标准段落','verse-chorus':'主歌 / 副歌
 function lyricFormatLabel(value){return lyricFormatLabels[value]||value||''}
 let productionTasks=[];
 let currentTaskStatus='active';
+const taskSortOptions = {
+  active: [['created','创建时间'],['updated','更新时间']],
+  finished: [['completed','完成时间']],
+  all: [['updated','更新时间'],['created','创建时间']]
+};
+const taskSortByTab = {active:'createdAsc',finished:'completedDesc',all:'updatedDesc'};
+function taskTime(value) {
+  if(value===null||value===undefined||value==='')return null;
+  const timestamp=typeof value==='number'?value:/^\d+$/.test(value)?Number(value):Date.parse(value);
+  return Number.isFinite(timestamp)?timestamp:null;
+}
+function compareTasksForSort(a,b,sort) {
+  const field=sort.startsWith('created')?'createdAt':sort.startsWith('completed')?'completedAt':'updatedAt';
+  // Older completed records and terminated tasks may only have an update time.
+  const time=task=>taskTime(task[field])??(field==='completedAt'?taskTime(task.terminatedAt)??taskTime(task.updatedAt):null);
+  const left=time(a),right=time(b);
+  if(left===null&&right!==null)return 1;
+  if(right===null&&left!==null)return -1;
+  const delta=(left??0)-(right??0);
+  return (sort.endsWith('Asc')?delta:-delta)||String(a.id).localeCompare(String(b.id));
+}
+function renderTaskSortDirection(direction) {
+  const button=document.querySelector('#taskSortDirection'),ascending=direction==='Asc';
+  const label=ascending?'正序':'倒序',next=ascending?'倒序':'正序';
+  button.dataset.direction=direction;
+  button.title=`当前${label}（${ascending?'早到晚':'晚到早'}），点击切换为${next}`;
+  button.setAttribute('aria-label',button.title);
+  button.innerHTML=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ascending?'<path d="M6 21V3m-4 4 4-4 4 4M11 12h4m-4 4h7m-7 4h10"/>':'<path d="M6 3v18m-4-4 4 4 4-4M11 4h10m-10 4h7m-7 4h4"/>'}</svg><span>${label}</span>`;
+}
+function renderTaskSortControl() {
+  const control=document.querySelector('#taskSort');
+  control.innerHTML=taskSortOptions[currentTaskStatus].map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
+  const sort=taskSortByTab[currentTaskStatus];
+  control.value=sort.replace(/Asc$|Desc$/,'');
+  renderTaskSortDirection(sort.endsWith('Asc')?'Asc':'Desc');
+}
+
 let selectedTaskId='';
 let taskCenterReady=false;
 
@@ -312,7 +352,7 @@ function operationalWorkflowNodes(nodes){
   const output=nodes.find(node=>node.type==='workOutput');
   const lyricsId=lyrics?.id||'complete-reference-lyrics',songId=song?.id||'complete-reference-song';
   return [
-    {id:lyricsId,type:'refLyrics',title:'基于参考生成歌词',subtitle:'配置生成歌词，选择结果后提交审核',category:'lyrics'},
+    {id:lyricsId,type:lyrics?.type==='aiLyrics'?'aiLyrics':'refLyrics',title:lyrics?.type==='aiLyrics'?'AI生成歌词':'基于参考生成歌词',subtitle:'配置生成歌词，选择结果后提交审核',category:'lyrics'},
     {id:`${lyricsId}--lyrics-review`,type:'lyricsReview',title:'歌词审核',subtitle:'审核歌词产物',category:'review',sourceNodeId:lyricsId},
     {id:songId,type:song?.type==='playlistSong'?'playlistSong':'refSong',title:song?.type==='playlistSong'?'基于歌单生成歌曲':'基于参考曲生成歌曲',subtitle:'配置生成歌曲，选择结果后提交审核',category:'song'},
     {id:`${songId}--song-review`,type:'songReview',title:'歌曲审核',subtitle:'审核歌曲产物',category:'review',sourceNodeId:songId},
@@ -335,12 +375,15 @@ function taskAssigneeForNode(context,node){
   const legacyOwner=Object.keys(context.work.nodeAssignments||{}).length?'':context.work.owner;
   return {id:'',name:legacyOwner&&!['多人协作','未分配','—'].includes(legacyOwner)?legacyOwner:'待分配'};
 }
-function taskParticipationBadge(task,card=false){
-  const automatic=task.requiresHuman===false||task.executionMode==='automatic';
-  if(!card||task.status!=='in_progress'||automatic)return '';
-  const label='需处理';
-  const description='需要人员配置、操作或确认提交。';
-  return `<span class="task-participation manual" title="${description}" aria-label="执行方式：${label}">${label}</span>`;
+function taskCardMarks(task,returnCount){
+  const marks=[];
+  const add=(kind,label,path)=>marks.push(`<span class="task-card-mark is-${kind}" role="img" tabindex="0" title="${label}" aria-label="${label}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg></span>`);
+  if(task.status==='in_progress'){
+    if(task.generationStage==='failed')add('failed','运行失败','<path d="m10.4 4-8 14a1.6 1.6 0 0 0 1.4 2.4h16.4a1.6 1.6 0 0 0 1.4-2.4l-8-14a1.8 1.8 0 0 0-3.2 0Z"/><path d="M12 9v4m0 3v.2"/>');
+    else if(task.requiresHuman!==false&&task.executionMode!=='automatic')add('manual','需处理','<rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8 15 .6-3 5.8-5.8 2.4 2.4-5.8 5.8-3 .6Z"/>');
+  }
+  if(returnCount)add('returned',`打回次数：${returnCount}`,'<path d="M4.1 16.7A9 9 0 1 1 7.3 20L3 21l1.1-4.3Z"/><path d="m11.5 8-4 4 4 4M7.5 12h8"/>');
+  return marks.length?`<span class="task-card-marks">${marks.join('')}</span>`:'';
 }
 function createProductionTask(context,node,nodeIndex,status,createdAt=Date.now()){
   const assignee=taskAssigneeForNode(context,node);
@@ -456,14 +499,29 @@ function persistProductionTasks(){try{localStorage.setItem(taskCenterStorageKey,
 function taskMatchesStatus(task){if(currentTaskStatus==='active')return task.status==='in_progress';if(currentTaskStatus==='finished')return ['completed','terminated'].includes(task.status);return true}
 function filteredProductionTasks(){
   const keyword=taskSearch.value.trim().toLowerCase();
-  return productionTasks.filter(task=>taskMatchesStatus(task)&&`${task.workName} ${task.projectName} ${task.planName} ${task.nodeTitle}`.toLowerCase().includes(keyword)).sort((a,b)=>{
-    const priority={in_progress:0,completed:1,terminated:2};
-    return priority[a.status]-priority[b.status]||b.updatedAt-a.updatedAt;
-  });
+  return productionTasks.filter(task=>taskMatchesStatus(task)&&`${task.workName} ${task.projectName} ${task.planName} ${task.nodeTitle}`.toLowerCase().includes(keyword)).sort((a,b)=>compareTasksForSort(a,b,taskSortByTab[currentTaskStatus]));
+}
+function taskListIcon(name){
+  const icons={
+    lyrics:'<path d="M16 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M16 3l4 4v6M16 3v5h4M8 8h4M8 12h8M8 16h4"/><path d="m15 18 3-3 4 4-3 3Z" fill="currentColor" stroke="none"/>',
+    image:'<rect x="3" y="5" width="18" height="18" rx="3"/><circle cx="8" cy="10" r="1.5"/><path d="m3 19 6-6 4 4 4-5 4 4M18 1v6m-3-3h6"/>',
+    aiLyrics:'<path d="M16 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7M16 3l4 4v5M16 3v5h4M8 9h7M11.5 9v9"/><path d="m18 14 1.6 3.4L23 19l-3.4 1.6L18 24l-1.6-3.4L13 19l3.4-1.6Z"/>',
+    song:'<path d="M10 17V5l10-2v12M10 8l10-2"/><ellipse cx="6.5" cy="18" rx="3.5" ry="3"/><ellipse cx="16.5" cy="16" rx="3.5" ry="3"/>',
+    playlistSong:'<path d="M3 4h10M3 8h8M3 12h6M16 18V8l6-1v5M16 11l6-1"/><ellipse cx="12.5" cy="19" rx="3.5" ry="3"/>',
+    input:'<path d="M5 3h14v18H5zM8 7h8M8 11h8M12 14v4m-3-3 3 3 3-3"/>',
+    review:'<path d="M16 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7l-4-4ZM16 3v5h4M8 14l3 3 6-6"/>',
+    output:'<path d="m3 15 9 4 9-4M3 19l9 4 9-4M3 11l9 4 9-4-4-2M7 9l-4 2M12 2v9m-3-3 3 3 3-3M5 3h3M16 3h3"/>',
+    folder:'<path d="M3 7V5a2 2 0 0 1 2-2h5l3 3h6a2 2 0 0 1 2 2v2M3 7h6l2 3h10l-2 10H3L1 10h10"/>',
+    workflow:'<rect x="2" y="3" width="6" height="5" rx="1.2"/><rect x="16" y="3" width="6" height="5" rx="1.2"/><rect x="16" y="16" width="6" height="5" rx="1.2"/><path d="M5 8v10h11M8 5h8M19 8v8"/>'
+  };
+  return `<svg viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${icons[name]||icons.song}</svg>`;
 }
 function productionTaskRow(task){
-  const status=taskStatusMeta[task.status],category=taskCategoryMeta[task.nodeCategory]||taskCategoryMeta.song,active=task.id===selectedTaskId;
-  return `<div class="task-item${active?' active':''}${task.featured?' featured':''}" role="group" tabindex="0" data-task-id="${escapeHtml(task.id)}" aria-label="打开任务：${escapeHtml(task.workName)}" aria-current="${active?'true':'false'}"><span class="task-item-head"><i class="task-node-icon ${escapeHtml(task.nodeCategory)}" aria-hidden="true">${category.symbol}</i><span class="task-item-title"><b><span class="task-inline-name" data-task-inline-name="${escapeHtml(task.id)}" title="${escapeHtml(task.workName)}"${task.status==='in_progress'?' contenteditable="plaintext-only" role="textbox" aria-label="任务名称（直接编辑，Enter 保存，Esc 取消）" aria-multiline="false" tabindex="0" spellcheck="false"':''}>${escapeHtml(task.workName)}</span></b><small>${escapeHtml(task.nodeTitle==='基于参考生成歌词'?'参考生成歌词':task.nodeTitle)}</small></span><span class="task-item-statuses"><span class="task-status ${status.className}">${status.label}</span>${taskParticipationBadge(task,true)}</span></span><span class="task-item-body"><span><b>${escapeHtml(task.projectName)}</b><small>${escapeHtml(task.planName)} · ${escapeHtml(task.workflowName)} ${escapeHtml(task.workflowVersion)}</small></span></span></div>`;
+  const status=taskStatusMeta[task.status],active=task.id===selectedTaskId;
+  const icon=task.nodeType==='coverImage'?'image':['aiLyrics','playlistSong'].includes(task.nodeType)?task.nodeType:task.nodeCategory;
+  const returned=taskReturnRecords(task),returnCount=returned.length?Math.max(returned.length,(Number(task.executionCount)||1)-1):0;
+  const workflowLabel=[task.workflowName,task.workflowVersion].filter(Boolean).join(' · ');
+  return `<div class="task-item${active?' active':''}${task.featured?' featured':''}${returnCount?' has-return-history':''}" role="group" tabindex="0" data-task-id="${escapeHtml(task.id)}" aria-label="打开任务：${escapeHtml(task.workName)}" aria-current="${active?'true':'false'}"><span class="task-item-head"><i class="task-node-icon ${escapeHtml(task.nodeCategory)}" aria-hidden="true">${taskListIcon(icon)}</i><span class="task-item-title"><b><span class="task-inline-name" data-task-inline-name="${escapeHtml(task.id)}" title="${escapeHtml(task.workName)}"${task.status==='in_progress'?' contenteditable="plaintext-only" role="textbox" aria-label="任务名称（直接编辑，Enter 保存，Esc 取消）" aria-multiline="false" tabindex="0" spellcheck="false"':''}>${escapeHtml(task.workName)}</span></b><small title="${escapeHtml(task.nodeTitle)}">${escapeHtml(task.nodeTitle==='基于参考生成歌词'?'参考生成歌词':task.nodeTitle)}</small></span><span class="task-item-statuses"><span class="task-status ${status.className}">${status.label}</span></span></span><span class="task-item-body"><span class="task-item-context" title="${escapeHtml(task.projectName)}">${taskListIcon('folder')}<span>${escapeHtml(task.projectName)}</span></span><span class="task-item-context" title="${escapeHtml(workflowLabel)}">${taskListIcon('workflow')}<span>${escapeHtml(workflowLabel)}</span></span></span>${taskCardMarks(task,returnCount)}</div>`;
 }
 function taskContextByTask(task){
   const project=projectData.find(item=>item.id===task.projectId),work=project?.runs?.find(item=>String(item.id)===String(task.workId));
@@ -507,6 +565,7 @@ function applyTaskCreationConfiguration(task,configurationId){
   return true;
 }
 function taskCandidateCards(task,kind){
+  if(kind==='song'&&window.orchestraReferenceSongTask){const api=window.orchestraReferenceSongTask;return `<section class="task-generation-results task-form-field wide song-studio-output song-output-standalone"><header><b>生成歌曲</b>${api.downloadAllButton(task)}</header><div class="song-studio-results">${api.renderResults(task)}</div></section>`;}
   const candidates=task.candidates||[];
   const cards=kind==='song'?candidates.map((candidate,index)=>{const selected=task.selectedCandidateId===candidate.id,duration=Number(candidate.durationSeconds)||[222,216,241][index]||222;return `<article class="task-candidate-card song-result${selected?' selected':''}" data-task-song-card="${escapeHtml(candidate.id)}"><button class="task-song-select" type="button" data-task-candidate="${escapeHtml(candidate.id)}" aria-pressed="${selected}" ${task.status!=='in_progress'?'disabled':''}><i>${selected?'✓':String(index+1).padStart(2,'0')}</i><span><b>${escapeHtml(candidate.title)}</b><small>${escapeHtml(candidate.summary)}</small></span></button><button class="task-song-play" type="button" data-task-song-play="${escapeHtml(candidate.id)}" data-song-duration="${duration}" aria-label="播放 ${escapeHtml(candidate.title)}"><i>▶</i><span>试听</span><time data-task-song-time>0:00 / ${formatTaskSongTime(duration)}</time></button></article>`}).join(''):candidates.map((candidate,index)=>{const selected=task.selectedCandidateId===candidate.id;return `<button class="task-candidate-card${selected?' selected':''}" type="button" data-task-candidate="${escapeHtml(candidate.id)}" aria-pressed="${selected}" ${task.status!=='in_progress'?'disabled':''}><i>${selected?'✓':String(index+1).padStart(2,'0')}</i><span><b>${escapeHtml(candidate.title)}</b><small>${escapeHtml(candidate.summary)}</small></span></button>`}).join('');
   return `<section class="task-generation-results task-form-field wide" aria-label="${kind==='lyrics'?'歌词':'歌曲'}生成结果"><header><div><b>选择一个生成结果</b><small>${kind==='lyrics'?'选定后可直接提交审核，也可按需编辑。':'可播放试听，并单独选择需要提交审核的歌曲版本。'}</small></div><span>${candidates.length} 个候选</span></header><div class="task-candidate-grid ${kind}">${cards}</div></section>`;
@@ -524,26 +583,43 @@ function toggleTaskSongPreview(button){
   taskSongPreview.duration=duration;taskSongPreview.playing=true;taskSongPreview.startedAt=performance.now()-taskSongPreview.elapsed*1000;startTaskSongAudio(candidateId);updateTaskSongPreviewUI();
   clearInterval(taskSongPreview.timer);taskSongPreview.timer=setInterval(()=>{taskSongPreview.elapsed=(performance.now()-taskSongPreview.startedAt)/1000;if(taskSongPreview.elapsed>=taskSongPreview.duration){stopTaskSongPreview();return}updateTaskSongPreviewUI()},250);
 }
+const taskLyricsMaterialIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 4-9 4-9-4 9-4ZM5 10l-2 2 9 4 9-4-2-2M5 15l-2 2 9 4 9-4-2-2"/><path d="m7 9 9-4M7 14l9-4M7 19l9-4"/></svg>';
 function renderReferenceLyricsWorkspace(task){
-  const locked=task.status!=='in_progress',disabled=locked?'disabled':'',generated=task.generationStage==='generated'||Boolean(task.candidates?.length),status=taskStatusMeta[task.status];
-  const result=generated?taskCandidateCards(task,'lyrics'):`<div class="ref-output-empty"><i>▧</i><b>暂无生成结果</b><small>完成左侧配置后，点击“开始运行”生成候选歌词。</small></div>`;
-  const editor=task.selectedCandidateId?`<label class="task-form-field task-selected-output"><span>已选用歌词（可选修改）</span><textarea data-task-required data-selected-lyrics-editor ${disabled} placeholder="可直接提交当前歌词，也可按需修改…">${escapeHtml(task.selectedCandidateText||'')}</textarea><small>确认歌词后即可提交审核，无需修改。</small></label>`:'';
-return `<div class="ref-task-workbench"><header class="ref-workbench-header"><div class="ref-workbench-meta"><span>歌词生成</span></div><div class="ref-workbench-title"><div><h2>歌词生成 · 配置并运行</h2><p><span data-task-display-name>${escapeHtml(task.workName)}</span> · 基于参考歌词生成新的歌词版本</p></div><span class="task-status ${status.className}">${status.label}</span></div></header><div class="ref-workbench-columns"><section class="ref-workbench-panel ref-workbench-input" aria-label="输入"><div class="ref-workbench-content"><label class="task-form-field ref-reference-lyrics"><span>参考歌词 <em>*</em></span><textarea readonly>夜色沿着海岸线慢慢退潮\n旧站台还留着昨日的风\n我把没说完的话写进灯火\n等清晨替我们重新命名</textarea></label><div class="ref-config-grid"><label class="task-form-field"><span>创作配置 <em>*</em></span><select data-task-required data-generation-required data-task-field="config" ${disabled}><option value="">请选择配置</option><option value="urban" ${taskSelectedOption(task,'config','urban')}>都市叙事 · 中文流行</option><option value="cinematic" ${taskSelectedOption(task,'config','cinematic')}>电影感 · 抒情</option><option value="indie" ${taskSelectedOption(task,'config','indie')}>极简意象 · Indie</option></select></label><label class="task-form-field"><span>用户提示词 <em>*</em></span><textarea data-task-required data-generation-required data-task-field="prompt" ${disabled} placeholder="描述希望保留与调整的歌词方向…">${taskFormValue(task,'prompt')}</textarea></label><label class="task-form-field"><span>系统提示词（选填）</span><input data-task-field="systemPrompt" ${disabled} value="${taskFormValue(task,'systemPrompt')}" placeholder="补充创作规则" /></label><label class="task-form-field"><span>金句（选填）</span><input data-task-field="goldenLine" ${disabled} value="${taskFormValue(task,'goldenLine')}" placeholder="填写希望保留的核心句" /></label><label class="task-form-field"><span>韵脚（选填）</span><input data-task-field="rhyme" ${disabled} value="${taskFormValue(task,'rhyme')}" placeholder="例如 ang / iang" /></label><label class="task-form-field"><span>规避词（选填）</span><input data-task-field="avoidWords" ${disabled} value="${taskFormValue(task,'avoidWords')}" placeholder="填写不希望出现的词语" /></label><label class="task-form-field"><span>意象（选填）</span><input data-task-field="imagery" ${disabled} value="${taskFormValue(task,'imagery')}" placeholder="例如 夜雨、海岸、霓虹" /></label><label class="task-form-field"><span>歌词格式（选填）</span><select data-task-field="lyricsFormat" ${disabled}><option value="standard">标准段落</option><option value="verse-chorus" ${taskSelectedOption(task,'lyricsFormat','verse-chorus')}>主歌 / 副歌</option><option value="free" ${taskSelectedOption(task,'lyricsFormat','free')}>自由格式</option></select></label></div></div></section><section class="ref-workbench-panel ref-workbench-output" aria-label="输出"><div class="ref-workbench-content">${result}<div class="ref-run-row"><select data-task-field="count" aria-label="生成数量" ${disabled}><option value="3">3 份歌词</option><option value="2" ${taskSelectedOption(task,'count','2')}>2 份歌词</option><option value="1" ${taskSelectedOption(task,'count','1')}>1 份歌词</option></select>${!locked?`<button type="button" data-task-generate="lyrics">${generated?'重新运行':'▶ 开始运行'}</button>`:''}</div>${editor}${task.status==='terminated'?'<div class="task-termination-note">任务已终止，后续节点未生成。</div>':''}${task.status==='in_progress'?`<div class="ref-workbench-actions"><button class="task-return-button" type="button" data-task-action="return">打回</button><button class="task-complete-button" type="button" data-task-action="complete" ${taskNodeCanComplete(task)?'':'disabled'}>确认提交</button></div>`:''}</div></section></div></div>`;
+  const ai=task.nodeType==='aiLyrics',locked=task.status!=='in_progress',disabled=locked?'disabled':'',status=taskStatusMeta[task.status],candidates=task.candidates||[];
+  const info=text=>`<span class="lyrics-info" tabindex="0" role="img" aria-label="${escapeHtml(text)}" title="${escapeHtml(text)}">ⓘ</span>`;
+  const required='<em class="lyrics-required">必填</em>';
+  const field=(key,label,placeholder)=>`<label class="task-form-field lyrics-field"><span>${label}</span><input data-task-field="${key}" ${disabled} value="${taskFormValue(task,key)}" placeholder="${placeholder}"></label>`;
+  const results=candidates.map((candidate,index)=>{
+    const selected=task.selectedCandidateId===candidate.id,backup=!selected&&(task.backupCandidateIds||[]).includes(candidate.id),saved=window.orchestraMaterialLibrary?.hasSaved(task,candidate)||false;
+    const text=selected?(task.selectedCandidateText??candidate.content??''):(candidate.content||'');
+    return `<article class="lyrics-result${selected?' is-selected':backup?' is-backup':''}" aria-label="${escapeHtml(candidate.title)}"><div class="lyrics-result-toolbar"><span class="lyrics-result-number">${index+1}</span><div class="lyrics-result-selection" role="group" aria-label="${escapeHtml(candidate.title)}的资源状态"><button type="button" data-task-candidate="${escapeHtml(candidate.id)}" aria-pressed="${selected}" ${disabled} title="${locked?'任务已完成，输出状态不可修改':'仅可选择一个输出方案'}">${selected?'✓ ':''}设为输出</button><button type="button" data-task-backup="${escapeHtml(candidate.id)}" aria-pressed="${backup}" ${disabled} title="${locked?'任务已完成，备选状态不可修改':backup?'点击取消备选':'可选择多个备选方案'}">${backup?'✓ ':''}设为备选</button></div><button type="button" class="lyrics-save-material${saved?' is-saved':''}" data-save-lyrics-material="${escapeHtml(candidate.id)}" title="${saved?'已保存至素材库':'保存素材'}" aria-label="${escapeHtml(candidate.title)}${saved?'已保存至素材库':'保存素材'}" ${saved?'disabled':''}>${saved?'<span aria-hidden="true">✓</span>':taskLyricsMaterialIcon}</button></div><div class="lyrics-result-sheet"><h4 title="${escapeHtml(candidate.title)}">${escapeHtml(candidate.title)}</h4>${selected&&!locked?`<textarea class="lyrics-result-content" data-selected-lyrics-editor data-task-required aria-label="编辑${escapeHtml(candidate.title)}歌词">${escapeHtml(text)}</textarea>`:`<pre class="lyrics-result-content" tabindex="0" aria-label="${escapeHtml(candidate.title)}歌词">${escapeHtml(text)}</pre>`}</div></article>`;
+  }).join('');
+  const reference=taskFormValue(task,'referenceLyrics','夜色沿着海岸线慢慢退潮\n旧站台还留着昨日的风\n我把没说完的话写进灯火\n等清晨替我们重新命名');
+  const count=[1,2,3].includes(Number(task.formValues?.count))?Number(task.formValues.count):(ai?1:3);
+  const nodeState=ai&&!locked?(candidates.length?'待人工确认':'待配置'):status.label;
+  return `<div class="ref-task-workbench reference-lyrics-studio${ai?' is-ai-lyrics':''}"><header class="ref-workbench-header lyrics-studio-header"><div class="ref-workbench-meta">${ai?`<i class="lyrics-node-icon lyrics-ai-icon" aria-hidden="true">${taskListIcon('aiLyrics')}</i>`:'<svg class="lyrics-node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l4 4v7M16 3v5h4M7 11h8M7 15h5"/><path d="m18 16 3 3-3 3-3-3z" stroke="#45b982"/></svg>'}<h2>${escapeHtml(task.nodeTitle||(ai?'AI生成歌词':'基于参考生成歌词'))}</h2><span class="lyrics-node-state ${status.className}${ai&&!locked?' is-awaiting':''}"><i aria-hidden="true">${task.status==='completed'?'✓':locked?'−':ai?'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" aria-hidden="true"><path d="M10 4H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5M6 9h4M6 13h7"/><circle cx="14" cy="5" r="3.5"/><path d="m12.5 5 1 1 2-2"/></svg>':'◷'}</i>${nodeState}</span></div><span class="lyrics-task-status ${status.className}">• ${status.label}</span></header>
+    <div class="ref-workbench-columns"><section class="ref-workbench-panel ref-workbench-input"><header><h3>输入</h3></header><div class="ref-workbench-content">
+    ${!ai?`<label class="task-form-field lyrics-field ref-reference-lyrics"><span>参考歌词 ${required} ${info('用于参考主题、结构与情绪的歌词内容。')}</span><textarea data-task-field="referenceLyrics" data-task-required data-generation-required ${disabled} placeholder="填写参考歌词，输入 @ 引用文本素材">${reference}</textarea></label>`:''}
+    <label class="task-form-field lyrics-field lyrics-prompt-field"><span>用户提示词 ${required}</span><textarea data-task-field="prompt" data-task-required data-generation-required ${disabled} placeholder="${ai?'描述希望生成的歌词，输入 @ 引用文本素材':'描述本次歌词改写要求，输入 @ 引用文本素材'}">${taskFormValue(task,'prompt')}</textarea></label>
+    <div class="lyrics-count-setting"><span id="lyricsGenerationCountLabel">生成数量 ${info('选择本次生成的歌词方案数量，支持 1～3 份。')}</span><div class="lyrics-count-options" role="group" aria-labelledby="lyricsGenerationCountLabel">${[1,2,3].map(value=>`<label><input type="radio" name="lyricsGenerationCount" data-task-field="count" value="${value}" ${count===value?'checked':''} ${disabled}><span>${value}</span></label>`).join('')}</div></div>
+    ${!ai?`${field('goldenLine','金句','选填希望保留的金句')}${field('rhyme','韵脚','选填押韵方式')}${field('avoidWords','规避词','选填需要避免的词语')}${field('imagery','意象','选填意象关键词')}${field('lyricsFormat','歌词格式','选填歌词段落格式')}`:''}
+    </div></section><section class="ref-workbench-panel ref-workbench-output"><header><h3>输出</h3></header><div class="ref-workbench-content"><div class="lyrics-output-label">歌词方案 ${info('仅可设置一个输出方案，可设置多个备选方案；输出与备选不能重复。')}</div><div class="lyrics-results">${results||`<div class="lyrics-empty"><span aria-hidden="true">▤</span><b>${task.generationStage==='failed'?'上次运行失败，可再次运行':'暂无生成结果'}</b><p>${ai?'填写用户提示词后':'填写参考歌词和用户提示词后'}，点击“开始运行”生成歌词方案。</p></div>`}</div>${!locked?`<div data-output-run-slot><button type="button" class="${ai?'lyrics-ai-run':'lyrics-run-button'}" data-task-generate="lyrics"><span aria-hidden="true">▶</span> ${candidates.length||task.generationStage==='failed'?'再次运行':'开始运行'}</button></div>`:''}</div>${!locked?`<footer class="lyrics-studio-actions${ai?' is-ai-actions':''}">${!ai?`<button type="button" class="task-return-button" data-task-action="return">打回</button>`:''}<button type="button" class="task-complete-button" data-task-action="complete" ${taskNodeCanComplete(task)?'':'disabled'}>确认提交</button></footer>`:''}</section></div></div>`;
 }
+
 function renderReferenceSongWorkspace(task){
-  if(task.referenceSongDemo&&window.orchestraReferenceSongTask)return window.orchestraReferenceSongTask.render(task);
+  if((task.referenceSongDemo||task.nodeType==='aiSong')&&window.orchestraReferenceSongTask)return window.orchestraReferenceSongTask.render(task);
   const locked=task.status!=='in_progress',disabled=locked?'disabled':'',generated=task.generationStage==='generated'||Boolean(task.candidates?.length),status=taskStatusMeta[task.status];
   const lyricsTask=productionTasks.find(item=>item.projectId===task.projectId&&String(item.workId)===String(task.workId)&&item.nodeType==='refLyrics');
   const approvedLyrics=lyricsTask?.selectedOutput?.content||lyricsTask?.selectedCandidateText||'已自动带入上一节点审核通过的歌词。';
   const result=generated?taskCandidateCards(task,'song'):`<div class="ref-output-empty ref-song-output-empty"><i>♪</i><b>暂无生成结果</b><small>完成左侧配置后，点击“开始运行”生成可试听的候选歌曲。</small></div>`;
   const selected=task.selectedCandidateId?`<div class="ref-selected-song"><i>✓</i><div><b>已选择：${escapeHtml((task.candidates||[]).find(candidate=>candidate.id===task.selectedCandidateId)?.title||'歌曲版本')}</b><small>试听确认无误后，可提交进入歌曲审核。</small></div></div>`:'';
-return `<div class="ref-task-workbench ref-song-workbench"><header class="ref-workbench-header"><div class="ref-workbench-meta"><span>歌曲生成</span></div><div class="ref-workbench-title"><div><h2>歌曲生成 · 配置并运行</h2><p><span data-task-display-name>${escapeHtml(task.workName)}</span> · 基于参考曲与已审核歌词生成新的歌曲版本</p></div><span class="task-status ${status.className}">${status.label}</span></div></header><div class="ref-workbench-columns"><section class="ref-workbench-panel ref-workbench-input" aria-label="输入"><div class="ref-workbench-content"><div class="ref-song-materials"><span>参考素材</span><button class="ref-source-audio" type="button" data-toast="正在试听参考歌曲：海岸线 Demo"><i>▶</i><span><b>海岸线 Demo</b><small>参考歌曲 · 03:42 · 已载入</small></span><em>必需</em></button><label class="task-form-field ref-approved-lyrics"><span>歌词输入（选填）</span><textarea readonly>${escapeHtml(approvedLyrics)}</textarea></label></div><div class="ref-config-grid"><label class="task-form-field"><span>歌曲生成配置 <em>*</em></span><select data-task-required data-generation-required data-task-field="config" ${disabled}><option value="">请选择配置</option><option value="v3" ${taskSelectedOption(task,'config','v3')}>Orchestra Music V3 · 高品质</option><option value="v2" ${taskSelectedOption(task,'config','v2')}>Orchestra Music V2 · 快速</option><option value="studio" ${taskSelectedOption(task,'config','studio')}>Studio Mix · 精细编曲</option></select></label><label class="task-form-field"><span>Prompt <em>*</em></span><textarea data-task-required data-generation-required data-task-field="prompt" ${disabled} placeholder="描述曲风、编曲、演唱与氛围…">${taskFormValue(task,'prompt')}</textarea></label><label class="task-form-field"><span>标题（选填）</span><input data-task-field="title" ${disabled} value="${taskFormValue(task,'title',task.workName)}" placeholder="歌曲标题" /></label><label class="task-form-field"><span>反向提示词（选填）</span><input data-task-field="negativePrompt" ${disabled} value="${taskFormValue(task,'negativePrompt')}" placeholder="填写不希望出现的元素" /></label></div></div></section><section class="ref-workbench-panel ref-workbench-output" aria-label="输出"><div class="ref-workbench-content">${result}<div class="ref-run-row"><select data-task-field="count" aria-label="生成轮数" ${disabled}><option value="3">3 个歌曲版本</option><option value="2" ${taskSelectedOption(task,'count','2')}>2 个歌曲版本</option><option value="1" ${taskSelectedOption(task,'count','1')}>1 个歌曲版本</option></select>${!locked?`<button type="button" data-task-generate="song">${generated?'重新运行':'▶ 开始运行'}</button>`:''}</div>${selected}${task.status==='terminated'?'<div class="task-termination-note">任务已终止，后续节点未生成。</div>':''}${task.status==='in_progress'?`<div class="ref-workbench-actions"><button class="task-return-button" type="button" data-task-action="return">打回</button><button class="task-complete-button" type="button" data-task-action="complete" ${taskNodeCanComplete(task)?'':'disabled'}>确认提交</button></div>`:''}</div></section></div></div>`;
+return `<div class="ref-task-workbench ref-song-workbench"><header class="ref-workbench-header"><div class="ref-workbench-meta"><span>歌曲生成</span></div><div class="ref-workbench-title"><div><h2>歌曲生成 · 配置并运行</h2><p><span data-task-display-name>${escapeHtml(task.workName)}</span> · 基于参考曲与已审核歌词生成新的歌曲版本</p></div><span class="task-status ${status.className}">${status.label}</span></div></header><div class="ref-workbench-columns"><section class="ref-workbench-panel ref-workbench-input" aria-label="输入"><div class="ref-workbench-content"><div class="ref-song-materials"><span>参考素材</span><button class="ref-source-audio" type="button" data-toast="正在试听参考歌曲：海岸线 Demo"><i>▶</i><span><b>海岸线 Demo</b><small>参考歌曲 · 03:42 · 已载入</small></span><em>必需</em></button><label class="task-form-field ref-approved-lyrics"><span>歌词输入（选填）</span><textarea readonly>${escapeHtml(approvedLyrics)}</textarea></label></div><div class="ref-config-grid"><label class="task-form-field"><span>歌曲生成配置 <em>*</em></span><select data-task-required data-generation-required data-task-field="config" ${disabled}><option value="">请选择配置</option><option value="v3" ${taskSelectedOption(task,'config','v3')}>Orchestra Music V3 · 高品质</option><option value="v2" ${taskSelectedOption(task,'config','v2')}>Orchestra Music V2 · 快速</option><option value="studio" ${taskSelectedOption(task,'config','studio')}>Studio Mix · 精细编曲</option></select></label><label class="task-form-field"><span>Prompt <em>*</em></span><textarea data-task-required data-generation-required data-task-field="prompt" ${disabled} placeholder="描述曲风、编曲、演唱与氛围…">${taskFormValue(task,'prompt')}</textarea></label><label class="task-form-field"><span>标题（选填）</span><input data-task-field="title" maxlength="100" ${disabled} value="${taskFormValue(task,'title',task.workName)}" placeholder="歌曲标题，最多 50 个字符" /></label><label class="task-form-field"><span>反向提示词（选填）</span><input data-task-field="negativePrompt" ${disabled} value="${taskFormValue(task,'negativePrompt')}" placeholder="填写不希望出现的元素" /></label></div></div></section><section class="ref-workbench-panel ref-workbench-output" aria-label="输出"><div class="ref-workbench-content">${result}<div ${!locked?'data-output-run-slot':''}><div class="ref-run-row"><select data-task-field="count" aria-label="生成轮数" ${disabled}><option value="3">3 个歌曲版本</option><option value="2" ${taskSelectedOption(task,'count','2')}>2 个歌曲版本</option><option value="1" ${taskSelectedOption(task,'count','1')}>1 个歌曲版本</option></select>${!locked?`<button type="button" data-task-generate="song">${generated?'重新运行':'▶ 开始运行'}</button>`:''}</div></div>${selected}${task.status==='terminated'?'<div class="task-termination-note">任务已终止，后续节点未生成。</div>':''}${task.status==='in_progress'?`<div class="ref-workbench-actions"><button class="task-return-button" type="button" data-task-action="return">打回</button><button class="task-complete-button" type="button" data-task-action="complete" ${taskNodeCanComplete(task)?'':'disabled'}>确认提交</button></div>`:''}</div></section></div></div>`;
 }
 function taskNodeEditor(task){
   const locked=task.status!=='in_progress',disabled=locked?'disabled':'',completed=task.status==='completed',category=taskCategoryMeta[task.nodeCategory]||taskCategoryMeta.song;
   const header=`<header><div><h3>${escapeHtml(task.nodeTitle)}页面</h3><p>${locked?'任务已结束，页面内容仅供查看。':'请在当前页面完成节点操作，运行或提交成功后进入下一节点。'}</p></div><span>${escapeHtml(category.label)}</span></header>`;
   const spec=taskNodeSpecPanel(task);
-  if(task.nodeType==='writeLyrics')return `<section class="task-node-form ref-lyrics-task-form">${header}${spec}<div class="task-form-grid"><label class="task-form-field"><span>歌名 <em>*</em></span><input data-task-required data-task-field="title" ${disabled} value="${taskFormValue(task,'title',completed?task.workName:'')}" placeholder="填写歌名" /></label><div class="task-output-card"><b>歌名输出</b><small>可作为歌曲标题传递给后续节点。</small></div><label class="task-form-field wide"><span>歌词 <em>*</em></span><textarea data-task-required data-task-field="lyrics" ${disabled} placeholder="填写歌词正文…">${taskFormValue(task,'lyrics',completed?'窗外的风吹过旧街，城市在灯火里醒来。':'')}</textarea></label><div class="task-output-card task-form-field wide"><b>歌词输出</b><small>提交后先进入歌词审核，审核通过后才继续创作。</small></div></div></section>`;
+  if(task.nodeType==='writeLyrics')return `<section class="task-node-form ref-lyrics-task-form">${header}${spec}<div class="task-form-grid"><label class="task-form-field"><span>歌名 <em>*</em></span><input data-task-required data-task-field="title" maxlength="100" ${disabled} value="${taskFormValue(task,'title',completed?task.workName:'')}" placeholder="填写歌名" /></label><div class="task-output-card"><b>歌名输出</b><small>可作为歌曲标题传递给后续节点。</small></div><label class="task-form-field wide"><span>歌词 <em>*</em></span><textarea data-task-required data-task-field="lyrics" ${disabled} placeholder="填写歌词正文…">${taskFormValue(task,'lyrics',completed?'窗外的风吹过旧街，城市在灯火里醒来。':'')}</textarea></label><div class="task-output-card task-form-field wide"><b>歌词输出</b><small>提交后先进入歌词审核，审核通过后才继续创作。</small></div></div></section>`;
   if(task.nodeType==='refLyrics'){
     const generated=task.generationStage==='generated'||completed;
     const editor=task.selectedCandidateId?`<label class="task-form-field wide task-selected-output"><span>已选用歌词（可选修改）</span><textarea data-task-required data-selected-lyrics-editor ${disabled} placeholder="可直接提交当前歌词，也可按需修改…">${escapeHtml(task.selectedCandidateText||'')}</textarea><small>确认歌词后即可提交审核，无需修改。</small></label>`:'';
@@ -565,12 +641,12 @@ function taskNodeEditor(task){
   if(task.nodeType==='refSong'){
     const generated=task.generationStage==='generated'||completed;
     const lyricsTask=productionTasks.find(item=>item.projectId===task.projectId&&String(item.workId)===String(task.workId)&&item.nodeType==='refLyrics'),approvedLyrics=lyricsTask?.selectedOutput?.content||lyricsTask?.selectedCandidateText||'已自动带入上一节点审核通过的歌词。';
-    return `<section class="task-node-form task-generation-form ref-lyrics-task-form">${header}${spec}<div class="task-form-grid"><div class="task-audio-preview task-form-field wide"><i>▶</i><div><b>参考歌曲 · 海岸线 Demo</b><small>03:42 · 已加载为必需参考曲</small></div></div><div class="task-output-card task-form-field wide task-review-preview"><b>歌词输入 · 已审核通过</b><small>${escapeHtml(approvedLyrics).replaceAll('\n','<br>')}</small></div><label class="task-form-field"><span>歌曲生成配置 <em>*</em></span><select data-task-required data-generation-required data-task-field="config" ${disabled}><option value="">请选择配置</option><option value="v3" ${taskSelectedOption(task,'config','v3')}>Orchestra Music V3 · 高品质</option><option value="v2" ${taskSelectedOption(task,'config','v2')}>Orchestra Music V2 · 快速</option><option value="studio" ${taskSelectedOption(task,'config','studio')}>Studio Mix · 精细编曲</option></select></label><label class="task-form-field"><span>生成轮数</span><select data-task-field="count" ${disabled}><option value="3">3 轮</option><option value="2" ${taskSelectedOption(task,'count','2')}>2 轮</option><option value="1" ${taskSelectedOption(task,'count','1')}>1 轮</option></select></label><label class="task-form-field wide"><span>Prompt <em>*</em></span><textarea data-task-required data-generation-required data-task-field="prompt" ${disabled} placeholder="描述曲风、编曲、演唱与氛围…">${taskFormValue(task,'prompt')}</textarea></label><label class="task-form-field"><span>标题（选填）</span><input data-task-field="title" ${disabled} value="${taskFormValue(task,'title',task.workName)}" placeholder="歌曲标题" /></label><label class="task-form-field"><span>反向提示词（选填）</span><input data-task-field="negativePrompt" ${disabled} value="${taskFormValue(task,'negativePrompt')}" placeholder="填写不希望出现的元素" /></label>${!locked?`<div class="task-inline-actions task-form-field wide"><span>${generated?'可调整配置后重新生成歌曲版本。':'配置完成后生成可试听的候选歌曲。'}</span><button type="button" data-task-generate="song">${generated?'重新生成歌曲':'选择配置并生成歌曲'}</button></div>`:''}${generated?taskCandidateCards(task,'song'):''}${task.selectedCandidateId?`<div class="task-selected-song task-form-field wide"><i>✓</i><div><b>已选择：${escapeHtml((task.candidates||[]).find(candidate=>candidate.id===task.selectedCandidateId)?.title||'歌曲版本')}</b><small>确认无误后，提交进入歌曲审核。</small></div></div>`:''}</div></section>`;
+    return `<section class="task-node-form task-generation-form ref-lyrics-task-form">${header}${spec}<div class="task-form-grid"><div class="task-audio-preview task-form-field wide"><i>▶</i><div><b>参考歌曲 · 海岸线 Demo</b><small>03:42 · 已加载为必需参考曲</small></div></div><div class="task-output-card task-form-field wide task-review-preview"><b>歌词输入 · 已审核通过</b><small>${escapeHtml(approvedLyrics).replaceAll('\n','<br>')}</small></div><label class="task-form-field"><span>歌曲生成配置 <em>*</em></span><select data-task-required data-generation-required data-task-field="config" ${disabled}><option value="">请选择配置</option><option value="v3" ${taskSelectedOption(task,'config','v3')}>Orchestra Music V3 · 高品质</option><option value="v2" ${taskSelectedOption(task,'config','v2')}>Orchestra Music V2 · 快速</option><option value="studio" ${taskSelectedOption(task,'config','studio')}>Studio Mix · 精细编曲</option></select></label><label class="task-form-field"><span>生成轮数</span><select data-task-field="count" ${disabled}><option value="3">3 轮</option><option value="2" ${taskSelectedOption(task,'count','2')}>2 轮</option><option value="1" ${taskSelectedOption(task,'count','1')}>1 轮</option></select></label><label class="task-form-field wide"><span>Prompt <em>*</em></span><textarea data-task-required data-generation-required data-task-field="prompt" ${disabled} placeholder="描述曲风、编曲、演唱与氛围…">${taskFormValue(task,'prompt')}</textarea></label><label class="task-form-field"><span>标题（选填）</span><input data-task-field="title" maxlength="100" ${disabled} value="${taskFormValue(task,'title',task.workName)}" placeholder="歌曲标题，最多 50 个字符" /></label><label class="task-form-field"><span>反向提示词（选填）</span><input data-task-field="negativePrompt" ${disabled} value="${taskFormValue(task,'negativePrompt')}" placeholder="填写不希望出现的元素" /></label>${!locked?`<div class="task-inline-actions task-form-field wide"><span>${generated?'可调整配置后重新生成歌曲版本。':'配置完成后生成可试听的候选歌曲。'}</span><button type="button" data-task-generate="song">${generated?'重新生成歌曲':'选择配置并生成歌曲'}</button></div>`:''}${generated?taskCandidateCards(task,'song'):''}${task.selectedCandidateId?`<div class="task-selected-song task-form-field wide"><i>✓</i><div><b>已选择：${escapeHtml((task.candidates||[]).find(candidate=>candidate.id===task.selectedCandidateId)?.title||'歌曲版本')}</b><small>确认无误后，提交进入歌曲审核。</small></div></div>`:''}</div></section>`;
   }
   const needsReference=['refSong','sampleSong','playlistSong'].includes(task.nodeType),referenceCount=task.nodeType==='playlistSong'?4:1;
   const references=needsReference?`<div class="task-reference-grid task-form-field wide">${Array.from({length:referenceCount},(_,index)=>`<div class="task-audio-preview"><i>▶</i><div><b>参考歌曲 ${index+1}${index===0?' *':''}</b><small>${completed?'已接收上游歌曲':'等待上游歌曲输入'}</small></div></div>`).join('')}</div>`:'';
   const generated=task.generationStage==='generated'||Boolean(task.candidates?.length);
-  return `<section class="task-node-form task-generation-form ref-lyrics-task-form">${header}${spec}<div class="task-form-grid">${references}<div class="task-output-card task-form-field wide"><b>歌词输入（选填）</b><small>${completed?'已接收歌词内容':'可自动带入当前作品已审核通过的歌词'}</small></div><label class="task-form-field"><span>歌曲生成配置 <em>*</em></span><select data-task-required data-generation-required data-task-field="config" ${disabled}><option value="">请选择配置</option><option value="v3" ${taskSelectedOption(task,'config','v3')}>Orchestra Music V3 · 高品质</option><option value="v2" ${taskSelectedOption(task,'config','v2')}>Orchestra Music V2 · 快速</option><option value="studio" ${taskSelectedOption(task,'config','studio')}>Studio Mix · 精细编曲</option></select></label><label class="task-form-field"><span>生成轮数</span><select data-task-field="count" ${disabled}><option value="3">3 轮</option><option value="2" ${taskSelectedOption(task,'count','2')}>2 轮</option><option value="1" ${taskSelectedOption(task,'count','1')}>1 轮</option></select></label><label class="task-form-field wide"><span>Prompt <em>*</em></span><textarea data-task-required data-generation-required data-task-field="prompt" ${disabled} placeholder="描述曲风、编曲、演唱与氛围…">${taskFormValue(task,'prompt')}</textarea></label><label class="task-form-field"><span>标题（选填）</span><input data-task-field="title" ${disabled} value="${taskFormValue(task,'title',task.workName)}" placeholder="歌曲标题" /></label><label class="task-form-field"><span>反向提示词（选填）</span><input data-task-field="negativePrompt" ${disabled} value="${taskFormValue(task,'negativePrompt')}" placeholder="填写不希望出现的元素" /></label>${!locked?`<div class="task-inline-actions task-form-field wide"><span>${generated?'可调整配置后重新生成歌曲版本。':'配置完成后生成可试听的候选歌曲。'}</span><button type="button" data-task-generate="song">${generated?'重新生成歌曲':'选择配置并生成歌曲'}</button></div>`:''}${generated?taskCandidateCards(task,'song'):''}${task.selectedCandidateId?`<div class="task-selected-song task-form-field wide"><i>✓</i><div><b>已选择：${escapeHtml((task.candidates||[]).find(candidate=>candidate.id===task.selectedCandidateId)?.title||'歌曲版本')}</b><small>确认无误后，提交进入歌曲审核。</small></div></div>`:''}${completed&&!task.candidates?.length?'<div class="task-audio-preview task-form-field wide"><i>▶</i><div><b>生成歌曲版本 01</b><small>03:38 · 已提交曲审核</small></div></div>':''}</div></section>`;
+  return `<section class="task-node-form task-generation-form ref-lyrics-task-form">${header}${spec}<div class="task-form-grid">${references}<div class="task-output-card task-form-field wide"><b>歌词输入（选填）</b><small>${completed?'已接收歌词内容':'可自动带入当前作品已审核通过的歌词'}</small></div><label class="task-form-field"><span>歌曲生成配置 <em>*</em></span><select data-task-required data-generation-required data-task-field="config" ${disabled}><option value="">请选择配置</option><option value="v3" ${taskSelectedOption(task,'config','v3')}>Orchestra Music V3 · 高品质</option><option value="v2" ${taskSelectedOption(task,'config','v2')}>Orchestra Music V2 · 快速</option><option value="studio" ${taskSelectedOption(task,'config','studio')}>Studio Mix · 精细编曲</option></select></label><label class="task-form-field"><span>生成轮数</span><select data-task-field="count" ${disabled}><option value="3">3 轮</option><option value="2" ${taskSelectedOption(task,'count','2')}>2 轮</option><option value="1" ${taskSelectedOption(task,'count','1')}>1 轮</option></select></label><label class="task-form-field wide"><span>Prompt <em>*</em></span><textarea data-task-required data-generation-required data-task-field="prompt" ${disabled} placeholder="描述曲风、编曲、演唱与氛围…">${taskFormValue(task,'prompt')}</textarea></label><label class="task-form-field"><span>标题（选填）</span><input data-task-field="title" maxlength="100" ${disabled} value="${taskFormValue(task,'title',task.workName)}" placeholder="歌曲标题，最多 50 个字符" /></label><label class="task-form-field"><span>反向提示词（选填）</span><input data-task-field="negativePrompt" ${disabled} value="${taskFormValue(task,'negativePrompt')}" placeholder="填写不希望出现的元素" /></label>${!locked?`<div class="task-inline-actions task-form-field wide"><span>${generated?'可调整配置后重新生成歌曲版本。':'配置完成后生成可试听的候选歌曲。'}</span><button type="button" data-task-generate="song">${generated?'重新生成歌曲':'选择配置并生成歌曲'}</button></div>`:''}${generated?taskCandidateCards(task,'song'):''}${task.selectedCandidateId?`<div class="task-selected-song task-form-field wide"><i>✓</i><div><b>已选择：${escapeHtml((task.candidates||[]).find(candidate=>candidate.id===task.selectedCandidateId)?.title||'歌曲版本')}</b><small>确认无误后，提交进入歌曲审核。</small></div></div>`:''}${completed&&!task.candidates?.length?'<div class="task-audio-preview task-form-field wide"><i>▶</i><div><b>生成歌曲版本 01</b><small>03:38 · 已提交曲审核</small></div></div>':''}</div></section>`;
 }
 function taskNodeActionLabel(){return '确认提交'}
 function taskNodeCanComplete(task){return !['aiLyrics','refLyrics','aiSong','refSong','sampleSong','playlistSong'].includes(task.nodeType)||Boolean(task.selectedCandidateId)}
@@ -578,14 +654,14 @@ function renderProductionTaskDetail(task){
   window.orchestraReferenceSongTask?.stopAudio();
   window.orchestraWorkOutputTask?.stopAudio();
   taskDetailPanel.classList.toggle('is-work-output',task?.nodeType==='workOutput');
-  const isReferenceLyrics=Boolean(task&&(task.nodeType==='refLyrics'||task.nodeTitle==='基于参考生成歌词'));
-  const isReferenceSong=Boolean(task&&(task.nodeType==='refSong'||(task.nodeType==='playlistSong'&&task.referenceSongDemo)||task.nodeTitle==='基于参考曲生成歌曲'||task.nodeTitle==='基于参考生成歌曲'));
+  const isReferenceLyrics=Boolean(task&&(task.nodeType==='aiLyrics'||task.nodeType==='refLyrics'||task.nodeTitle==='基于参考生成歌词'));
+  const isReferenceSong=Boolean(task&&(task.nodeType==='aiSong'||task.nodeType==='refSong'||(task.nodeType==='playlistSong'&&task.referenceSongDemo)||task.nodeTitle==='基于参考曲生成歌曲'||task.nodeTitle==='基于参考生成歌曲'));
   taskDetailPanel.classList.toggle('is-reference-lyrics',isReferenceLyrics);
   taskDetailPanel.classList.toggle('is-reference-song',isReferenceSong);
   taskDetailPanel.classList.toggle('task-reference-workspace',isReferenceLyrics||isReferenceSong);
   if(!task){taskDetailPanel.innerHTML='<div class="task-detail-empty"><span aria-hidden="true">▤</span><h2>选择一条任务</h2><p>右侧将根据工作流节点类型展示对应的任务处理页面。</p></div>';return}
   if(task.nodeType==='workOutput'&&window.orchestraWorkOutputTask){window.orchestraWorkOutputTask.render(task);return}
-  if(isReferenceLyrics){taskDetailPanel.innerHTML=renderReferenceLyricsWorkspace(task);const formatSelect=taskDetailPanel.querySelector('[data-task-field="lyricsFormat"]');if(formatSelect){const formatInput=document.createElement('input');formatInput.type='text';formatInput.dataset.taskField='lyricsFormat';formatInput.value=lyricFormatLabel(formatSelect.value);formatInput.placeholder='例如：主歌 / 副歌';formatInput.disabled=formatSelect.disabled;formatInput.className=formatSelect.className;formatSelect.replaceWith(formatInput)}taskDetailPanel.querySelector('[data-task-field="config"]')?.closest('.task-form-field')?.remove();return}
+  if(isReferenceLyrics){taskDetailPanel.innerHTML=renderReferenceLyricsWorkspace(task);return}
   if(isReferenceSong){taskDetailPanel.innerHTML=renderReferenceSongWorkspace(task);return}
   const context=taskContextByTask(task),status=taskStatusMeta[task.status],category=taskCategoryMeta[task.nodeCategory]||taskCategoryMeta.song;
   const siblingTasks=productionTasks.filter(item=>item.projectId===task.projectId&&String(item.workId)===String(task.workId)),taskByNode=new Map(siblingTasks.map(item=>[item.nodeId,item]));
@@ -710,6 +786,7 @@ function openReferenceLyricsPicker(task){
 function renderTaskCenter(){
   if(!taskCenterReady)return;
   syncProductionTaskAssignees();
+  renderTaskSortControl();
   const items=filteredProductionTasks();
   if(!items.some(task=>task.id===selectedTaskId))selectedTaskId=items[0]?.id||'';
   taskList.innerHTML=items.map(productionTaskRow).join('');
@@ -719,6 +796,7 @@ function renderTaskCenter(){
   const activeCount=productionTasks.filter(task=>task.status==='in_progress').length,finishedCount=productionTasks.filter(task=>['completed','terminated'].includes(task.status)).length;
   document.querySelector('#taskActiveTabCount').textContent=activeCount;
   document.querySelector('#taskFinishedTabCount').textContent=finishedCount;
+  document.querySelector('#taskAllTabCount').textContent=productionTasks.length;
   renderProductionTaskDetail(productionTasks.find(task=>task.id===selectedTaskId));
   renderTaskExecutionContext(productionTasks.find(task=>task.id===selectedTaskId));
   annotateTaskFieldTooltips();
@@ -731,12 +809,14 @@ function setTaskStatusFilter(status){
 function saveTaskPageValues(task){
   if(!task)return;
   const values={...(task.formValues||{})};
-  taskDetailPanel.querySelectorAll('[data-task-field]').forEach(control=>{values[control.dataset.taskField]=control.value});
+  taskDetailPanel.querySelectorAll('[data-task-field]').forEach(control=>{if(control.type==='radio'&&!control.checked)return;values[control.dataset.taskField]=control.type==='checkbox'?String(control.checked):control.value});
   task.formValues=values;
   const lyricsEditor=taskDetailPanel.querySelector('[data-selected-lyrics-editor]');
   if(lyricsEditor)task.selectedCandidateText=lyricsEditor.value;
 }
 function validateTaskControls(selector){
+  const title=taskDetailPanel.querySelector('[data-task-field="title"]');
+  if(title&&Array.from(title.value.trim()).length>50){title.setAttribute('aria-invalid','true');title.focus({preventScroll:true});showToast('资源名称不能超过 50 个字符','error');return false}
   const missing=Array.from(taskDetailPanel.querySelectorAll(selector)).find(control=>!String(control.value||'').trim());
   if(!missing)return true;
   const label=missing.closest('.task-form-field')?.querySelector('span')?.textContent.replace('*','').trim()||'必填项';
@@ -751,9 +831,9 @@ function taskGeneratedCandidates(kind){
     {id:'lyrics-c',title:'歌词方案 C · 向光而行',summary:'副歌突出 · 温暖坚定',content:'如果远方还亮着微光\n就让我们沿着浪花去闯\n把每一次告别写成开场\n明天会替今夜回答'}
   ];
   return [
-    {id:'song-a',title:'歌曲版本 A · 海岸夜行',summary:'03:42 · Dream Pop · 女声',durationSeconds:222},
-    {id:'song-b',title:'歌曲版本 B · 雨后公路',summary:'03:36 · Indie Pop · 中性声线',durationSeconds:216},
-    {id:'song-c',title:'歌曲版本 C · 向光',summary:'04:01 · Cinematic Pop · 女声',durationSeconds:241}
+    {id:'song-a',title:'歌曲版本 A · 海岸夜行',summary:'03:42 · Dream Pop · 女声',durationSeconds:24,url:'./assets/reference-song-result-a.wav'},
+    {id:'song-b',title:'歌曲版本 B · 雨后公路',summary:'03:36 · Indie Pop · 中性声线',durationSeconds:28,url:'./assets/reference-song-result-b.wav'},
+    {id:'song-c',title:'歌曲版本 C · 向光',summary:'04:01 · Cinematic Pop · 女声',durationSeconds:24,url:'./assets/reference-song-result-a.wav'}
   ];
 }
 function generateTaskCandidates(task,kind){
@@ -762,10 +842,11 @@ function generateTaskCandidates(task,kind){
   stopTaskSongPreview();
   saveTaskPageValues(task);
   if(!validateTaskControls('[data-generation-required]'))return;
-  const count=Math.max(1,Math.min(3,Number(task.formValues?.count)||(task.referenceSongDemo?2:3)));
-  const candidates=kind==='song'&&task.referenceSongDemo&&window.orchestraReferenceSongTask?window.orchestraReferenceSongTask.candidates(true):taskGeneratedCandidates(kind);
+  const referenceSong=kind==='song'&&(task.referenceSongDemo||task.nodeType==='aiSong')&&window.orchestraReferenceSongTask;
+  const count=referenceSong?(Number(task.formValues?.count)===4?4:2):Math.max(1,Math.min(3,Number(task.formValues?.count)||3));
+  const candidates=referenceSong?window.orchestraReferenceSongTask.candidates(true,count):taskGeneratedCandidates(kind);
   const before={...task};
-  task.candidates=candidates.slice(0,count);task.generationStage='generated';task.selectedCandidateId='';task.backupCandidateIds=[];task.selectedCandidateText='';task.selectedOutput=null;task.updatedAt=Date.now();task.updatedLabel='刚刚';
+  task.candidates=candidates.slice(0,count).map(candidate=>kind==='lyrics'?{...candidate,generationId:crypto.randomUUID()}:candidate);task.generationStage='generated';task.selectedCandidateId='';task.backupCandidateIds=[];task.selectedCandidateText='';task.selectedOutput=null;task.updatedAt=Date.now();task.updatedLabel='刚刚';
   if(!persistProductionTasks()){for(const key of Object.keys(task)){if(!Object.prototype.hasOwnProperty.call(before,key))delete task[key]}Object.assign(task,before);showToast('生成结果保存失败，请稍后重试','error');return}
   renderTaskCenter();showToast(kind==='lyrics'?`AI 已生成 ${task.candidates.length} 份候选歌词，请选择并编辑`:`已生成 ${task.candidates.length} 个歌曲版本，请试听选择`);
 }
@@ -821,6 +902,10 @@ function advanceProductionTask(task,outcome){
       if(reviewResult==='rejected'){
         const sourceTask=productionTasks.find(item=>item.projectId===task.projectId&&String(item.workId)===String(task.workId)&&item.nodeId===task.sourceNodeId);
         if(!sourceTask){productionTasks=beforeTasks;showToast('未找到需要退回的创作任务','error');return}
+        const returnRecord={id:crypto.randomUUID(),remark:'审核未通过，已退回修改',fromNodeId:task.nodeId,fromNodeTitle:task.nodeTitle,toNodeId:sourceTask.nodeId,toNodeTitle:sourceTask.nodeTitle,returnedAt:new Date().toISOString()};
+        sourceTask.returnHistory=[...taskReturnRecords(sourceTask),returnRecord];
+        sourceTask.returnNote=returnRecord;
+        sourceTask.executionCount=(Number(sourceTask.executionCount)||1)+1;
         sourceTask.status='in_progress';sourceTask.updatedAt=Date.now();sourceTask.updatedLabel='刚刚';
         context.work.status='制作中';context.work.stage=sourceTask.nodeTitle;context.work.updated=new Date().toISOString();selectedTaskId=sourceTask.id;
         normalizeProductionTaskConcurrency();
@@ -847,6 +932,20 @@ function initializeTaskCenter(){loadProductionTasks();taskCenterReady=true;rende
 taskStatusTabs.forEach(tab=>tab.addEventListener('click',()=>setTaskStatusFilter(tab.dataset.taskStatus)));
 taskStatusTabs.forEach((tab,index)=>tab.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();let next=index;if(event.key==='ArrowLeft')next=(index-1+taskStatusTabs.length)%taskStatusTabs.length;if(event.key==='ArrowRight')next=(index+1)%taskStatusTabs.length;if(event.key==='Home')next=0;if(event.key==='End')next=taskStatusTabs.length-1;setTaskStatusFilter(taskStatusTabs[next].dataset.taskStatus);taskStatusTabs[next].focus({preventScroll:true})}));
 taskSearch.addEventListener('input',()=>{selectedTaskId='';renderTaskCenter()});
+function changeTaskSort() {
+  const field=document.querySelector('#taskSort').value;
+  const direction=document.querySelector('#taskSortDirection').dataset.direction;
+  if(!taskSortOptions[currentTaskStatus].some(([key])=>key===field)||!['Asc','Desc'].includes(direction))return;
+  taskSortByTab[currentTaskStatus]=field+direction;
+  taskList.innerHTML=filteredProductionTasks().map(productionTaskRow).join('');
+  document.querySelector('#taskListScroll').scrollTop=0;
+}
+document.querySelector('#taskSort').addEventListener('change',changeTaskSort);
+document.querySelector('#taskSortDirection').addEventListener('click',()=>{
+  renderTaskSortDirection(taskSortByTab[currentTaskStatus].endsWith('Asc')?'Desc':'Asc');
+  changeTaskSort();
+});
+
 function renameProductionTask(taskId,value){
   const task=productionTasks.find(item=>item.id===taskId);
   if(!task||task.status!=='in_progress'){showToast('只有进行中的任务可以编辑名称','error');return false}
@@ -886,6 +985,18 @@ taskList.addEventListener('paste',event=>{
   if(!selection.rangeCount)return;const range=selection.getRangeAt(0);if(!editor.contains(range.commonAncestorContainer))return;
   range.deleteContents();const node=document.createTextNode(text);range.insertNode(node);range.setStartAfter(node);range.collapse(true);selection.removeAllRanges();selection.addRange(range);
 });
+taskDetailPanel.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-save-lyrics-material]');if(!button||button.disabled)return;
+  const task=productionTasks.find(item=>item.id===selectedTaskId),candidate=task?.candidates?.find(item=>item.id===button.dataset.saveLyricsMaterial);
+  if(!candidate)return;
+  const library=window.orchestraMaterialLibrary;if(!library){showToast('素材库暂时不可用，请刷新后重试','error');return}
+  if(task.status==='in_progress'){saveTaskPageValues(task);persistProductionTasks()}
+  button.disabled=true;button.setAttribute('aria-busy','true');let saved=false;
+  try{saved=await library.save(task,candidate)}catch(error){showToast(error.message||'保存失败，请重试','error')}
+  finally{button.removeAttribute('aria-busy');button.disabled=saved}
+  if(saved){button.classList.add('is-saved');button.innerHTML='<span aria-hidden="true">✓</span>';button.title='已保存至素材库';button.setAttribute('aria-label',`${candidate.title}已保存至素材库`)}
+});
+
 taskDetailPanel.addEventListener('click',event=>{
   const task=productionTasks.find(item=>item.id===selectedTaskId);
   const returnAction=event.target.closest('[data-task-action="return"]');if(returnAction){openTaskReturnDialog(task);return}
@@ -975,10 +1086,81 @@ let workflowData=[
   {id:'midnight-melody',name:'午夜旋律',description:'内容中心创作音乐',creator:'qiyin',draft:'已保存',draftTime:'2026-09-01 14:25',publish:'已发布',publishTime:'2026-09-01 14:25',publishClass:'published',version:'V2.1',updated:'昨天 18:42',editable:true},
   {id:'reference-lab',name:'参考歌实验室',description:'内容中心创作音乐',creator:'团队成员',draft:'已保存',draftTime:'2026-08-24 12:25',publish:'已发布',publishTime:'2026-08-24 12:25',publishClass:'published',version:'V1.0',updated:'8月22日',editable:false}
 ];
+const showcaseCopiesStorageKey='orchestra-showcase-workflow-copies-v1';
+try{
+  const copies=JSON.parse(localStorage.getItem(showcaseCopiesStorageKey)||'[]');
+  if(Array.isArray(copies))workflowData.unshift(...copies.filter(item=>item?.showcaseSourceId&&typeof item.id==='string'&&typeof item.name==='string'&&!workflowData.some(existing=>existing.id===item.id)).map(item=>{
+    const draft=JSON.parse(localStorage.getItem(`orchestra-september-workflow-draft:${item.id}`)||'null');
+    const versions=JSON.parse(localStorage.getItem(`orchestra-september-workflow-versions:${item.id}`)||'[]');
+    const latest=Array.isArray(versions)?versions[0]:null;
+    return {...item,name:draft?.name||item.name,updatedAt:draft?.updatedAt||item.updatedAt,...(latest?{version:latest.version,publish:'已发布',publishClass:'published',publishTime:new Date(latest.publishedAt).toLocaleString('zh-CN')}:{})};
+  }));
+}catch{}
+function persistShowcaseWorkflowCopies(){localStorage.setItem(showcaseCopiesStorageKey,JSON.stringify(workflowData.filter(item=>item.showcaseSourceId)))}
+function copyShowcaseWorkflow(sourceId){
+  if(window.noOrganizationMode){showToast('请先创建或加入团队后复制工作流');return}
+  const source=workflowData.find(item=>item.id===sourceId);
+  if(!source||!window.orchestraWorkflowCanvas?.copy){showToast('暂时无法复制工作流，请稍后重试','error');return}
+  const now=Date.now(),copy={...source,id:`${source.id}-copy-${now}-${Math.random().toString(36).slice(2,8)}`,name:`${source.name} 副本`,creator:document.querySelector('#profilePage [name="username"]')?.value||'我',showcaseSourceId:source.id,createdAt:now,updatedAt:now,draft:'已保存',draftTime:'刚刚',publish:'未发布',publishTime:'尚未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true};
+  try{
+    window.orchestraWorkflowCanvas.copy(source.id,copy.id,copy.name);
+    workflowData.unshift(copy);
+    persistShowcaseWorkflowCopies();
+  }catch{
+    workflowData=workflowData.filter(item=>item.id!==copy.id);
+    try{localStorage.removeItem(`orchestra-september-workflow-draft:${copy.id}`);localStorage.removeItem(`orchestra-september-workflow-versions:${copy.id}`)}catch{}
+    showToast('复制失败，请检查浏览器存储空间后重试','error');return;
+  }
+  document.querySelector('#workflowSearch').value='';
+  renderWorkflows();
+  enterWorkflowCanvas(copy.id,{returnPage:'workflows'});
+  showToast('已复制到创作集合，可编辑此工作流');
+}
 const workflowList=document.querySelector('#workflowList'),workflowEmpty=document.querySelector('#workflowEmpty'),workflowTable=document.querySelector('.workflow-table');
-function workflowRow(item){return `<article class="workflow-row" role="row" data-workflow-id="${item.id}"><div class="workflow-name" role="cell"><span class="workflow-mark" aria-hidden="true"></span><div><b>${item.name}</b><small>${item.description}</small></div></div><span class="workflow-creator" role="cell">${item.creator}</span><div class="workflow-state workflow-draft" role="cell"><b>${item.draft}</b><small>${item.draftTime}</small></div><div class="workflow-state workflow-publish ${item.publishClass}" role="cell"><b>${item.publish}</b><small>${item.publishTime}</small></div><div class="workflow-version" role="cell"><b>${item.version}</b><small>${item.updated}</small></div><div class="workflow-actions" role="cell"><button class="workflow-enter" data-workflow-open="${item.id}" aria-label="进入 ${item.name} 画布">进入画布</button>${item.editable?`<button data-workflow-edit="${item.id}" aria-label="编辑 ${item.name}">编辑</button>`:''}<button data-workflow-copy="${item.id}" aria-label="复制 ${item.name}">复制</button></div></article>`}
-function renderWorkflows(){const keyword=document.querySelector('#workflowSearch').value.trim().toLowerCase();const items=workflowData.filter(item=>(item.name+item.description+item.creator).toLowerCase().includes(keyword));workflowList.innerHTML=items.map(workflowRow).join('');document.querySelector('#workflowCount').textContent=`${items.length} 个创作流程`;workflowTable.style.display=items.length?'block':'none';workflowEmpty.style.display=items.length?'none':'block'}
-function enterWorkflowCanvas(id){const item=workflowData.find(workflow=>workflow.id===id);if(!item)return;window.orchestraWorkflowCanvas?.open({id:item.id,name:item.name,version:item.version,published:item.publishClass==='published'});switchPage('canvas')}
+let workflowView='list';
+function workflowIcon(name){
+  const paths={view:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',edit:'<rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="16" width="5" height="5" rx="1"/><path d="M5.5 8v8.5h6M16 3l5 5M13 11l-1 4 4-1 6-6-3-3Z"/>',copy:'<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',created:'<path d="M4 5h16v7M4 5v15h7M8 2v6M16 2v6M4 10h16"/><circle cx="17" cy="17" r="5"/><path d="M17 14v3l2 1"/>',updated:'<circle cx="12" cy="5" r="3"/><path d="M12 8v4M5 16v-4h14v4"/><rect x="2" y="16" width="6" height="5" rx="1"/><rect x="16" y="16" width="6" height="5" rx="1"/>'};
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name]||''}</svg>`;
+}
+function workflowThumbnail(item){
+  let graph;
+  try{graph=JSON.parse(localStorage.getItem(`orchestra-september-workflow-draft${item.id==='primary'?'':':'+item.id}`)||'null')}catch{}
+  const nodes=graph?.nodes||[];
+  if(nodes.length){
+    const visible=nodes.slice(0,30),ids=new Set(visible.map(node=>node.id));
+    const positions=new Map(visible.map((node,index)=>[node.id,{x:Number.isFinite(node.x)?node.x:(index%3)*380,y:Number.isFinite(node.y)?node.y:Math.floor(index/3)*260}]));
+    const minX=Math.min(...[...positions.values()].map(p=>p.x))-40,minY=Math.min(...[...positions.values()].map(p=>p.y))-40;
+    const width=Math.max(...[...positions.values()].map(p=>p.x))+340-minX,height=Math.max(...[...positions.values()].map(p=>p.y))+260-minY;
+    const edges=(graph.edges||[]).filter(edge=>ids.has(edge.from)&&ids.has(edge.to)).map(edge=>{const from=positions.get(edge.from),to=positions.get(edge.to);return `<path d="M${from.x+300} ${from.y+40}C${from.x+350} ${from.y+40} ${to.x-50} ${to.y+40} ${to.x} ${to.y+40}" fill="none" stroke="#8271a9" stroke-width="5"/>`}).join('');
+    const boxes=visible.map(node=>{const p=positions.get(node.id);return `<g transform="translate(${p.x} ${p.y})"><rect width="300" height="220" rx="10" fill="#202027" stroke="#62606f" stroke-width="3"/><rect x="16" y="16" width="20" height="20" rx="4" fill="#9876c7"/><path d="M50 25h170M16 65h268M16 105h200M16 145h250M16 185h180" stroke="#7e7d8a" stroke-width="5"/></g>`}).join('');
+    return `<span class="workflow-thumbnail" aria-hidden="true"><svg viewBox="${minX} ${minY} ${width} ${height}">${edges}${boxes}</svg></span>`;
+  }
+  return '<span class="workflow-thumbnail" aria-hidden="true"><svg viewBox="0 0 160 120"><path d="M48 31h23v43h24M48 80h23M120 74h15V28h-19" fill="none" stroke="#665585" stroke-width="1"/>'+[[7,9,41,43],[7,63,41,48],[74,6,42,38],[95,55,47,56]].map(([x,y,w,h])=>`<g transform="translate(${x} ${y})"><rect width="${w}" height="${h}" rx="3" fill="#202027" stroke="#42424c" stroke-width=".5"/><rect x="4" y="4" width="4" height="4" rx="1" fill="#9b7bcc"/><path d="M11 6h20M4 15h${w-8}M4 21h${w-13}M4 27h${w-9}M4 33h${w-14}" stroke="#72717d" stroke-width=".7"/></g>`).join('')+'</svg></span>';
+}
+function workflowDate(value){
+  if(!value)return {label:'—',iso:''};
+  const date=new Date(typeof value==='string'?value.replace(/^(\d{4}-\d{2}-\d{2}) /,'$1T'):value);
+  if(!Number.isFinite(date.getTime()))return {label:'—',iso:''};
+  const pad=n=>String(n).padStart(2,'0');
+  return {label:`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`,iso:date.toISOString()};
+}
+function workflowRow(item){
+  const grid=workflowView==='grid',cell=grid?'':' role="cell"',id=escapeHtml(item.id),name=escapeHtml(item.name);
+  const created=workflowDate(item.createdAt||item.draftTime||item.publishTime),updated=workflowDate(item.updatedAt||item.draftTime||item.publishTime);
+  const time=(date,label,icon)=>`<div class="workflow-date"${cell}><span class="workflow-cell-label">${label}</span>${workflowIcon(icon)}<time${date.iso?` datetime="${date.iso}"`:''}>${date.label}</time></div>`;
+  return `<article class="workflow-row" role="${grid?'listitem':'row'}" data-workflow-id="${id}"><div class="workflow-name"${cell}>${workflowThumbnail(item)}<div class="workflow-name-copy"><b title="${name}">${name}</b><small title="${escapeHtml(item.description||'')}">${escapeHtml(item.description||'从空白画布开始构建新的音乐制作流程')}</small></div></div><div class="workflow-creator"${cell} title="${escapeHtml(item.creator)}"><span class="workflow-cell-label">创建人</span>${escapeHtml(item.creator)}</div>${time(created,'创建时间','created')}${time(updated,'最近更新','updated')}<div class="workflow-actions"${cell}><button type="button" data-workflow-open="${id}" aria-label="查看 ${name}">${workflowIcon('view')}查看</button><button type="button" data-workflow-edit="${id}" aria-label="编辑 ${name}"${item.editable?'':' disabled title="暂无编辑权限"'}>${workflowIcon('edit')}编辑</button><button type="button" data-workflow-copy="${id}" aria-label="复制 ${name}">${workflowIcon('copy')}复制</button></div></article>`;
+}
+function renderWorkflows(){
+  const keyword=document.querySelector('#workflowSearch').value.trim().toLowerCase();
+  const items=workflowData.filter(item=>item.name.toLowerCase().includes(keyword)),grid=workflowView==='grid';
+  workflowTable.classList.toggle('is-grid',grid);workflowTable.setAttribute('role',grid?'region':'table');
+  workflowList.setAttribute('role',grid?'list':'rowgroup');workflowList.innerHTML=items.map(workflowRow).join('');
+  document.querySelector('#workflowCount').textContent=`${items.length} 个工作流`;
+  document.querySelectorAll('[data-workflow-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.workflowView===workflowView)));
+  workflowTable.style.display=items.length?'block':'none';workflowEmpty.style.display=items.length?'none':'block';
+}
+function setWorkflowView(view){if(!['list','grid'].includes(view))return;workflowView=view;renderWorkflows()}
+function enterWorkflowCanvas(id,options={}){const item=workflowData.find(workflow=>workflow.id===id);if(!item)return;window.orchestraWorkflowCanvas?.open({id:item.id,name:item.name,version:options.version||item.version,published:item.publishClass==='published',readOnly:options.readOnly===true});switchPage('canvas');if(options.returnPage==='workflows'){canvasReturnPage='workflows';document.querySelector('#canvasBreadcrumb').textContent='创作集合 / 节点编排'}}
 renderWorkflows();
 const projectBatchDialog=document.querySelector('#projectBatchDialog');
 const projectBatchForm=document.querySelector('#projectBatchForm');
@@ -1300,7 +1482,7 @@ document.querySelector('#mobileMenu').onclick=()=>document.querySelector('#sideb
 let canvasReturnPage='projects';
 function getCanvasReturnPage(){return canvasReturnPage}
 function setProfileIsolation(active){document.querySelectorAll('body > .sidebar,body > .topbar,body > .player,.page-view:not(#profilePage)').forEach(element=>{if(active)element.setAttribute('inert','');else element.removeAttribute('inert')})}
-function switchPage(page,item){if(window.noOrganizationMode&&page!=='home'){page='home';item=null}const pages={assets:'#assetsPage',finished:'#finishedPage',home:'#homePage',tasks:'#taskPage',projects:'#projectsPage','project-detail':'#projectDetailPage',business:'#businessPage','project-create':'#projectCreatePage',workflows:'#workflowsPage',canvas:'#canvasPage',profile:'#profilePage'};const currentPage=document.querySelector('.page-view.active')?.id;if(currentPage==='taskPage'&&page!=='tasks')stopTaskSongPreview();if(page==='canvas'&&currentPage!=='profilePage'){canvasReturnPage=currentPage==='workflowsPage'?'workflows':'projects';document.querySelector('#canvasBreadcrumb').textContent=canvasReturnPage==='workflows'?'创作集合 / 节点编排':'项目管理 / 节点编排'}document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));const projectChild=['business','project-create','project-detail'].includes(page);const navItem=item||document.querySelector(`.nav-item[data-page="${page}"]`)||(projectChild?document.querySelector('.nav-item[data-page="projects"]'):null);navItem?.classList.add('active');document.querySelectorAll('.page-view').forEach(x=>x.classList.remove('active'));document.querySelector(pages[page]||pages.home).classList.add('active');document.body.classList.toggle('task-mode',page==='tasks');document.body.classList.toggle('project-mode',page==='projects');document.body.classList.toggle('project-detail-mode',page==='project-detail');document.body.classList.toggle('business-mode',page==='business');document.body.classList.toggle('project-create-mode',page==='project-create');document.body.classList.toggle('workflow-mode',page==='workflows');document.body.classList.toggle('canvas-mode',page==='canvas');document.body.classList.toggle('profile-mode',page==='profile');setProfileIsolation(page==='profile');document.querySelector('#avatarButton').classList.toggle('active',page==='profile');document.querySelector('#sidebar').classList.remove('open');if(page==='tasks')renderTaskCenter();window.scrollTo(0,0);if(page==='projects')requestMoreProjects()}
+function switchPage(page,item){if(window.noOrganizationMode&&page!=='home'){page='home';item=null}const pages={assets:'#assetsPage',finished:'#finishedPage',home:'#homePage',tasks:'#taskPage',projects:'#projectsPage','project-detail':'#projectDetailPage',business:'#businessPage','project-create':'#projectCreatePage',workflows:'#workflowsPage',canvas:'#canvasPage',profile:'#profilePage'};const currentPage=document.querySelector('.page-view.active')?.id;if(currentPage==='taskPage'&&page!=='tasks')stopTaskSongPreview();if(page==='canvas'&&currentPage!=='profilePage'){canvasReturnPage=currentPage==='workflowsPage'?'workflows':currentPage==='homePage'?'home':'projects';document.querySelector('#canvasBreadcrumb').textContent=canvasReturnPage==='workflows'?'创作集合 / 节点编排':canvasReturnPage==='home'?'首页 / Music Show / 创作流程':'项目管理 / 节点编排'}document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));const projectChild=['business','project-create','project-detail'].includes(page);const navItem=item||document.querySelector(`.nav-item[data-page="${page}"]`)||(projectChild?document.querySelector('.nav-item[data-page="projects"]'):null);navItem?.classList.add('active');document.querySelectorAll('.page-view').forEach(x=>x.classList.remove('active'));document.querySelector(pages[page]||pages.home).classList.add('active');document.body.classList.toggle('task-mode',page==='tasks');document.body.classList.toggle('project-mode',page==='projects');document.body.classList.toggle('project-detail-mode',page==='project-detail');document.body.classList.toggle('business-mode',page==='business');document.body.classList.toggle('project-create-mode',page==='project-create');document.body.classList.toggle('workflow-mode',page==='workflows');document.body.classList.toggle('canvas-mode',page==='canvas');document.body.classList.toggle('profile-mode',page==='profile');setProfileIsolation(page==='profile');document.querySelector('#avatarButton').classList.toggle('active',page==='profile');document.querySelector('#sidebar').classList.remove('open');if(page==='tasks')renderTaskCenter();if(page==='workflows')renderWorkflows();window.scrollTo(0,0);if(page==='projects')requestMoreProjects()}
 function openPrimaryCanvas(item){window.orchestraWorkflowCanvas?.open({id:'primary',name:'未命名音乐工作流'});switchPage('canvas',item)}
 nav.addEventListener('click',e=>{const item=e.target.closest('.nav-item[data-page]');if(!item)return;if(item.dataset.page==='canvas')openPrimaryCanvas(item);else switchPage(item.dataset.page,item)});
 document.querySelector('#projectSearch').addEventListener('input',resetProjectLoading);
@@ -1356,8 +1538,9 @@ document.querySelector('#businessBackButton').onclick=()=>switchPage('projects')
 document.querySelector('#newProject').onclick=openProjectCreatePage;
 document.querySelector('#startProject').onclick=()=>openPrimaryCanvas();
 document.querySelector('#workflowSearch').addEventListener('input',renderWorkflows);
-document.querySelector('#newWorkflow').onclick=()=>{const item={id:`workflow-${Date.now()}`,name:'未命名创作流程',description:'新建创作流程草稿',creator:'qiyin',draft:'已保存',draftTime:'刚刚',publish:'未发布',publishTime:'尚未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true};workflowData.unshift(item);renderWorkflows();enterWorkflowCanvas(item.id)};
-workflowList.addEventListener('click',event=>{const openButton=event.target.closest('[data-workflow-open]');if(openButton)return enterWorkflowCanvas(openButton.dataset.workflowOpen);const editButton=event.target.closest('[data-workflow-edit]');if(editButton)return enterWorkflowCanvas(editButton.dataset.workflowEdit);const copyButton=event.target.closest('[data-workflow-copy]');if(!copyButton)return;const source=workflowData.find(item=>item.id===copyButton.dataset.workflowCopy);if(!source)return;const copy={...source,id:`${source.id}-copy-${Date.now()}`,name:`${source.name} 副本`,draftTime:'刚刚',publish:'未发布',publishTime:'尚未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true};workflowData.unshift(copy);window.orchestraWorkflowCanvas?.copy(source.id,copy.id,copy.name);renderWorkflows();showToast(`已复制「${source.name}」`)});
+document.querySelectorAll('[data-workflow-view]').forEach(button=>button.addEventListener('click',()=>setWorkflowView(button.dataset.workflowView)));
+document.querySelector('#newWorkflow').onclick=()=>{const item={id:`workflow-${Date.now()}`,createdAt:Date.now(),updatedAt:Date.now(),name:'未命名工作流',description:'从空白画布开始构建新的音乐制作流程',creator:'qiyin',draft:'已保存',draftTime:'刚刚',publish:'未发布',publishTime:'尚未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true};workflowData.unshift(item);renderWorkflows();enterWorkflowCanvas(item.id,{returnPage:'workflows'})};
+workflowList.addEventListener('click',event=>{const openButton=event.target.closest('[data-workflow-open]');if(openButton)return enterWorkflowCanvas(openButton.dataset.workflowOpen);const editButton=event.target.closest('[data-workflow-edit]');if(editButton){if(editButton.disabled)return;return enterWorkflowCanvas(editButton.dataset.workflowEdit)}const copyButton=event.target.closest('[data-workflow-copy]');if(!copyButton)return;const source=workflowData.find(item=>item.id===copyButton.dataset.workflowCopy);if(!source)return;const copy={...source,id:`${source.id}-copy-${Date.now()}`,createdAt:Date.now(),updatedAt:Date.now(),name:`${source.name} 副本`,draftTime:'刚刚',publish:'未发布',publishTime:'尚未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true};workflowData.unshift(copy);window.orchestraWorkflowCanvas?.copy(source.id,copy.id,copy.name);renderWorkflows();showToast(`已复制「${source.name}」`)});
 const avatarButton=document.querySelector('#avatarButton');
 const avatarMenuWrap=document.querySelector('.avatar-menu-wrap');
 const avatarMenu=document.querySelector('#avatarMenu');
@@ -1583,6 +1766,15 @@ function selectTrack(i){current=(i+titles.length)%titles.length;document.querySe
 function updateTime(){const v=+seek.value;document.querySelector('#currentTime').textContent=`${Math.floor(v/60)}:${String(v%60).padStart(2,'0')}`}
 play.onclick=()=>{playing=!playing;play.textContent=playing?'❚❚':'▶';if(playing)selectTrack(current);else clearInterval(timer)};
 document.querySelector('#prevTrack').onclick=()=>selectTrack(current-1);document.querySelector('#nextTrack').onclick=()=>selectTrack(current+1);seek.oninput=updateTime;
-grid.addEventListener('click',e=>{const card=e.target.closest('.card');if(card)selectTrack(+card.dataset.index)});
+function openShowcaseWorkflow(workflowId,version){
+  if(window.noOrganizationMode){showToast('请先创建或加入团队后查看创作流程');return}
+  if(!workflowData.some(item=>item.id===workflowId)||!window.orchestraWorkflowCanvas?.open){showToast('暂时无法查看该创作流程，请稍后重试','error');return}
+  enterWorkflowCanvas(workflowId,{readOnly:true,version});
+}
+grid.addEventListener('click',e=>{
+  const workflowButton=e.target.closest('[data-showcase-workflow]');
+  if(workflowButton){e.preventDefault();e.stopPropagation();openShowcaseWorkflow(workflowButton.dataset.showcaseWorkflow,workflowButton.dataset.version);return}
+  const card=e.target.closest('.card');if(card)selectTrack(+card.dataset.index);
+});
 document.querySelector('#miniCover').style.backgroundImage=`url('${url(photos[0])}')`;
 let toastTimer;function showToast(msg,type='info'){const t=document.querySelector('#toast');t.textContent=msg;t.classList.toggle('error',type==='error');t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.classList.remove('show');t.classList.remove('error')},2200)}

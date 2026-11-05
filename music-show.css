@@ -1,0 +1,10 @@
+#musicGrid .stats { align-items: center; gap: 8px; min-height: 28px; }
+#musicGrid .music-card-metrics { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 5px 12px; min-width: 0; }
+#musicGrid .music-card-metrics > span { white-space: nowrap; }
+#musicGrid .music-workflow-button { display: inline-grid; place-items: center; position: relative; flex: 0 0 28px; width: 28px; height: 28px; margin-left: auto; padding: 4px; border: 1px solid transparent; border-radius: 7px; color: var(--muted); background: transparent; cursor: pointer; transition: color .16s,background .16s,border-color .16s; }
+#musicGrid .music-workflow-button > svg { display: block; width: 19px; height: 19px; pointer-events: none; }
+#musicGrid .music-workflow-button:hover,#musicGrid .music-workflow-button:focus-visible { color: #a985ef; background: #8058e71a; border-color: #a985ef36; }
+#musicGrid .music-workflow-button:focus-visible { outline: 2px solid #a985ef; outline-offset: 3px; }
+#musicGrid .music-workflow-tooltip { position: absolute; z-index: 3; right: 0; bottom: calc(100% + 7px); width: max-content; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; color: var(--text); background: var(--surface-2); box-shadow: 0 4px 14px #0002; font-size: 11px; font-weight: 400; line-height: 1.4; white-space: nowrap; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .16s,visibility .16s; }
+#musicGrid .music-workflow-button:hover .music-workflow-tooltip,#musicGrid .music-workflow-button:focus-visible .music-workflow-tooltip { opacity: 1; visibility: visible; }
+@media(prefers-reduced-motion:reduce) { #musicGrid .music-workflow-button,#musicGrid .music-workflow-tooltip { transition: none; } }

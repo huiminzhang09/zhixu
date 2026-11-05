@@ -8,39 +8,43 @@
   <link rel="icon" type="image/png" sizes="64x64" href="./assets/orchestra-logo.png?v=1" />
   <link rel="preconnect" href="https://images.unsplash.com" />
   <link rel="stylesheet" href="./styles.css?v=5" />
-  <link rel="stylesheet" href="./sidebar-states.css?v=20261027-menu-offset" />
+  <link rel="stylesheet" href="./sidebar-states.css?v=20261102-width-160" />
   <link rel="stylesheet" href="./projects.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./business.css?v=13" />
   <link rel="stylesheet" href="./project-create.css?v=17" />
   <link rel="stylesheet" href="./project-detail.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./task-center.css?v=20261021-finished-menu" />
-  <link rel="stylesheet" href="./workflows.css?v=20261021-finished-menu" />
+  <link rel="stylesheet" href="./workflows.css?v=20261102-finished-cleanup" />
   <link rel="stylesheet" href="./playlist-import.css?v=1" />
   <link rel="stylesheet" href="./profile-center.css?v=20261026-account-security" />
-  <link rel="stylesheet" href="./node-editor.css?v=3" />
-  <link rel="stylesheet" href="./node-editor-responsive.css?v=1" />
-  <link rel="stylesheet" href="./node-library-bottom.css?v=6" />
-  <link rel="stylesheet" href="./connection-types.css?v=2" />
-  <link rel="stylesheet" href="./workflow-nodes.css?v=20261022-publish-confirm" />
+  <link rel="stylesheet" href="./node-editor.css?v=20261102-canvas-ui" />
   <link rel="stylesheet" href="./production-model.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./team-navigation.css?v=8" />
-  <link rel="stylesheet" href="./team-invites.css?v=20261014-user-lookup">
+  <link rel="stylesheet" href="./team-invites.css?v=20261028-auth-design">
+  <link rel="stylesheet" href="./account-dialogs.css?v=20261029-window-85">
   <link rel="stylesheet" href="./run-pagination.css?v=20261013">
   <link rel="stylesheet" href="./assignee-search.css?v=20261013">
   <link rel="stylesheet" href="./no-organization.css?v=20261027-compact-menu">
   <script>try{const teams=JSON.parse(localStorage.getItem('orchestra-login-organizations')||'null');if(Array.isArray(teams)&&teams.length===0){window.noOrganizationMode=true;document.documentElement.classList.add('no-organization')}}catch{}</script>
-  <link rel="stylesheet" href="./task-participation.css?v=20261014-task-card">
-  <link rel="stylesheet" href="./reference-song-task.css?v=20261021-reference-picker">
+  <link rel="stylesheet" href="./task-participation.css?v=20261028-progress-style">
+  <link rel="stylesheet" href="./reference-song-task.css?v=20261105-timbre-icon">
   <link rel="stylesheet" href="./task-audio-picker.css?v=20261022-personal-team">
-  <link rel="stylesheet" href="./material-library.css?v=20261023-save-existing-folder">
-  <link rel="stylesheet" href="./finished-library.css?v=20261027-edit-name">
+  <link rel="stylesheet" href="./material-library.css?v=20261102-library-ui">
+  <link rel="stylesheet" href="./finished-library.css?v=20261105-empty-folder-sort-toggle">
   <link rel="stylesheet" href="./task-material-reference.css?v=20261022-result-help">
-  <link rel="stylesheet" href="./work-output-task.css?v=20261023-simplify-cards">
+  <link rel="stylesheet" href="./work-output-task.css?v=20261102-assembly-layout">
+  <link rel="stylesheet" href="./task-list.css?v=20261105-empty-folder-sort-toggle">
+  <link rel="stylesheet" href="./task-scroll.css?v=20261102-assembly-layout">
+  <link rel="stylesheet" href="./reference-lyrics-task.css?v=20261103-ai-lyrics-return">
+  <link rel="stylesheet" href="./music-show.css?v=20261030-workflow-icon">
+  <link rel="stylesheet" href="./canvas-preview.css?v=20261102-canvas-ui">
+  <link rel="stylesheet" href="./task-output-run.css?v=20261103-output-run-dock">
+<link rel="stylesheet" href="./library-forms.css?v=finished-folder-style">
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
     <button class="brand" id="sidebarToggle" aria-label="收起菜单" aria-expanded="true" aria-controls="primaryNav"><span class="brand-mark" aria-hidden="true"></span><b>rchestra</b></button>
-    <button class="sidebar-create" id="sidebarCreate" type="button" aria-label="创建项目"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M16 1.5C15 12.3 12.3 15 1.5 16c10.8 1 13.5 3.7 14.5 14.5C17 19.7 19.7 17 30.5 16 19.7 15 17 12.3 16 1.5Z" fill="currentColor"/></svg><span class="sidebar-create-label-full">创建项目</span><span class="sidebar-create-label-short">创建</span></button>
+    <button class="sidebar-create" id="sidebarCreate" type="button" aria-label="创建工作流程" title="创建工作流程"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M16 1.5C15 12.3 12.3 15 1.5 16c10.8 1 13.5 3.7 14.5 14.5C17 19.7 19.7 17 30.5 16 19.7 15 17 12.3 16 1.5Z" fill="currentColor"/></svg><span class="sidebar-create-label-full">创建工作流程</span><span class="sidebar-create-label-short">创建</span></button>
     <nav id="primaryNav" aria-label="主导航"></nav>
   </aside>
 
@@ -104,31 +108,33 @@
     <section class="banner"><div><div class="suno">SUNO</div><b>Suno 模型限时免费使用</b><p>现在发起项目，即可免费体验 AI 音乐生成。</p></div><div class="free">FREE</div><button data-toast="正在为你开启体验">立即体验 →</button></section>
 
     <section class="showcase">
-      <h2>Music Show</h2>
+      <div class="home-template-heading"><h2>Music Show</h2><button class="library-tool" id="homeTemplateSettings">首页展示设置</button></div>
       <div class="filters" id="filters"></div>
       <div class="music-grid" id="musicGrid"></div>
     </section>
     </div>
 
     <section class="page-view task-page" id="taskPage" aria-label="待办任务">
-      <nav class="task-tabs" aria-label="任务状态筛选">
-        <div role="tablist">
-          <button class="active" type="button" role="tab" aria-selected="true" data-task-status="active">进行中 <span id="taskActiveTabCount">0</span></button>
-          <button type="button" role="tab" aria-selected="false" data-task-status="finished">已完成 <span id="taskFinishedTabCount">0</span></button>
-          <button type="button" role="tab" aria-selected="false" data-task-status="all">全部任务</button>
-        </div>
-      </nav>
-
       <div class="task-workspace">
         <section class="task-list-shell" aria-labelledby="taskListTitle">
+          <nav class="task-tabs" aria-label="任务状态筛选">
+            <div role="tablist">
+              <button class="active" type="button" role="tab" aria-selected="true" aria-controls="taskListScroll" tabindex="0" data-task-status="active">进行中 <span id="taskActiveTabCount">0</span></button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="taskListScroll" tabindex="-1" data-task-status="finished">已完成 <span id="taskFinishedTabCount">0</span></button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="taskListScroll" tabindex="-1" data-task-status="all">全部 <span id="taskAllTabCount">0</span></button>
+            </div>
+          </nav>
           <div class="task-list-toolbar">
-            <div><b id="taskListTitle">进行中任务</b><span id="taskResultCount">0 条</span></div>
+            <div class="task-list-summary"><b id="taskListTitle">进行中任务</b><span id="taskResultCount" role="status">0 条</span></div>
             <div class="task-list-filters">
-              <label class="task-search"><span aria-hidden="true">⌕</span><input id="taskSearch" type="search" placeholder="搜索作品、项目或节点" aria-label="搜索任务" /></label>
+              <label class="task-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 5 5"/></svg><input id="taskSearch" type="search" placeholder="搜索作品、项目或节点" aria-label="搜索任务" aria-controls="taskList" /></label>
+              <div class="task-sort-control"><select id="taskSort" aria-label="排序时间字段" aria-controls="taskList"><option value="created">创建时间</option></select><button id="taskSortDirection" class="task-sort-direction" type="button" data-direction="Asc" aria-label="当前正序（早到晚），点击切换为倒序" aria-controls="taskList">正序</button></div>
             </div>
           </div>
-          <div class="task-list" id="taskList" aria-label="生产任务列表"></div>
-          <div class="task-empty" id="taskEmpty" hidden><span aria-hidden="true">✓</span><h3>当前没有匹配任务</h3><p>可修改搜索关键词或切换任务状态查看。</p></div>
+          <div class="task-list-scroll" id="taskListScroll" role="region" aria-label="任务列表">
+            <div class="task-list" id="taskList" aria-label="生产任务列表"></div>
+            <div class="task-empty" id="taskEmpty" hidden><span aria-hidden="true">✓</span><h3>当前没有匹配任务</h3><p>可修改搜索关键词或切换任务状态查看。</p></div>
+          </div>
         </section>
 
         <aside class="task-detail-shell" id="taskDetailPanel" aria-live="polite">
@@ -283,10 +289,10 @@
     </section>
 
     <section class="page-view assets-page library-page" id="assetsPage" aria-label="素材库">
-      <div id="assetMaterialsPanel" class="asset-panel finished-library-panel" role="region" aria-label="素材库内容">
+      <div id="assetMaterialsPanel" class="asset-panel material-library-panel" role="region" aria-label="素材库内容">
         <div class="material-library-tabs" role="tablist" aria-label="素材库分类">
-          <button id="personalMaterialTab" type="button" role="tab" data-material-library="personal" aria-selected="true" aria-controls="materialLibraryContent" tabindex="0">个人素材</button>
-          <button id="teamMaterialTab" type="button" role="tab" data-material-library="team" aria-selected="false" aria-controls="materialLibraryContent" tabindex="-1">团队素材</button>
+          <button id="personalMaterialTab" type="button" role="tab" data-material-library="personal" aria-selected="true" aria-controls="materialLibraryContent" tabindex="0">个人素材库</button>
+          <button id="teamMaterialTab" type="button" role="tab" data-material-library="team" aria-selected="false" aria-controls="materialLibraryContent" tabindex="-1">团队素材库</button>
         </div>
         <div id="materialLibraryContent" role="tabpanel" aria-labelledby="personalMaterialTab">
           <div class="material-library-toolbar">
@@ -294,57 +300,54 @@
             <div class="material-library-actions">
               <div class="material-search" role="search" aria-label="素材名称搜索">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5" stroke-linecap="round"/></svg>
-                <input id="materialSearch" class="material-search-input" type="search" placeholder="搜索素材名称" aria-label="搜索素材名称" aria-controls="materialItems" autocomplete="off">
+                <input id="materialSearch" class="material-search-input" type="search" placeholder="搜索名称" aria-label="搜索素材名称" aria-controls="materialItems" autocomplete="off">
                 <button id="clearMaterialSearch" class="material-search-clear" type="button" aria-label="清空素材搜索" title="清空搜索" hidden>×</button>
               </div>
-              <button id="createMaterialMenu" class="material-create-button" type="button" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">＋</span> 新建</button>
+              <span id="materialCount" class="material-count" aria-live="polite">共 0 个文件夹，0 个文件</span>
             </div>
           </div>
-          <p id="materialFolderHint" class="material-folder-hint">文件夹最多支持 2 层</p>
-          <div class="finished-library-caption"><span id="materialCount" aria-live="polite">共 0 个素材</span><small id="materialLibraryDescription">我在当前团队保存的素材</small></div>
-          <div class="material-content-grid">
-            <div id="materialFolders" class="material-folder-grid" role="list" aria-label="文件夹"></div>
-            <div id="materialItems" class="material-file-grid" role="list" aria-label="文件夹内的素材"></div>
-          </div>
+          <div id="materialItems" class="material-content-grid" role="list" aria-label="文件夹和素材"></div>
         </div>
       </div>
       <div id="assetReferencesPanel" class="asset-panel" aria-label="对标曲库" hidden></div>
     </section>
     <section class="page-view finished-page library-page" id="finishedPage" aria-label="成品库">
-      <div id="finishedLibraryPanel" class="asset-panel finished-library-panel" role="region" aria-label="成品列表">
+      <div id="finishedLibraryPanel" class="finished-library-panel" role="region" aria-label="成品列表">
         <div class="finished-library-toolbar">
-          <div class="finished-library-caption"><span id="finishedWorkCount" aria-live="polite">共 0 个成品</span></div>
+          <div><button id="finishedFolderUp" class="library-tool" hidden>← 上一级</button> <span id="finishedFolderPath"></span></div><span id="finishedWorkCount" class="finished-library-count" aria-live="polite">0 个成品</span>
           <div class="finished-search" role="search" aria-label="成品名称搜索">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5" stroke-linecap="round"/></svg>
-            <input id="finishedWorkSearch" type="search" placeholder="搜索成品名称" aria-label="搜索成品名称" aria-controls="finishedWorkGrid" autocomplete="off">
+            <input id="finishedWorkSearch" type="search" placeholder="搜索名称" aria-label="搜索成品名称" aria-controls="finishedWorkGrid" autocomplete="off">
             <button id="clearFinishedWorkSearch" type="button" aria-label="清空成品搜索" title="清空搜索" hidden>×</button>
           </div>
         </div>
+        <div id="finishedFolderGrid" class="material-content-grid" role="list" aria-label="成品文件夹"></div>
         <div id="finishedWorkGrid" class="finished-work-grid" role="list" aria-label="成品卡片"></div>
+        <p id="finishedListEnd" class="finished-list-end" hidden>已显示全部成品</p>
       </div>
+      <div id="finishedEditorPanel" aria-label="成品详情" hidden></div>
     </section>
     <section class="page-view workflows-page" id="workflowsPage" aria-labelledby="workflowsTitle">
-      <header class="workflows-heading">
-        <div>
-          <span class="eyebrow">WORKFLOWS</span>
-          <h1 id="workflowsTitle">创作集合</h1>
-          <p>管理、查看、编辑并复用不同的创作流程。</p>
+      <h1 class="workflow-sr-only" id="workflowsTitle">创作合集</h1>
+      <div class="workflow-toolbar">
+        <label class="workflow-search"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="7.8"/><path d="m16.5 16.5 4.5 4.5"/></svg><input id="workflowSearch" type="search" placeholder="搜索工作流名称" aria-label="搜索工作流名称" aria-controls="workflowList" autocomplete="off" /></label>
+        <div class="workflow-toolbar-actions">
+          <button class="new-workflow" id="newWorkflow" type="button"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 2c-.8 7.4-2.6 9.2-10 10 7.4.8 9.2 2.6 10 10 .8-7.4 2.6-9.2 10-10-7.4-.8-9.2-2.6-10-10Z" fill="currentColor" stroke="none"/></svg><span>新建工作流</span></button>
+          <div class="workflow-view-switch" role="group" aria-label="工作流展示方式">
+            <button type="button" data-workflow-view="list" aria-label="列表视图" title="列表视图" aria-pressed="true" aria-controls="workflowTable"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 5h13M8 12h13M8 19h13M3 5h.01M3 12h.01M3 19h.01"/></svg></button>
+            <button type="button" data-workflow-view="grid" aria-label="卡片视图" title="卡片视图" aria-pressed="false" aria-controls="workflowTable"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+          </div>
         </div>
-        <button class="new-workflow" id="newWorkflow">＋ 新建创作流程</button>
-      </header>
-
-      <section class="workflow-list-shell" aria-label="创作流程列表">
-        <div class="workflow-toolbar">
-          <label class="workflow-search"><span>⌕</span><input id="workflowSearch" type="search" placeholder="搜索创作流程名称" aria-label="搜索创作流程名称" /></label>
-          <span class="workflow-total" id="workflowCount">3 个创作流程</span>
-        </div>
-        <div class="workflow-table" role="table" aria-label="创作流程">
+      </div>
+      <p class="workflow-sr-only" id="workflowCount" role="status" aria-live="polite"></p>
+      <section class="workflow-list-shell" aria-label="工作流列表">
+        <div class="workflow-table" id="workflowTable" role="table" aria-label="工作流">
           <div class="workflow-table-head" role="row">
-            <span role="columnheader">创作流程名称</span><span role="columnheader">创建人</span><span role="columnheader">草稿状态</span><span role="columnheader">发布状态</span><span role="columnheader">版本 / 更新时间</span><span role="columnheader">操作</span>
+            <span role="columnheader">工作流名称</span><span role="columnheader">创建人</span><span role="columnheader">创建时间</span><span role="columnheader">最近更新</span><span role="columnheader">操作</span>
           </div>
           <div class="workflow-list" id="workflowList" role="rowgroup"></div>
         </div>
-        <div class="workflow-empty" id="workflowEmpty"><span>⌕</span><h3>没有找到匹配的创作流程</h3><p>换一个关键词试试吧</p></div>
+        <div class="workflow-empty" id="workflowEmpty"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="7.8"/><path d="m16.5 16.5 4.5 4.5"/></svg><h3>没有找到匹配的工作流</h3><p>换一个工作流名称试试</p></div>
       </section>
     </section>
 
@@ -502,47 +505,22 @@
 
     <section class="page-view node-editor-page" id="canvasPage" aria-labelledby="canvasTitle">
       <header class="canvas-header">
-        <div class="canvas-title-group">
-          <button class="back-projects" id="backProjects" aria-label="返回项目">‹</button>
-          <div>
-            <div class="canvas-breadcrumb" id="canvasBreadcrumb">项目管理 / 节点编排</div>
-            <input id="canvasTitle" class="canvas-name" value="未命名音乐工作流" aria-label="画布名称" />
-          </div>
+        <div class="canvas-brand-menu"><button type="button" id="canvasMenuToggle" aria-label="画布菜单" aria-expanded="false" aria-controls="canvasMenu"><span class="brand-mark"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div id="canvasMenu" class="canvas-popover" hidden><button type="button" id="backProjects">返回上一页</button><button type="button" data-canvas-page="workflows">创作合集</button><button type="button" data-canvas-page="home">首页</button></div>
         </div>
-        <div class="draft-state"><i></i><span id="draftStatus">草稿已自动保存</span><small>仅工作副本</small></div>
-        <div class="canvas-actions">
-          <button class="canvas-action" id="historyToggle">◷ <span>版本历史</span></button>
-          <button class="canvas-action run-all" id="runAll">▶ <span>运行画布</span></button>
-          <button class="publish-canvas" id="publishCanvas">发布 <b id="versionBadge">V1.0</b></button>
-        </div>
+        <label class="canvas-title-group"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 4 5 5M5 19l4-1L21 6l-4-4L5 14v5ZM12 3H5a3 3 0 0 0-3 3v13a3 3 0 0 0 3 3h13a3 3 0 0 0 3-3v-7"/></svg><span id="canvasBreadcrumb" class="canvas-sr-only">工作流画布</span><input id="canvasTitle" class="canvas-name" value="未命名音乐工作流" aria-label="工作流名称" maxlength="100" /></label>
+        <div class="draft-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span id="draftStatus">已保存</span></div>
+        <span class="canvas-published-state" id="canvasPublishedState"><span id="canvasPublishedTime">未发布</span><b id="versionBadge" class="canvas-sr-only">V1.0</b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 3-6 18-4-8-8-4L21 3ZM11 13 21 3"/></svg></span>
+        <span class="canvas-readonly-notice" id="canvasReadonlyNotice" hidden>仅查看 · 复制后可编辑</span>
+        <button type="button" class="publish-canvas" id="copyShowcaseWorkflow" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 10 5-10 5L2 8l10-5ZM4 12l-2 1 10 5 10-5-2-1M4 17l-2 1 10 5 10-5-2-1"/></svg>复制工作流</button>
       </header>
 
       <div class="editor-layout">
         <aside class="node-palette" id="nodePalette" aria-hidden="true">
-          <div class="palette-heading"><b>添加节点</b><div class="palette-meta"><small>10 个节点</small><button id="paletteCollapse" aria-label="关闭节点库">×</button></div></div>
+          <div class="palette-heading"><b>添加节点</b><div class="palette-meta"><small id="paletteNodeCount">16 个节点</small><button id="paletteCollapse" aria-label="关闭节点库">×</button></div></div>
           <label class="node-search"><span>⌕</span><input id="workflowNodeSearch" type="search" aria-label="搜索节点" placeholder="搜索节点…" /></label>
-          <div class="palette-section workflow-library">
-            <section class="workflow-category lyrics-category">
-              <header><b>文本与歌词节点</b><small>4 个</small></header>
-              <div class="workflow-category-list">
-                <button class="palette-node workflow-node-option" draggable="true" data-node-type="textInput"><i>文</i><span><b>文本输入</b><small>填写可复用的文本内容</small></span><em>＋</em></button>
-                <button class="palette-node workflow-node-option" draggable="true" data-node-type="writeLyrics"><i>写</i><span><b>自己写歌词</b><small>填写歌名和歌词</small></span><em>＋</em></button>
-                <button class="palette-node workflow-node-option" draggable="true" data-node-type="aiLyrics"><i>AI</i><span><b>AI 生成歌词</b><small>根据提示词生成</small></span><em>＋</em></button>
-                <button class="palette-node workflow-node-option" draggable="true" data-node-type="refLyrics"><i>参</i><span><b>参考生成歌词</b><small>连接歌词后改写</small></span><em>＋</em></button>
-              </div>
-            </section>
-            <section class="workflow-category song-category">
-              <header><b>音频与歌曲节点</b><small>6 个</small></header>
-              <div class="workflow-category-list song-category-list">
-                <button class="palette-node workflow-node-option" draggable="true" data-node-type="audioUpload"><i>音</i><span><b>音频上传</b><small>上传本地音频作为参考</small></span><em>＋</em></button>
-                <button class="palette-node workflow-node-option" draggable="true" data-node-type="uploadSong"><i>↑</i><span><b>上传歌曲</b><small>上传本地歌曲</small></span><em>＋</em></button>
-                <button class="palette-node workflow-node-option" draggable="true" data-node-type="aiSong"><i>AI</i><span><b>AI 生成歌曲</b><small>歌词输入可选</small></span><em>＋</em></button>
-                <button class="palette-node workflow-node-option" draggable="true" data-node-type="refSong"><i>参</i><span><b>参考生成歌曲</b><small>基于参考歌曲</small></span><em>＋</em></button>
-                <button class="palette-node workflow-node-option" draggable="true" data-node-type="sampleSong"><i>采</i><span><b>采样生成歌曲</b><small>基于歌曲采样</small></span><em>＋</em></button>
-                <button class="palette-node workflow-node-option" draggable="true" data-node-type="playlistSong"><i>单</i><span><b>歌单生成歌曲</b><small>支持 1–4 首参考</small></span><em>＋</em></button>
-              </div>
-            </section>
-          </div>
+          <div class="workflow-library" id="workflowNodeLibrary"></div>
+          <p class="palette-search-empty" id="paletteSearchEmpty" hidden>没有找到匹配的节点</p>
         </aside>
 
         <div class="canvas-workspace">
@@ -555,17 +533,24 @@
             </div>
             <div class="canvas-empty-hint" id="canvasEmptyHint"><span>＋</span><b>从底部添加节点</b><small>打开节点库开始编排工作流</small></div>
             <div class="canvas-action-dock" aria-label="画布工具">
-              <button class="open-node-library" id="openNodeLibrary" aria-label="添加节点" aria-expanded="false"><span>＋</span></button>
-              <i class="dock-divider"></i>
-              <button id="zoomOut" aria-label="缩小">−</button>
-              <button id="zoomReset" class="dock-scale" aria-label="重置缩放"><span id="zoomValue">90%</span></button>
-              <button id="zoomIn" aria-label="放大">＋</button>
-              <button id="fitCanvas" aria-label="适应画布">⌗</button>
-              <i class="dock-divider"></i>
-              <button id="undoCanvas" aria-label="撤销">↶</button>
-              <button id="redoCanvas" aria-label="恢复">↷</button>
+              <div class="canvas-dock-main">
+                <button type="button" id="openNodeLibrary" aria-label="添加节点" title="添加节点" aria-expanded="false" aria-controls="nodePalette"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg></button>
+                <button type="button" id="publishCanvas" aria-label="发布画布" title="发布画布" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 3-6 18-4-8-8-4L21 3ZM11 13 21 3"/></svg></button>
+                <button type="button" id="canvasSelectTool" aria-label="选择节点" title="选择节点" aria-pressed="true" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 3 15 8-7 2-3 7-5-17Z"/></svg></button>
+                <button type="button" id="canvasPanTool" aria-label="移动画布" title="移动画布" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 12V6a2 2 0 0 1 4 0v5-7a2 2 0 0 1 4 0v7-5a2 2 0 0 1 4 0v8c0 5-2 8-6 8h-1c-3 0-5-2-7-4l-4-5a2 2 0 0 1 3-3l3 3Z"/></svg></button>
+                <i class="dock-divider"></i>
+                <button type="button" id="historyToggle" aria-label="版本历史" title="版本历史" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 3"/></svg></button>
+                <button type="button" id="canvasMaterials" aria-label="素材库" title="素材库" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 10 5-10 5L2 8l10-5ZM4 12l-2 1 10 5 10-5-2-1M4 17l-2 1 10 5 10-5-2-1"/></svg></button>
+                <button type="button" id="canvasFinished" aria-label="成品库" title="成品库" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8V5h12v3M3 8h18l2 5H1l2-5ZM3 13v7h18v-7M9 16h6"/></svg></button>
+                <i class="dock-divider"></i>
+                <button type="button" id="fitCanvas" aria-label="适应画布" title="适应画布" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 8 8 8M8 12V8h4M16 12v4h-4"/></svg></button>
+                <button type="button" id="runAll" aria-label="运行画布" title="运行画布" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 4 12 8-12 8V4Z"/></svg></button>
+                <button type="button" id="canvasShortcuts" aria-label="快捷键" title="快捷键" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M5 9h1m3 0h1m3 0h1m3 0h1M5 12h1m3 0h1m3 0h1m3 0h1M7 16h10"/></svg></button>
+                <button type="button" id="canvasCenterView" aria-label="居中查看" title="居中查看" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><circle cx="12" cy="12" r="5"/></svg></button>
+                <div class="canvas-zoom-control"><button type="button" id="zoomOut" aria-label="缩小" title="缩小">−</button><input id="canvasZoomRange" type="range" min="25" max="150" step="5" value="85" aria-label="画布缩放"><button type="button" id="zoomIn" aria-label="放大" title="放大">＋</button><button type="button" id="zoomReset" title="重置缩放"><span id="zoomValue">85%</span></button></div>
+              </div>
+              <div class="canvas-dock-history"><button type="button" id="undoCanvas" aria-label="撤销" title="撤销" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 6-5 5 5 5M3 11h12a5 5 0 0 1 0 10"/></svg></button><button type="button" id="redoCanvas" aria-label="重做" title="重做" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 6 5 5-5 5M21 11H9a5 5 0 0 0 0 10"/></svg></button></div>
             </div>
-            <div class="canvas-legend"><span><i class="data-line-dot"></i>数据线</span><span><i class="control-line-dot"></i>控制线</span></div>
           </div>
         </div>
 
@@ -578,6 +563,7 @@
     </section>
   </main>
 
+  <dialog class="canvas-publish-dialog canvas-shortcuts-dialog" id="canvasShortcutsDialog" aria-labelledby="canvasShortcutsTitle"><h2 id="canvasShortcutsTitle">画布快捷键</h2><dl><div><dt>移动画布</dt><dd>拖动空白区域 / 空格＋拖动</dd></div><div><dt>缩放画布</dt><dd>鼠标滚轮 / 底部缩放滑块</dd></div><div><dt>撤销 / 重做</dt><dd>⌘ / Ctrl ＋ Z / Shift ＋ Z</dd></div><div><dt>删除选中节点</dt><dd>Delete / Backspace</dd></div><div><dt>关闭浮层</dt><dd>Esc</dd></div></dl><footer><button type="button" class="secondary-button" id="closeCanvasShortcuts">知道了</button></footer></dialog>
   <dialog class="canvas-publish-dialog" id="canvasPublishDialog" aria-labelledby="canvasPublishTitle" aria-describedby="canvasPublishDescription">
     <form id="canvasPublishForm">
       <h2 id="canvasPublishTitle">添加成品组装节点</h2>
@@ -711,28 +697,31 @@
   </footer>
   <div class="toast" id="toast" role="status"></div>
   <script src="./account-phone.js?v=20261026-account-security"></script>
-  <script src="./script.js?v=20261027-menu-sizing"></script>
+  <script src="./script.js?v=20261105-empty-folder-sort-toggle"></script>
   <script src="./profile-phone.js?v=20261026-account-security"></script>
-  <script src="./profile-password.js?v=20261026-account-security"></script>
-  <script src="./production-model.js?v=20261021-completed-no-actions"></script>
-  <script src="./composition-flow.js?v=20261026-finished-examples"></script>
+  <script src="./account-ui.js?v=20261028-auth-design"></script>
+  <script src="./profile-password.js?v=20261028-auth-design"></script>
+  <script src="./production-model.js?v=20261105-target-returns"></script>
+  <script src="./composition-flow.js?v=20261028-name-limit-50"></script>
   <script src="./finished-library-demo.js?v=20261027-team-examples"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
-  <script src="./finished-library.js?v=20261027-edit-name"></script>
-  <script src="./workflow-editor.js?v=20261022-publish-confirm"></script>
+  <script src="./finished-library.js?v=20261105-empty-folder-sort-toggle"></script>
+  <script src="./workflow-editor.js?v=home-folders-1"></script>
   <script src="./team-navigation.js?v=20261021-library-menu"></script>
-  <script src="./logout.js?v=20261026-account-security"></script>
-  <script src="./team-invites.js?v=20261014-user-lookup"></script>
+  <script src="./logout.js?v=20261028-auth-design"></script>
+  <script src="./team-invites.js?v=20261028-auth-design"></script>
   <script src="./run-pagination.js?v=20261013"></script>
   <script src="./assignee-search.js?v=20261013"></script>
-  <script src="./avatar-team-entry.js?v=20261013-home-only"></script>
-  <script src="./material-library.js?v=20261023-save-existing-folder"></script>
+  <script src="./avatar-team-entry.js?v=20261028-auth-design"></script>
+  <script src="./material-library.js?v=finished-folder-style"></script>
   <script src="./task-workflow-resources.js?v=20261022-result-resources"></script>
-  <script src="./task-audio-picker.js?v=20261022-personal-team"></script>
-  <script src="./reference-song-task.js?v=20261022-result-resources"></script>
-  <script src="./task-participation-demo.js?v=20261022-result-resources"></script>
-  <script src="./task-material-reference.js?v=20261022-result-help"></script>
-  <script src="./work-output-task.js?v=20261023-distinct-resources"></script>
+  <script src="./task-audio-picker.js?v=20261029-library-labels"></script>
+  <script src="./reference-song-task.js?v=20261105-timbre-icon"></script>
+  <script src="./task-participation-demo.js?v=20261104-task-marks"></script>
+  <script src="./task-material-reference.js?v=20261029-library-labels"></script>
+  <script src="./work-output-task.js?v=20261102-assembly-layout"></script>
+  <script src="./task-output-run.js?v=20261103-output-run-dock"></script>
+<script src="./home-templates.js"></script>
 </body>
 </html>
