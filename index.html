@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="./task-participation.css?v=20261028-progress-style">
   <link rel="stylesheet" href="./reference-song-task.css?v=20261105-timbre-icon">
   <link rel="stylesheet" href="./task-audio-picker.css?v=20261022-personal-team">
-  <link rel="stylesheet" href="./material-library.css?v=20261106-timbre-picker">
+  <link rel="stylesheet" href="./material-library.css?v=20261106-timbre-count-last">
   <link rel="stylesheet" href="./finished-library.css?v=20261105-empty-folder-sort-toggle">
   <link rel="stylesheet" href="./task-material-reference.css?v=20261022-result-help">
   <link rel="stylesheet" href="./work-output-task.css?v=20261102-assembly-layout">
@@ -310,10 +310,10 @@
           <div id="materialItems" class="material-content-grid" role="list" aria-label="文件夹和素材"></div>
           <section id="timbreLibraryContent" class="timbre-library-content" aria-label="音色库内容" hidden>
             <nav id="timbreBreadcrumb" class="material-breadcrumb timbre-breadcrumb" aria-label="音色文件夹路径"></nav>
-            <div class="timbre-library-summary"><p>团队成员可使用生成成功的音色，管理员可管理。</p><span id="timbreLibraryCount" class="material-count" aria-live="polite"></span></div>
             <div class="timbre-filter-toolbar">
               <label>状态<select id="timbreStatusFilter" aria-controls="timbreLibraryGrid"><option value="">全部状态</option><option value="generating">生成中</option><option value="failed">生成失败</option></select></label>
               <div class="material-search" role="search" aria-label="音色名称搜索"><input id="timbreNameSearch" class="material-search-input" type="search" placeholder="搜索音色名称" aria-label="搜索音色名称，含子文件夹" aria-controls="timbreLibraryGrid" autocomplete="off"><button id="clearTimbreSearch" class="material-search-clear" type="button" aria-label="清空音色名称搜索" hidden>×</button></div>
+              <span id="timbreLibraryCount" class="material-count" aria-live="polite"></span>
             </div>
             <div id="timbreLibraryGrid" class="timbre-library-grid" role="list" aria-label="音色列表"></div>
           </section>

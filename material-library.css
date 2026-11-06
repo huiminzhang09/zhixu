@@ -179,9 +179,6 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .song-studio-result-actions .song-studio-save-material.is-saved:disabled { color: #6ac9a1; border-color: #6ac9a144; background: #6ac9a10a; opacity: 1; cursor: default; }
 
 #assetMaterialsPanel .material-library-toolbar[hidden],#materialItems[hidden],#timbreLibraryContent[hidden]{display:none}
-.timbre-library-summary{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:20px 0;color:var(--muted);font-size:13px;min-width:0;max-width:100%}
-.timbre-library-summary p{margin:0;min-width:0;overflow-wrap:anywhere}
-.timbre-library-summary .material-count{white-space:normal;overflow-wrap:anywhere}
 #assetsPage,#assetMaterialsPanel,#materialLibraryContent,#timbreLibraryContent{min-width:0;max-width:100%}
 .timbre-library-grid{--timbre-item-width:120px;--timbre-item-height:154px;--timbre-cover-height:98px;display:grid;grid-template-columns:repeat(auto-fill,min(100%,var(--timbre-item-width)));align-items:start;gap:32px;width:100%;min-width:0}
 .timbre-card{display:flex;flex-direction:column;min-width:0;width:100%;height:var(--timbre-item-height);padding:0;border:0;border-radius:0;background:transparent;overflow:hidden}
@@ -230,8 +227,10 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .timbre-retry:focus-visible{outline:2px solid #b998ff;outline-offset:2px}
 
 
-.timbre-filter-toolbar{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:16px;margin:0 0 24px;min-width:0}
-.timbre-filter-toolbar>label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.timbre-filter-toolbar{display:flex;align-items:center;flex-wrap:nowrap;gap:16px;margin:20px 0 24px;padding:2px 0;min-width:0;max-width:100%;overflow-x:auto}
+.timbre-filter-toolbar>.material-count{flex:none;white-space:nowrap}
+.timbre-filter-toolbar>label:first-child{margin-left:auto}
+.timbre-filter-toolbar>label{display:flex;flex:none;white-space:nowrap;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 .timbre-filter-toolbar select{padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--text);font:inherit}
 .timbre-card{position:relative}
 .timbre-card-info strong{padding-right:24px}
@@ -240,7 +239,7 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .timbre-more:focus-visible{outline:2px solid #b998ff}
 .timbre-no-results{grid-column:1/-1;color:var(--muted);font-size:13px}
 @media(hover:none){.timbre-more{opacity:1}}
-@media(max-width:500px){.timbre-filter-toolbar .material-search{width:100%}}
+.timbre-filter-toolbar .material-search{flex:0 1 320px;min-width:160px;max-width:320px}
 
 .song-studio-setting .timbre-choose-button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:180px;max-width:65%;min-height:34px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--text);font:inherit;cursor:pointer}
 .timbre-choose-button>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
