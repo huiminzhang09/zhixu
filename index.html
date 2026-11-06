@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="./workflows.css?v=20261102-finished-cleanup" />
   <link rel="stylesheet" href="./playlist-import.css?v=1" />
   <link rel="stylesheet" href="./profile-center.css?v=20261026-account-security" />
-  <link rel="stylesheet" href="./node-editor.css?v=20261102-canvas-ui" />
+  <link rel="stylesheet" href="./node-editor.css?v=20261106-timbre-picker" />
   <link rel="stylesheet" href="./production-model.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./team-navigation.css?v=8" />
   <link rel="stylesheet" href="./team-invites.css?v=20261028-auth-design">
@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="./task-participation.css?v=20261028-progress-style">
   <link rel="stylesheet" href="./reference-song-task.css?v=20261105-timbre-icon">
   <link rel="stylesheet" href="./task-audio-picker.css?v=20261022-personal-team">
-  <link rel="stylesheet" href="./material-library.css?v=20261105-timbre-play-dialog">
+  <link rel="stylesheet" href="./material-library.css?v=20261106-timbre-picker">
   <link rel="stylesheet" href="./finished-library.css?v=20261105-empty-folder-sort-toggle">
   <link rel="stylesheet" href="./task-material-reference.css?v=20261022-result-help">
   <link rel="stylesheet" href="./work-output-task.css?v=20261102-assembly-layout">
@@ -310,7 +310,11 @@
           <div id="materialItems" class="material-content-grid" role="list" aria-label="文件夹和素材"></div>
           <section id="timbreLibraryContent" class="timbre-library-content" aria-label="音色库内容" hidden>
             <nav id="timbreBreadcrumb" class="material-breadcrumb timbre-breadcrumb" aria-label="音色文件夹路径"></nav>
-            <div class="timbre-library-summary"><p>点击音色图标，在弹窗中试听。示例音频仅用于播放演示。</p><span id="timbreLibraryCount" class="material-count"></span></div>
+            <div class="timbre-library-summary"><p>团队成员可使用生成成功的音色，管理员可管理。</p><span id="timbreLibraryCount" class="material-count" aria-live="polite"></span></div>
+            <div class="timbre-filter-toolbar">
+              <label>状态<select id="timbreStatusFilter" aria-controls="timbreLibraryGrid"><option value="">全部状态</option><option value="generating">生成中</option><option value="failed">生成失败</option></select></label>
+              <div class="material-search" role="search" aria-label="音色名称搜索"><input id="timbreNameSearch" class="material-search-input" type="search" placeholder="搜索音色名称" aria-label="搜索音色名称，含子文件夹" aria-controls="timbreLibraryGrid" autocomplete="off"><button id="clearTimbreSearch" class="material-search-clear" type="button" aria-label="清空音色名称搜索" hidden>×</button></div>
+            </div>
             <div id="timbreLibraryGrid" class="timbre-library-grid" role="list" aria-label="音色列表"></div>
           </section>
         </div>
@@ -703,7 +707,7 @@
   </footer>
   <div class="toast" id="toast" role="status"></div>
   <script src="./account-phone.js?v=20261026-account-security"></script>
-  <script src="./script.js?v=20261105-empty-folder-sort-toggle"></script>
+  <script src="./script.js?v=20261106-timbre-picker"></script>
   <script src="./profile-phone.js?v=20261026-account-security"></script>
   <script src="./account-ui.js?v=20261028-auth-design"></script>
   <script src="./profile-password.js?v=20261028-auth-design"></script>
@@ -713,17 +717,17 @@
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
   <script src="./finished-library.js?v=20261105-empty-folder-sort-toggle"></script>
-  <script src="./workflow-editor.js?v=home-folders-1"></script>
+  <script src="./workflow-editor.js?v=20261106-timbre-picker"></script>
   <script src="./team-navigation.js?v=20261021-library-menu"></script>
   <script src="./logout.js?v=20261028-auth-design"></script>
   <script src="./team-invites.js?v=20261028-auth-design"></script>
   <script src="./run-pagination.js?v=20261013"></script>
   <script src="./assignee-search.js?v=20261013"></script>
   <script src="./avatar-team-entry.js?v=20261028-auth-design"></script>
-  <script src="./material-library.js?v=20261105-timbre-play-dialog"></script>
+  <script src="./material-library.js?v=20261106-timbre-picker"></script>
   <script src="./task-workflow-resources.js?v=20261022-result-resources"></script>
   <script src="./task-audio-picker.js?v=20261029-library-labels"></script>
-  <script src="./reference-song-task.js?v=20261105-create-timbre"></script>
+  <script src="./reference-song-task.js?v=20261106-timbre-team-features"></script>
   <script src="./task-participation-demo.js?v=20261104-task-marks"></script>
   <script src="./task-material-reference.js?v=20261029-library-labels"></script>
   <script src="./work-output-task.js?v=20261102-assembly-layout"></script>

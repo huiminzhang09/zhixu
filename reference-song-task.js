@@ -63,6 +63,7 @@
     };
     return `<div class="song-studio-settings" aria-label="歌曲生成设置">
       ${select('model', '模型版本', [['hawk-v6', 'Hawk（V6）']], 'hawk-v6')}
+      ${window.orchestraMaterialLibrary?.timbreSelectionMarkup(task, locked) || ''}
       <div class="song-studio-setting"><span id="songGenerationCountLabel">生成数量</span><div class="song-studio-count" role="group" aria-labelledby="songGenerationCountLabel">${[2, 4].map(count => `<label><input type="radio" name="songGenerationCount" data-task-field="count" value="${count}" ${(Number(values.count) === 4 ? 4 : 2) === count ? 'checked' : ''} ${disabled}><span>${count}</span></label>`).join('')}</div></div>
       ${slider('styleStrength', '风格强度', '数值越高，生成歌曲越贴近参考歌曲的风格。')}
       ${slider('randomness', '随机度', '数值越高，生成结果的变化越丰富。')}

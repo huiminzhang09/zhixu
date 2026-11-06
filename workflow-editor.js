@@ -168,6 +168,52 @@
       <button class="feature-choice" data-switch-type="playlistSong"><i>单</i><span><b>基于歌单生成</b><small>支持 1–4 首参考</small></span></button>
     </div>`;
   }
+  const canvasTimbreTypes = new Set(['aiSong', 'refSong', 'playlistSong']);
+  const canvasTimbreTeam = () => document.querySelector('.workspace-option.active')?.dataset.workspaceId || 'orchestra-studio';
+  const canvasTimbreContext = () => JSON.stringify([activeWorkflowId, activeDraftKey, localStorage.getItem('orchestra-demo-account'), canvasTimbreTeam()]);
+  function canvasTimbreName(node) {
+    const id = String(node.data?.timbreId || '');
+    if (!id) return '不指定音色';
+    try {
+      const item = window.orchestraMaterialLibrary?.listUsableTimbres(canvasTimbreTeam()).find(item => item.id === id);
+      if (item) return item.name;
+    } catch {}
+    return node.data?.timbreName || '已选择的音色';
+  }
+  function canvasTimbreField(node) {
+    if (!canvasTimbreTypes.has(node.type)) return '';
+    const name = canvasTimbreName(node), selected = Boolean(node.data?.timbreId);
+    return `<div class="node-field node-timbre-field"><span>音色 <i class="node-field-info" title="从音色库中选择生成成功的音色，支持按名称搜索。">ⓘ</i></span><button type="button" class="node-timbre-picker${selected ? ' has-selection' : ''}" data-pick-node-timbre aria-haspopup="dialog" aria-label="${selected ? '更换音色：' : '选择音色：'}${html(name)}" title="${html(name)}" ${readOnly ? 'disabled' : ''}><span>${html(selected ? name : '选择音色')}</span><i aria-hidden="true">${icon('aiSong')}</i></button></div>`;
+  }
+  function canvasNodeSummary(node) {
+    const voice = canvasTimbreTypes.has(node.type) ? `<small class="node-summary-timbre" title="${html(canvasTimbreName(node))}">音色：${html(canvasTimbreName(node))}</small>` : '';
+    const values = Object.entries(node.data || {}).filter(([key, value]) => !['timbreId', 'timbreName'].includes(key) && typeof value === 'string' && value.trim()).slice(0, voice ? 3 : 4);
+    return voice + values.map(([, value]) => `<small>${html(value)}</small>`).join('');
+  }
+  function validateCanvasTimbre(node) {
+    if (!canvasTimbreTypes.has(node.type) || !node.data?.timbreId) return true;
+    try {
+      const api = window.orchestraMaterialLibrary;
+      if (!api?.listUsableTimbres) throw Error('音色库尚未就绪，请刷新后重试');
+      if (!api.listUsableTimbres(canvasTimbreTeam()).some(item => item.id === node.data.timbreId)) throw Error('所选音色尚未生成成功或已不可用，请重新选择');
+      return true;
+    } catch (error) { showToast(error.message || '音色暂不可用，请重新选择', 'error'); return false; }
+  }
+  function pickCanvasTimbre(node) {
+    if (readOnly || !node || !canvasTimbreTypes.has(node.type)) return;
+    const api = window.orchestraMaterialLibrary, context = canvasTimbreContext(), type = node.type;
+    if (!api?.openTimbrePicker) { showToast('音色库尚未就绪，请刷新后重试', 'error'); return; }
+    api.openTimbrePicker({
+      selectedId: node.data?.timbreId || '', team: canvasTimbreTeam(),
+      onSelect: item => {
+        if (readOnly || context !== canvasTimbreContext() || nodeById(node.id) !== node || node.type !== type) throw Error('当前画布或节点已变更，请重新选择音色');
+        if (item && !api.listUsableTimbres(canvasTimbreTeam()).some(voice => voice.id === item.id)) throw Error('所选音色已不可用，请重新选择');
+        pushUndo(); node.data ||= {};
+        node.data.timbreId = item?.id || ''; node.data.timbreName = item?.name || '';
+        renderNodes(); queueDraft();
+      }
+    });
+  }
   const field=(node,key,label,options={})=>{
     const value=node.data?.[key]??options.default??'',required=options.required?'<em>必填</em>':'';
     const info=options.help?`<i class="node-field-info" title="${html(options.help)}" aria-label="${html(options.help)}">ⓘ</i>`:'';
@@ -202,7 +248,7 @@
     if(['aiSong','refSong','sampleSong','playlistSong'].includes(node.type)){
       if(['refSong','sampleSong'].includes(node.type))fields+=audioInput(node,'song-in','参考歌曲',true);
       if(node.type==='playlistSong')fields+=[1,2,3,4].map(i=>audioInput(node,`song-${i}-in`,`参考歌曲 ${i}`,i===1)).join('');
-      fields+=moreButton(node)+field(node,'lyrics','歌词',{type:'textarea',placeholder:'填写歌词',port:'lyrics-in'})+promptField(node)+field(node,'title','标题',{placeholder:'选填歌曲标题'});
+      fields+=canvasTimbreField(node)+moreButton(node)+field(node,'lyrics','歌词',{type:'textarea',placeholder:'填写歌词',port:'lyrics-in'})+promptField(node)+field(node,'title','标题',{placeholder:'选填歌曲标题'});
       if(!node.advancedCollapsed)fields+=promptField(node,'negative','反向提示词')+field(node,'model','模型版本',{type:'select',values:['Hawk（V6）','Music V4','Music V3.5','Fast'],default:'Hawk（V6）'})+choices(node,'count','生成数量',[2,4],2)+range(node,'styleStrength','风格强度',50)+range(node,'randomness','随机度',50)+field(node,'gender','人声性别',{type:'select',values:['不指定','男声','女声'],default:'不指定'})+field(node,'instrumental','生成纯音乐',{type:'select',values:['不指定','是','否'],default:'不指定'});
     }
     if(['rvc','svc'].includes(node.type))fields=audioInput(node,'audio-in','参考音频',true)+field(node,'voiceModel','模型',{required:true,placeholder:'请输入音色模型名称'})+field(node,'transpose','转调',{default:'0'})+field(node,'pitchMethod','音高提取方法',{type:'select',values:['rmvpe','crepe','harvest']})+range(node,'indexRate','特征检索比例',0)+field(node,'filterRadius','中值滤波半径',{default:7})+field(node,'format','输出格式',{type:'select',values:['WAV','MP3','FLAC']});
@@ -212,11 +258,11 @@
     if(node.type==='coverImage')fields=field(node,'coverText','封面文字',{required:true,type:'textarea',placeholder:'填写封面上展示的文字',port:'text-in'})+field(node,'imagePrompt','画面描述',{type:'textarea',placeholder:'描述画面风格与内容'})+field(node,'size','图片尺寸',{type:'select',values:['1440','1024','768'],default:'1440'});
     return `<section class="node-input-section"><h3>输入</h3><div class="node-form">${fields}</div></section>${outputBlock(node)}`;
   }
-  function nodeHeight(type){return ({textInput:390,audioUpload:360,writeLyrics:430,aiLyrics:570,refLyrics:960,uploadSong:360,aiSong:1060,refSong:1200,sampleSong:1200,playlistSong:1580,rvc:850,svc:850,stemSplit:430,audioMerge:560,loudness:700,coverImage:600,workOutput:220})[type]||360;}
+  function nodeHeight(type){return ({textInput:390,audioUpload:360,writeLyrics:430,aiLyrics:570,refLyrics:960,uploadSong:360,aiSong:1140,refSong:1280,sampleSong:1200,playlistSong:1660,rvc:850,svc:850,stemSplit:430,audioMerge:560,loudness:700,coverImage:600,workOutput:220})[type]||360;}
   function nodeStatus(node){return node.status==='running'?['running','运行中']:node.status==='success'?['success','已完成']:node.status==='error'?['error','待完善']:missingDependencies(node).length?['pending','待配置']:['ready','可运行'];}
   function nodeHTML(node){
     const def=defs[node.type],status=nodeStatus(node),summaryHeight=Math.max(70,(Math.max(portsFor(node.type).inputs.length,portsFor(node.type).outputs.length)-1)*26+20);
-    return `<article class="flow-node ${node.type.endsWith('Menu')?'menu-node':''} ${selectedId===node.id?'selected':''} ${node.status||''} ${node.collapsed?'is-collapsed':''}" data-id="${html(node.id)}" style="left:${node.x}px;top:${node.y}px;--node-color:${def.color};--summary-height:${summaryHeight}px">${portMarkup(node,'inputs')}<header class="node-head"><span class="node-symbol">${icon(node.type)}</span><b class="node-title" title="${html(node.title||def.title)}">${html(node.title||def.title)}</b><span class="node-status-badge ${status[0]}">${status[1]}</span><button type="button" class="node-collapse" data-collapse-node aria-label="${node.collapsed?'展开':'收起'}节点" aria-expanded="${!node.collapsed}">${icon('chevron')}</button><button type="button" class="node-remove" aria-label="删除节点" title="删除节点">×</button></header><div class="node-execution-row"><span>←◇</span><b>${icon('execution')}执行顺序</b><span>◇→</span></div><div class="node-summary"><p>${html(def.subtitle)}</p>${Object.entries(node.data||{}).filter(([key,value])=>typeof value==='string'&&value.trim()).slice(0,4).map(([,value])=>`<small>${html(value)}</small>`).join('')}</div><div class="node-body">${nodeForm(node)}</div>${portMarkup(node,'outputs')}</article>`;
+    return `<article class="flow-node ${node.type.endsWith('Menu')?'menu-node':''} ${selectedId===node.id?'selected':''} ${node.status||''} ${node.collapsed?'is-collapsed':''}" data-id="${html(node.id)}" style="left:${node.x}px;top:${node.y}px;--node-color:${def.color};--summary-height:${summaryHeight}px">${portMarkup(node,'inputs')}<header class="node-head"><span class="node-symbol">${icon(node.type)}</span><b class="node-title" title="${html(node.title||def.title)}">${html(node.title||def.title)}</b><span class="node-status-badge ${status[0]}">${status[1]}</span><button type="button" class="node-collapse" data-collapse-node aria-label="${node.collapsed?'展开':'收起'}节点" aria-expanded="${!node.collapsed}">${icon('chevron')}</button><button type="button" class="node-remove" aria-label="删除节点" title="删除节点">×</button></header><div class="node-execution-row"><span>←◇</span><b>${icon('execution')}执行顺序</b><span>◇→</span></div><div class="node-summary"><p>${html(def.subtitle)}</p>${canvasNodeSummary(node)}</div><div class="node-body">${nodeForm(node)}</div>${portMarkup(node,'outputs')}</article>`;
   }
   function refreshPortPositions(){
     nodeLayer.querySelectorAll('.flow-node').forEach(element=>{
@@ -345,7 +391,9 @@
     if (readOnly) return false;
     const runWorkflowId = activeWorkflowId;
     const node = nodeById(id); if (!node || node.type.endsWith('Menu')) { showToast('请先选择具体功能', 'error'); return false; }
+    const runTimbreContext = node.data?.timbreId ? canvasTimbreContext() : '';
     if (node.type === 'workOutput') { if (!quiet) showToast('请在待办中完成成品组装'); return true; }
+    if (!validateCanvasTimbre(node)) { node.status = 'error'; renderNodes(); return false; }
     const missing = missingDependencies(node);
     if (missing.length) { node.status = 'error'; renderNodes(); showToast(`缺少：${missing.join('、')}`, 'error'); return false; }
     if (node.type === 'writeLyrics') { finishRun(node,node.data.lyrics);return true; }
@@ -353,6 +401,8 @@
     if (node.type === 'audioUpload') { finishRun(node,node.data.fileName); if (!quiet) showToast('音频已上传'); return true; }
     node.status = 'running'; renderNodes(); await new Promise(resolve => setTimeout(resolve, 700));
     if (readOnly || activeWorkflowId !== runWorkflowId || nodeById(id) !== node) return false;
+    if (runTimbreContext && runTimbreContext !== canvasTimbreContext()) { node.status = 'idle'; renderNodes(); showToast('账号或团队已切换，请重新运行', 'error'); return false; }
+    if (!validateCanvasTimbre(node)) { node.status = 'error'; renderNodes(); return false; }
     if (['aiLyrics', 'refLyrics'].includes(node.type)) node.result = `【生成歌词】\n${node.data.userPrompt}\n夜色沿着城市缓缓落下，新的故事正在生长……`;
     else if (node.type === 'uploadSong') node.result = node.data.fileName;
     else if(node.type==='coverImage')node.result=node.data?.coverText||'文字封面示例';
@@ -465,7 +515,7 @@
     const positionSort=(a,b)=>(Number(a.y)||0)-(Number(b.y)||0)||(Number(a.x)||0)-(Number(b.x)||0),queue=executable.filter(node=>indegree.get(node.id)===0).sort(positionSort),ordered=[];
     while(queue.length){const node=queue.shift();ordered.push(node);outgoing.get(node.id).forEach(id=>{indegree.set(id,indegree.get(id)-1);if(indegree.get(id)===0){queue.push(nodeMap.get(id));queue.sort(positionSort)}})}
     executable.filter(node=>!ordered.includes(node)).sort(positionSort).forEach(node=>ordered.push(node));
-    return ordered.map(node=>({id:node.id,type:node.type,title:node.title||defs[node.type]?.title||'未命名节点',subtitle:defs[node.type]?.subtitle||'工作流节点',category:defs[node.type]?.category||'song'}));
+    return ordered.map(node=>({id:node.id,type:node.type,title:node.title||defs[node.type]?.title||'未命名节点',subtitle:defs[node.type]?.subtitle||'工作流节点',category:defs[node.type]?.category||'song',...(canvasTimbreTypes.has(node.type)?{data:{timbreId:node.data?.timbreId||'',timbreName:node.data?.timbreName||''}}:{})}));
   }
   function getPublishedSnapshot(workflowId,version){const stored=parse(localStorage.getItem(storageKey(BASE_VERSIONS_KEY,workflowId)),[]),storedExact=stored.find(item=>item.version===version),builtInExact=(builtInPublishedSnapshots[workflowId]||[]).find(item=>item.version===version),snapshot=storedExact?.nodes?.length?storedExact:(builtInExact||storedExact);if(!snapshot)return null;return {workflowId,version:snapshot.version,name:snapshot.name||'',publishedAt:snapshot.publishedAt||0,nodes:publishedSnapshotNodes(snapshot)}}
   window.orchestraWorkflowCanvas = { open: loadWorkflow, copy: copyWorkflow, getPublishedSnapshot };
@@ -473,6 +523,7 @@
   nodeLayer.addEventListener('click', event => { if (readOnly) return;
     const element = event.target.closest('.flow-node'); if (!element) return; const id = element.dataset.id;
     const node=nodeById(id);
+    if(event.target.closest('[data-pick-node-timbre]')){pickCanvasTimbre(node);return;}
     if(event.target.closest('[data-collapse-node]')){pushUndo();node.collapsed=!node.collapsed;renderNodes();queueDraft();return;}
     if(event.target.closest('[data-toggle-fields]')){node.advancedCollapsed=!node.advancedCollapsed;renderNodes();queueDraft();return;}
     const choiceValue=event.target.closest('[data-choice-field]');if(choiceValue){node.data||={};node.data[choiceValue.dataset.choiceField]=choiceValue.dataset.choiceValue;renderNodes();queueDraft();return;}
