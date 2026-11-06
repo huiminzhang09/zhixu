@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="./task-participation.css?v=20261028-progress-style">
   <link rel="stylesheet" href="./reference-song-task.css?v=20261105-timbre-icon">
   <link rel="stylesheet" href="./task-audio-picker.css?v=20261022-personal-team">
-  <link rel="stylesheet" href="./material-library.css?v=20261102-library-ui">
+  <link rel="stylesheet" href="./material-library.css?v=20261105-timbre-play-dialog">
   <link rel="stylesheet" href="./finished-library.css?v=20261105-empty-folder-sort-toggle">
   <link rel="stylesheet" href="./task-material-reference.css?v=20261022-result-help">
   <link rel="stylesheet" href="./work-output-task.css?v=20261102-assembly-layout">
@@ -293,6 +293,7 @@
         <div class="material-library-tabs" role="tablist" aria-label="素材库分类">
           <button id="personalMaterialTab" type="button" role="tab" data-material-library="personal" aria-selected="true" aria-controls="materialLibraryContent" tabindex="0">个人素材库</button>
           <button id="teamMaterialTab" type="button" role="tab" data-material-library="team" aria-selected="false" aria-controls="materialLibraryContent" tabindex="-1">团队素材库</button>
+          <button id="timbreMaterialTab" type="button" role="tab" data-material-library="timbre" aria-selected="false" aria-controls="materialLibraryContent" tabindex="-1">音色库</button>
         </div>
         <div id="materialLibraryContent" role="tabpanel" aria-labelledby="personalMaterialTab">
           <div class="material-library-toolbar">
@@ -307,6 +308,11 @@
             </div>
           </div>
           <div id="materialItems" class="material-content-grid" role="list" aria-label="文件夹和素材"></div>
+          <section id="timbreLibraryContent" class="timbre-library-content" aria-label="音色库内容" hidden>
+            <nav id="timbreBreadcrumb" class="material-breadcrumb timbre-breadcrumb" aria-label="音色文件夹路径"></nav>
+            <div class="timbre-library-summary"><p>点击音色图标，在弹窗中试听。示例音频仅用于播放演示。</p><span id="timbreLibraryCount" class="material-count"></span></div>
+            <div id="timbreLibraryGrid" class="timbre-library-grid" role="list" aria-label="音色列表"></div>
+          </section>
         </div>
       </div>
       <div id="assetReferencesPanel" class="asset-panel" aria-label="对标曲库" hidden></div>
@@ -714,10 +720,10 @@
   <script src="./run-pagination.js?v=20261013"></script>
   <script src="./assignee-search.js?v=20261013"></script>
   <script src="./avatar-team-entry.js?v=20261028-auth-design"></script>
-  <script src="./material-library.js?v=finished-folder-style"></script>
+  <script src="./material-library.js?v=20261105-timbre-play-dialog"></script>
   <script src="./task-workflow-resources.js?v=20261022-result-resources"></script>
   <script src="./task-audio-picker.js?v=20261029-library-labels"></script>
-  <script src="./reference-song-task.js?v=20261105-timbre-icon"></script>
+  <script src="./reference-song-task.js?v=20261105-create-timbre"></script>
   <script src="./task-participation-demo.js?v=20261104-task-marks"></script>
   <script src="./task-material-reference.js?v=20261029-library-labels"></script>
   <script src="./work-output-task.js?v=20261102-assembly-layout"></script>

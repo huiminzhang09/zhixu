@@ -114,7 +114,7 @@
     const task=productionTasks.find(item=>item.id===selectedTaskId);
     const candidate=task?.candidates?.find(item=>item.id===button.dataset.generateTimbre);
     if(!candidate?.url)return;
-    showToast('生成音色：当前为功能入口演示，暂未接入音色生成服务');
+    window.orchestraMaterialLibrary?.createTimbre(task,candidate);
   });
   async function buildAudioArchive(task){
     const tracks=(task.candidates||[]).map(candidate=>({...candidate}));
