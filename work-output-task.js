@@ -173,7 +173,7 @@
     if(submitting||activeTask()!==task)return;
     let drafts;try{drafts=validateDrafts(task)}catch(error){showError(error.message);return}
     const origin=mountedSession,signature=JSON.stringify(task.outputDrafts);
-    const dialog=modelDialog('确认输出成品',`<p>本次将输出 ${drafts.length} 个成品、${drafts.reduce((count,draft)=>count+draft.resources.length,0)} 个资源。提交后可在「成品库」中查看和编辑。</p><ul class="output-confirm-list">${drafts.map(draft=>`<li><b>${escapeHtml(draft.name)}</b><span>${draft.resources.length} 个资源</span></li>`).join('')}</ul><div class="composition-footer"><button type="button" data-output-cancel>取消</button><button type="button" data-confirm-generate>确认输出</button></div>`);
+    const dialog=modelDialog('确认输出成品',`<p>本次将生成 ${drafts.length} 个成品，生成后可前往「成品库」查看。</p><div class="composition-footer"><button type="button" data-output-cancel>取消</button><button type="button" data-confirm-generate>确认输出</button></div>`,'output-confirm-dialog');
     submitting=true;let committing=false;
     dialog.querySelector('[data-output-cancel]').onclick=()=>dialog.close();
     dialog.addEventListener('cancel',event=>{if(committing)event.preventDefault()});
@@ -188,7 +188,7 @@
       try{
         const result=navigator.locks?await navigator.locks.request('orchestra-production-composition',commit):commit();
         stopAudio();dialog.close();renderFinishedLibrary();renderProjectDetail();setTaskStatusFilter('finished');selectedTaskId=task.id;renderTaskCenter();
-        showToast(result.alreadyCommitted?'该任务已输出，请查看已有成品':`已输出 ${result.works.length} 个成品，可在「成品库」中查看`);
+        showToast(`已生成 ${result.works.length} 个成品，可前往「成品库」查看。`);
       }catch(error){committing=false;dialog.close();showError(error.message==='Invalid or duplicate resources'?'请检查成品名称和资源选择':error.message==='Resource already used'?'资源已被其他成品使用，请重新选择':'输出失败：'+error.message)}
     };
   }

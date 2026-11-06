@@ -476,3 +476,6 @@ body.task-mode .player { transform: translateY(110%); opacity: 0; pointer-events
   .task-detail-actions { flex-direction: column-reverse; }
   .task-detail-actions button { width: 100%; min-height: 43px; }
 }
+
+.task-return-history-context{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px 16px;min-width:0;max-width:100%}
+.task-return-history-context .task-return-history-source{min-width:0;overflow-wrap:anywhere}

@@ -734,6 +734,19 @@ function openTaskReturnDialog(task){
   });
   dialog.showModal();
 }
+function taskReturnSource(task,record){
+  const recorded=String(record.fromNodeTitle||'').trim();
+  if(recorded)return recorded;
+  if(record.fromNodeId){
+    try{
+      const node=taskContextByTask(task)?.snapshot?.nodes?.find(node=>node.id===record.fromNodeId);
+      if(node?.title)return node.title;
+    }catch{}
+    const source=productionTasks.find(item=>item.projectId===task.projectId&&String(item.workId)===String(task.workId)&&item.workflowId===task.workflowId&&item.workflowVersion===task.workflowVersion&&item.nodeId===record.fromNodeId);
+    if(source?.nodeTitle)return source.nodeTitle;
+  }
+  return '未记录';
+}
 function renderTaskExecutionContext(task){
   const records=taskReturnRecords(task);if(!records.length)return;
   const count=Math.max(records.length,(Number(task.executionCount)||1)-1),badge=document.createElement('span');
@@ -743,7 +756,7 @@ function renderTaskExecutionContext(task){
   if(meta)meta.append(badge);else taskDetailPanel.querySelector('.task-detail-kicker')?.after(badge);
   const note=document.createElement('section');note.className='task-return-feedback';note.setAttribute('aria-label','打回记录');
   const latestFirst=records.slice().reverse();
-  const renderRecord=(record,index)=>`<li><div class="task-return-history-meta"><strong>第 ${count-index} 次打回</strong><span>打回时间：<time${record.returnedAt&&!Number.isNaN(Date.parse(record.returnedAt))?` datetime="${escapeHtml(new Date(record.returnedAt).toISOString())}"`:''}>${escapeHtml(formatTaskReturnTime(record.returnedAt))}</time></span></div><p><b>打回原因：</b>${escapeHtml(record.remark||'未填写打回备注。')}</p></li>`;
+  const renderRecord=(record,index)=>`<li><div class="task-return-history-meta"><strong>第 ${count-index} 次打回</strong><div class="task-return-history-context"><span class="task-return-history-source">来源：${escapeHtml(taskReturnSource(task,record))}</span><span>打回时间：<time${record.returnedAt&&!Number.isNaN(Date.parse(record.returnedAt))?` datetime="${escapeHtml(new Date(record.returnedAt).toISOString())}"`:''}>${escapeHtml(formatTaskReturnTime(record.returnedAt))}</time></span></div></div><p><b>打回原因：</b>${escapeHtml(record.remark||'未填写打回备注。')}</p></li>`;
   note.innerHTML=`<div class="task-return-history-heading"><strong>最新打回记录</strong><small>北京时间</small></div><ol class="task-return-history-list">${renderRecord(latestFirst[0],0)}</ol>${latestFirst.length>1?`<details class="task-return-history-disclosure"><summary><span class="task-return-history-expand">展开历史记录（${latestFirst.length-1} 条）</span><span class="task-return-history-collapse">收起历史记录</span></summary><ol class="task-return-history-list">${latestFirst.slice(1).map((record,index)=>renderRecord(record,index+1)).join('')}</ol></details>`:''}`;
   taskDetailPanel.querySelector('.ref-workbench-header,.task-detail-header')?.after(note);
 }
