@@ -1,6 +1,13 @@
 /* Creation form shared by the audio library's Persona workflow. */
 (() => {
-  function open({ isCurrent, chooseReference, generate, submitPersona }) {
+  const phaseLabels = {
+    draft: '待生成歌曲',
+    generating: '歌曲生成中',
+    confirming: '待确认',
+    failed: '歌曲生成失败'
+  };
+
+  function open({ isCurrent, chooseReference, generate, submitPersona, initialDraft, saveDraft, onClose }) {
     const existing = document.querySelector('.timbre-creation[open]');
     if (existing) return existing;
 
@@ -11,7 +18,10 @@
     dialog.innerHTML = `<form>
       <header>
         <div>
-          <h2 id="timbreCreationTitle">创建音色</h2>
+          <div class="timbre-creation-heading">
+            <h2 id="timbreCreationTitle">创建音色</h2>
+            <span class="timbre-creation-phase" data-creation-phase>待生成歌曲</span>
+          </div>
           <p class="material-dialog-hint">先生成歌曲，再选择输出并填写音色信息。</p>
         </div>
         <button type="button" data-creation-close aria-label="关闭创建音色">×</button>
@@ -46,13 +56,22 @@
             <label>反向提示词
               <textarea name="negativePrompt" placeholder="描述希望避免的声音或风格" rows="2"></textarea>
             </label>
-            <label>风格强度 <output for="timbreCreationStrength" data-creation-strength>0.5</output>
-              <input type="range" name="styleStrength" id="timbreCreationStrength" min="0" max="1" step="0.1" value="0.5">
+            <label>风格强度 <output for="timbreCreationStrength" data-creation-strength>50%</output>
+              <input type="range" name="styleStrength" id="timbreCreationStrength" aria-valuetext="50%" min="0" max="1" step="0.1" value="0.5">
             </label>
-            <label>随机度 <output for="timbreCreationRandomness" data-creation-randomness>0.5</output>
-              <input type="range" name="randomness" id="timbreCreationRandomness" min="0" max="1" step="0.1" value="0.5">
+            <label>随机度 <output for="timbreCreationRandomness" data-creation-randomness>50%</output>
+              <input type="range" name="randomness" id="timbreCreationRandomness" aria-valuetext="50%" min="0" max="1" step="0.1" value="0.5">
             </label>
-            <label class="timbre-creation-check"><input type="checkbox" name="instrumental" disabled>生成纯音乐 <small>创建音色需保留人声</small></label>
+            <label>人声性别
+              <select name="voiceGender">
+                <option value="unspecified">不指定</option>
+                <option value="female">女声</option>
+                <option value="male">男声</option>
+              </select>
+            </label>
+            <label>生成纯音乐
+              <select name="instrumental" disabled><option value="unspecified">不指定</option></select>
+            </label>
             <label class="timbre-creation-check"><input type="checkbox" name="skipCopyrightCheck">跳过版权检查</label>
           </details>
           <button type="submit" formnovalidate class="timbre-creation-generate" data-creation-generate>生成歌曲</button>
@@ -76,8 +95,8 @@
         <footer>
           <p class="material-dialog-hint" data-creation-status role="status"></p>
           <div>
-            <button type="button" data-creation-close>取消</button>
-            <button type="button" class="material-primary" data-creation-persona disabled>生成 Persona</button>
+            <button type="button" data-creation-close>关闭</button>
+            <button type="button" class="material-primary" data-creation-persona disabled>创建音色</button>
           </div>
         </footer>
       </div>
@@ -96,9 +115,11 @@
     const empty = dialog.querySelector('[data-creation-empty]');
     const error = dialog.querySelector('[data-creation-error]');
     const status = dialog.querySelector('[data-creation-status]');
+    const phaseBadge = dialog.querySelector('[data-creation-phase]');
 
     let reference = null, referenceURL = null, generatedConfig = null;
     let candidates = [], selectedId = null, operation = '';
+    let draftStatus = initialDraft?.status || 'draft';
     const isOpen = () => dialog.open && dialog.isConnected;
     const selected = () => candidates.find(item => item.id === selectedId);
 
@@ -120,17 +141,21 @@
       settings.disabled = Boolean(operation);
       metadata.hidden = !candidate;
       metadata.disabled = !candidate || Boolean(operation);
-      generateButton.textContent = operation === 'generating' ? '正在生成歌曲…' : candidates.length ? '重新生成歌曲' : '生成歌曲';
+      const phase = operation === 'generating' ? 'generating' : draftStatus;
+      phaseBadge.dataset.phase = phase;
+      phaseBadge.textContent = phaseLabels[phase] || phaseLabels.draft;
+      generateButton.textContent = phase === 'generating' ? '正在生成歌曲…' : candidates.length || phase === 'failed' ? '重新生成歌曲' : '生成歌曲';
       personaButton.disabled = Boolean(operation) || !candidate || !metadataReady;
-      personaButton.textContent = operation === 'submitting' ? '正在提交…' : '生成 Persona';
+      personaButton.textContent = operation === 'submitting' ? '正在提交…' : '创建音色';
       closeButtons.forEach(button => { button.disabled = operation === 'submitting'; });
       results.querySelectorAll('input').forEach(input => { input.disabled = Boolean(operation); });
       if (operation) dialog.setAttribute('aria-busy', 'true');
       else dialog.removeAttribute('aria-busy');
 
-      const progress = { reference: '正在选择参考音频', generating: '正在生成歌曲结果', submitting: '正在提交 Persona' };
+      const progress = { reference: '正在选择参考音频', generating: '正在生成歌曲结果', submitting: '正在提交音色创建请求' };
       let nextStep = '选择一个输出后填写音色信息';
       if (candidate) nextStep = metadataReady ? `已选输出：${candidate.title}` : '请填写音色名称和风格描述';
+      if (phase === 'failed' && !candidate) nextStep = '歌曲生成失败，可重新生成';
       status.textContent = progress[operation] || nextStep;
     }
 
@@ -138,7 +163,7 @@
       results.querySelectorAll('audio').forEach(audio => audio.pause());
       empty.hidden = Boolean(candidates.length);
       results.innerHTML = candidates.map(item => `<article class="timbre-creation-result">
-        <label><input type="radio" name="outputCandidate" value="${escapeHtml(item.id)}"><span>${escapeHtml(item.title)}</span></label>
+        <label><input type="radio" name="outputCandidate" value="${escapeHtml(item.id)}" ${item.id === selectedId ? 'checked' : ''}><span>${escapeHtml(item.title)}</span></label>
         <audio src="${escapeHtml(item.url)}" controls preload="metadata" aria-label="试听 ${escapeHtml(item.title)}"></audio>
       </article>`).join('');
     }
@@ -147,32 +172,52 @@
       candidates = [];
       selectedId = null;
       generatedConfig = null;
+      draftStatus = 'draft';
       empty.textContent = message || '生成歌曲后，可在这里试听并选择一个输出。';
       showResults();
       updateControls();
     }
 
     function readConfig() {
-      if (!reference) {
-        referenceButton.focus();
-        throw Error('请选择或上传参考音频');
-      }
       const fields = form.elements;
-      const lyrics = fields.lyrics.value.trim(), prompt = fields.prompt.value.trim();
-      if (!lyrics) { fields.lyrics.focus(); throw Error('请填写歌词'); }
-      if (!prompt) { fields.prompt.focus(); throw Error('请填写提示词'); }
       return {
         reference,
-        lyrics,
-        prompt,
+        lyrics: fields.lyrics.value.trim(),
+        prompt: fields.prompt.value.trim(),
         model: fields.model.value,
         count: Number(fields.count.value),
         negativePrompt: fields.negativePrompt.value.trim(),
         styleStrength: Number(fields.styleStrength.value),
         randomness: Number(fields.randomness.value),
-        instrumental: false,
+        voiceGender: fields.voiceGender.value,
+        instrumental: fields.instrumental.value,
         skipCopyrightCheck: fields.skipCopyrightCheck.checked
       };
+    }
+
+    function validateConfig(config) {
+      if (!config.reference?.blob?.size) {
+        referenceButton.focus();
+        throw Error('请选择或上传参考音频');
+      }
+      if (!config.lyrics) {
+        form.elements.lyrics.focus();
+        throw Error('请填写歌词');
+      }
+      if (!config.prompt) {
+        form.elements.prompt.focus();
+        throw Error('请填写提示词');
+      }
+    }
+
+    function persistDraft() {
+      if (!saveDraft) return;
+      try {
+        requireCurrent();
+        saveDraft({ config: readConfig(), candidates, selectedId, ...readMetadata() });
+      } catch (failure) {
+        error.textContent = failure.message || '保存配置失败，请重试';
+      }
     }
 
     function releaseReference() {
@@ -180,6 +225,17 @@
       referenceAudio.removeAttribute('src');
       if (referenceURL) URL.revokeObjectURL(referenceURL);
       referenceURL = null;
+    }
+
+    function showReference(source) {
+      const url = source.blob?.size ? URL.createObjectURL(source.blob) : null;
+      releaseReference();
+      reference = source;
+      referenceURL = url;
+      if (url) referenceAudio.src = url;
+      referenceAudio.hidden = !url;
+      referenceTitle.textContent = source.title || '参考音频';
+      referenceButton.textContent = '更换参考音频';
     }
 
     referenceButton.addEventListener('click', async () => {
@@ -193,15 +249,9 @@
         if (!isOpen() || !source) return;
         requireCurrent();
         if (!source.blob?.size) throw Error('参考音频无法读取，请重新选择');
-        const url = URL.createObjectURL(source.blob);
-        releaseReference();
-        reference = source;
-        referenceURL = url;
-        referenceAudio.src = url;
-        referenceAudio.hidden = false;
-        referenceTitle.textContent = source.title || '参考音频';
-        referenceButton.textContent = '更换参考音频';
+        showReference(source);
         invalidateResults('参考音频已选择，请生成歌曲。');
+        persistDraft();
       } catch (failure) {
         if (isOpen()) error.textContent = failure.message || '读取参考音频失败，请重试';
       } finally {
@@ -213,24 +263,33 @@
       }
     });
 
-    function settingsChanged(event) {
-      if (!settings.contains(event.target) || !event.target.matches('input, textarea, select')) return;
-      dialog.querySelector('[data-creation-strength]').textContent = form.elements.styleStrength.value;
-      dialog.querySelector('[data-creation-randomness]').textContent = form.elements.randomness.value;
-      error.textContent = '';
-      if (generatedConfig) invalidateResults('配置已修改，请重新生成歌曲。');
+    function updatePercentage(control, output) {
+      const value = `${Math.round(Number(control.value) * 100)}%`;
+      dialog.querySelector(output).textContent = value;
+      control.setAttribute('aria-valuetext', value);
     }
-    form.addEventListener('input', settingsChanged);
-    form.addEventListener('change', settingsChanged);
+
+    function settingsChanged(event) {
+      if (operation || !event.target.matches('input, textarea, select')) return;
+      updatePercentage(form.elements.styleStrength, '[data-creation-strength]');
+      updatePercentage(form.elements.randomness, '[data-creation-randomness]');
+      error.textContent = '';
+      if (generatedConfig || draftStatus === 'failed') invalidateResults('配置已修改，请重新生成歌曲。');
+      persistDraft();
+    }
+    settings.addEventListener('input', settingsChanged);
     metadata.addEventListener('input', () => {
+      if (operation) return;
       error.textContent = '';
       updateControls();
+      persistDraft();
     });
     results.addEventListener('change', event => {
       if (event.target.name !== 'outputCandidate' || !event.target.checked || operation) return;
       selectedId = event.target.value;
       error.textContent = '';
       updateControls();
+      persistDraft();
     });
 
     form.addEventListener('submit', async event => {
@@ -240,6 +299,7 @@
       try {
         requireCurrent();
         const config = readConfig();
+        validateConfig(config);
         operation = 'generating';
         invalidateResults('正在生成歌曲，请稍候…');
         const generated = await generate(config);
@@ -250,10 +310,14 @@
         }
         candidates = generated;
         generatedConfig = config;
+        draftStatus = 'confirming';
         showResults();
       } catch (failure) {
         if (isOpen()) {
-          if (operation === 'generating') invalidateResults('歌曲未生成，请重新生成。');
+          if (operation === 'generating') {
+            invalidateResults('歌曲未生成，请重新生成。');
+            draftStatus = 'failed';
+          }
           error.textContent = failure.message || '歌曲生成失败，请重试';
         }
       } finally {
@@ -278,7 +342,7 @@
         await submitPersona(candidate, generatedConfig, details);
         if (isOpen()) dialog.close();
       } catch (failure) {
-        if (isOpen()) error.textContent = failure.message || 'Persona 创建失败，请重试';
+        if (isOpen()) error.textContent = failure.message || '创建音色失败，请重试';
       } finally {
         if (isOpen()) {
           operation = '';
@@ -301,13 +365,36 @@
       releaseReference();
       results.querySelectorAll('audio').forEach(audio => audio.pause());
       dialog.remove();
+      onClose?.();
       if (trigger?.isConnected) trigger.focus();
     }, { once: true });
+
+    if (initialDraft) {
+      const fields = form.elements;
+      const config = initialDraft.config || {};
+      for (const key of ['lyrics', 'prompt', 'model', 'count', 'negativePrompt', 'styleStrength', 'randomness', 'voiceGender']) {
+        if (config[key] != null) fields[key].value = String(config[key]);
+      }
+      fields.skipCopyrightCheck.checked = Boolean(config.skipCopyrightCheck);
+      fields.personaName.value = initialDraft.name || '';
+      fields.personaStyle.value = initialDraft.style || '';
+      if (config.reference) showReference(config.reference);
+      updatePercentage(fields.styleStrength, '[data-creation-strength]');
+      updatePercentage(fields.randomness, '[data-creation-randomness]');
+
+      candidates = initialDraft.candidates || [];
+      selectedId = initialDraft.selectedId || null;
+      if (candidates.length) generatedConfig = readConfig();
+      if (draftStatus === 'failed') empty.textContent = '歌曲未生成，请重新生成。';
+      error.textContent = initialDraft.error || '';
+      showResults();
+    }
 
     document.body.append(dialog);
     dialog.showModal();
     updateControls();
-    referenceButton.focus();
+    const focusTarget = selected() ? form.elements.personaName : results.querySelector('input') || referenceButton;
+    focusTarget.focus();
     return dialog;
   }
 

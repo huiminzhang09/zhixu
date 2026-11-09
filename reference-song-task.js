@@ -74,7 +74,6 @@
   }
   const downloadIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 6v8m-3-3 3 3 3-3M7 15v3h10v-3"/></svg>';
   const materialIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 4-9 4-9-4 9-4ZM5 10l-2 2 9 4 9-4-2-2M5 15l-2 2 9 4 9-4-2-2"/><path d="m7 9 9-4M7 14l9-4M7 19l9-4"/></svg>';
-  const timbreIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11v4m4-8v12m4-9v6m4-2v5m4-7v3"/><path d="m17 2 1.3 3.7L22 7l-3.7 1.3L17 12l-1.3-3.7L12 7l3.7-1.3L17 2Z"/></svg>';
   const savedIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
   const playIcon=paused=>paused?'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 4a1.5 1.5 0 0 1 2.2-1.3l9 5.9a1.6 1.6 0 0 1 0 2.8l-9 5.9A1.5 1.5 0 0 1 5 16z" fill="currentColor"/></svg>':'<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="3" width="4" height="14" rx="1" fill="currentColor"/><rect x="12" y="3" width="4" height="14" rx="1" fill="currentColor"/></svg>';
   const downloads=new Set();
@@ -105,18 +104,10 @@
       return `<article class="song-studio-result${selected?' is-selected':backup?' is-backup':''}" aria-label="${escapeHtml(candidate.title)}">
         <div class="song-studio-result-toolbar"><span class="song-studio-result-number">${index+1}</span><div class="song-studio-result-selection" role="group" aria-label="${escapeHtml(candidate.title)}的资源状态">
         <button type="button" data-task-candidate="${escapeHtml(candidate.id)}" aria-pressed="${selected}" title="${locked?'任务已完成，输出状态不可修改':'仅可选择一个输出版本'}" ${disabled}>${selected?'✓ ':''}设为输出</button><button type="button" data-task-backup="${escapeHtml(candidate.id)}" aria-pressed="${backup}" title="${locked?'任务已完成，备选状态不可修改':backup?'点击取消备选':'可选择多个备选版本'}" ${disabled}>${backup?'✓ ':''}设为备选</button></div>
-        <div class="song-studio-result-actions" role="group" aria-label="${escapeHtml(candidate.title)}的操作"><a class="song-studio-icon-action" ${candidate.url?`href="${escapeHtml(candidate.url)}" download="${escapeHtml(audioFilename(candidate))}"`:'aria-disabled="true"'} aria-label="下载${escapeHtml(candidate.title)}" title="下载">${downloadIcon}</a><button type="button" class="song-studio-icon-action song-studio-save-material${saved?' is-saved':''}" data-save-song-material="${escapeHtml(candidate.id)}" aria-label="${escapeHtml(candidate.title)}${saved?'已保存至素材库':'保存素材'}" title="${saved?'已保存至素材库':'保存素材'}" ${saved||!candidate.url?'disabled':''}>${saved?savedIcon:materialIcon}</button><button type="button" class="song-studio-icon-action song-studio-generate-timbre" data-generate-timbre="${escapeHtml(candidate.id)}" title="生成音色" aria-label="为${escapeHtml(candidate.title)}生成音色" ${!candidate.url?'disabled':''}>${timbreIcon}</button></div></div>
+        <div class="song-studio-result-actions" role="group" aria-label="${escapeHtml(candidate.title)}的操作"><a class="song-studio-icon-action" ${candidate.url?`href="${escapeHtml(candidate.url)}" download="${escapeHtml(audioFilename(candidate))}"`:'aria-disabled="true"'} aria-label="下载${escapeHtml(candidate.title)}" title="下载">${downloadIcon}</a><button type="button" class="song-studio-icon-action song-studio-save-material${saved?' is-saved':''}" data-save-song-material="${escapeHtml(candidate.id)}" aria-label="${escapeHtml(candidate.title)}${saved?'已保存至素材库':'保存素材'}" title="${saved?'已保存至素材库':'保存素材'}" ${saved||!candidate.url?'disabled':''}>${saved?savedIcon:materialIcon}</button></div></div>
         <div class="song-studio-result-body">${player(candidate,false,index+1)}</div></article>`;
     }).join(''):'<div class="ref-output-empty"><i>♫</i><b>暂无生成歌曲</b><small>确认左侧输入后，点击“开始运行”。</small></div>';
   }
-  taskDetailPanel.addEventListener('click',event=>{
-    const button=event.target.closest('[data-generate-timbre]');
-    if(!button||button.disabled)return;
-    const task=productionTasks.find(item=>item.id===selectedTaskId);
-    const candidate=task?.candidates?.find(item=>item.id===button.dataset.generateTimbre);
-    if(!candidate?.url)return;
-    window.orchestraMaterialLibrary?.createTimbre(task,candidate);
-  });
   async function buildAudioArchive(task){
     const tracks=(task.candidates||[]).map(candidate=>({...candidate}));
     if(!tracks.length)throw new Error('暂无可下载音频');

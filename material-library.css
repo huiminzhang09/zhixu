@@ -182,7 +182,7 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 #assetsPage,#assetMaterialsPanel,#materialLibraryContent,#timbreLibraryContent{min-width:0;max-width:100%}
 .timbre-library-grid{--timbre-item-width:120px;--timbre-item-height:154px;--timbre-cover-height:98px;display:grid;grid-template-columns:repeat(auto-fill,min(100%,var(--timbre-item-width)));align-items:start;gap:32px;width:100%;min-width:0}
 .timbre-card{display:flex;flex-direction:column;min-width:0;width:100%;height:var(--timbre-item-height);padding:0;border:0;border-radius:0;background:transparent;overflow:hidden}
-.timbre-card[data-timbre-state="failed"] .timbre-cover{border-color:#d84b6145}
+.timbre-card:is([data-timbre-state="failed"],[data-timbre-state="song-failed"]) .timbre-cover{border-color:#d84b6145}
 .timbre-preview-button{display:block;flex:none;width:100%;min-width:0;padding:0;border:0;background:none;color:var(--text);font:inherit;text-align:left;cursor:pointer;border-radius:9px}
 .timbre-cover{position:relative;display:grid;place-items:center;width:100%;height:var(--timbre-cover-height);border:1px solid transparent;border-radius:9px;background:var(--surface-2);color:#ae96cf;transition:background .15s,border-color .15s}
 .timbre-cover>svg{width:48px;height:48px}
@@ -194,15 +194,6 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .timbre-library-grid>.material-add-card,.timbre-library-grid>.material-folder-item{width:100%;height:var(--timbre-item-height);min-width:0;padding:0}
 .timbre-library-grid .material-folder-cover{width:100%;height:var(--timbre-cover-height);max-width:100%}
 .timbre-library-grid .material-folder-info{min-width:0}
-
-.timbre-create-dialog{width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow:auto}
-.timbre-source{display:grid;gap:12px;margin:12px 0 24px;padding:16px;border-radius:12px;background:var(--surface-2);font-size:13px}
-.timbre-source>span{color:var(--muted)}
-.timbre-source strong{overflow-wrap:anywhere}.timbre-source audio{width:100%;height:40px}
-.timbre-create-dialog textarea{min-height:100px}
-.timbre-create-dialog [data-timbre-status]{font-size:13px;line-height:1.6;color:var(--text)}
-.timbre-create-dialog button:disabled{opacity:.4;cursor:not-allowed}
-.timbre-create-dialog button[hidden]{display:none}
 
 .timbre-breadcrumb{margin-top:20px}
 .timbre-new-folder>strong{display:block;margin-top:12px;font-size:13px;line-height:20px;font-weight:600}
@@ -240,8 +231,8 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .timbre-preview-button:disabled:hover .timbre-cover{border-color:transparent;background:var(--surface-2);color:#ae96cf}
 .timbre-card-visual{position:relative;flex:none;min-width:0}
 .timbre-generation-status{position:absolute;top:6px;right:6px;display:inline-block;max-width:calc(100% - 12px);pointer-events:none;font-size:11px;line-height:20px;padding:0 6px;border-radius:4px}
-.timbre-generation-status.is-generating{background:#31273f;color:#b998ed}
-.timbre-generation-status.is-failed{background:#43252c;color:#ee7887}
+.timbre-generation-status.is-generating,.timbre-generation-status.is-song-generating{background:#31273f;color:#b998ed}
+.timbre-generation-status.is-failed,.timbre-generation-status.is-song-failed{background:#43252c;color:#ee7887}
 .timbre-retry{position:absolute;right:6px;bottom:6px;display:grid;place-items:center;width:26px;height:26px;padding:4px;border:1px solid #9671cb88;border-radius:6px;background:var(--surface);color:#bfa1ea;cursor:pointer}
 .timbre-retry:hover{background:#3b2d4e;color:#dec8ff}
 .timbre-retry:focus-visible{outline:2px solid #b998ff;outline-offset:2px}
@@ -249,12 +240,9 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 
 .timbre-filter-toolbar{display:flex;align-items:center;flex-wrap:nowrap;gap:16px;margin:20px 0 24px;padding:2px 0;min-width:0;max-width:100%;overflow-x:auto}
 .timbre-filter-toolbar>.material-count{flex:none;white-space:nowrap}
-.timbre-filter-toolbar>label{margin-left:auto}
 .timbre-library-create{flex:none;padding:7px 13px;border:1px solid #a280df66;border-radius:8px;background:#8c60d526;color:var(--text);font:inherit;font-size:13px;white-space:nowrap;cursor:pointer}
 .timbre-library-create:hover{background:#8c60d545}
 .timbre-library-create:focus-visible{outline:2px solid #b998ff;outline-offset:2px}
-.timbre-filter-toolbar>label{display:flex;flex:none;white-space:nowrap;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
-.timbre-filter-toolbar select{padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--text);font:inherit}
 .timbre-card{position:relative}
 .timbre-card-info strong{padding-right:24px}
 .timbre-more{position:absolute;right:0;top:106px;display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:5px;background:var(--surface-2);color:var(--muted);font-size:20px;line-height:1;cursor:pointer;opacity:0}
@@ -283,3 +271,23 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .timbre-picker-details>span{font-size:12px;color:var(--muted)}
 .timbre-picker-details small{font-size:11px;color:var(--muted)}
 .timbre-picker-empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
+
+.timbre-generation-status.is-draft { background: var(--surface-2); color: var(--muted); }
+.timbre-generation-status.is-confirming { background: #413224; color: #eec68c; }
+.timbre-status-trigger {
+  display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; padding: 7px 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text);
+  font: inherit; font-size: 13px; white-space: nowrap; cursor: pointer;
+}
+.timbre-status-trigger > span { color: var(--muted); }
+.timbre-status-popover {
+  position: fixed; inset: auto; margin: 0; width: min(220px, calc(100vw - 16px)); max-height: calc(100dvh - 16px);
+  overflow: auto; padding: 10px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--text); box-shadow: var(--shadow);
+}
+.timbre-status-popover-heading { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 6px; font-size: 13px; }
+.timbre-status-popover-heading button { padding: 4px; border: 0; background: none; color: var(--muted); font: inherit; cursor: pointer; }
+.timbre-status-popover-heading button:disabled { opacity: .5; cursor: default; }
+.timbre-status-popover label { display: flex; align-items: center; gap: 8px; padding: 8px 6px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+.timbre-status-popover label:hover { background: var(--surface-2); }
+.timbre-status-popover input { margin: 0; accent-color: #9c72ed; }

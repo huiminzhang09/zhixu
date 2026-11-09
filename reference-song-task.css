@@ -135,5 +135,3 @@
 @media (max-width: 1180px) { .song-studio-columns { grid-template-columns: minmax(0,1.3fr) minmax(260px,1fr); gap: 10px; padding: 12px; } .song-studio-scroll { padding: 14px; } .song-studio-actions { padding: 14px; gap: 8px; } .song-studio-actions button { padding: 0 9px; } }
 @media (max-width: 760px) { .song-studio-columns { grid-template-columns: 1fr; } .song-studio-panel { height: auto; max-height: none; } .song-studio-input .song-studio-scroll { max-height: 620px; } .song-studio-output .song-studio-scroll { max-height: 560px; } .song-studio-header { padding: 16px; } .song-studio-header .ref-workbench-meta { gap: 6px; } .song-studio-header h2 { font-size: 14px; } }
 
-.song-studio-icon-action.song-studio-generate-timbre:disabled{opacity:.45;cursor:not-allowed}
-.song-studio-icon-action.song-studio-generate-timbre:focus-visible{outline:2px solid #b998ff;outline-offset:2px}

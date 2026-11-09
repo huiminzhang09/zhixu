@@ -611,9 +611,9 @@
       showToast('文件夹已创建');
     });
   }
-  q('#timbreLibraryContent').addEventListener('click', event => {
+  q('#timbreLibraryContent').addEventListener('click', async event => {
     try {
-      if (event.target.closest('[data-create-library-timbre]')) { openLibraryTimbreCreation(); return; }
+      if (event.target.closest('[data-create-library-timbre]')) { await openLibraryTimbreCreation(); return; }
       const create = event.target.closest('[data-create-timbre-folder]');
       if (create) { if (!create.disabled) openTimbreFolderForm(); return; }
       const target = event.target.closest('[data-open-timbre-folder]');
@@ -624,7 +624,16 @@
     } catch (error) { showToast(error.message, 'error'); }
   });
   const timbreJobs = new Map(), timbreUnpersistedJobs = new Set();
-  const timbreStatus = item => item.status || (item.blobId || item.url ? 'succeeded' : 'failed');
+  const timbreStateLabels = {
+    draft: '待生成歌曲', 'song-generating': '歌曲生成中', 'song-failed': '歌曲生成失败',
+    confirming: '待确认',
+    generating: '音色生成中', succeeded: '生成成功', failed: '生成失败'
+  };
+  let openingLibraryTimbre = false;
+  function timbreStatus(item) {
+    if (item.status === 'failed' && item.draft) return 'song-failed';
+    return item.status || (item.blobId || item.url ? 'succeeded' : 'failed');
+  }
   function refreshTimbreScope(key) {
     if (key === timbreStorageKey() && selectedLibrary === 'timbre') render();
   }
@@ -670,127 +679,196 @@
   function resumeTimbreJobs() {
     migrateTeamTimbres();
     const key = timbreStorageKey();
-    readTimbres(key).filter(item => timbreStatus(item) === 'generating').forEach(item => runTimbreJob(key, item.id));
+    for (const item of readTimbres(key)) {
+      const status = timbreStatus(item);
+      if (status === 'generating') runTimbreJob(key, item.id);
+      if (status === 'song-generating') runSongDraftJob(key, item.id).catch(() => {});
+    }
   }
-  function submitTimbreGeneration(context, source, name, style, details = {}) {
+  function submitTimbreGeneration(context, source, name, style, { draftRecord, generationConfig }) {
     requireTimbreManagement(context);
     migrateTeamTimbres(context.team);
-    name = titleValue(name); style = String(style || '').trim();
+    name = titleValue(name);
+    style = String(style || '').trim();
     if (!style) throw Error('请输入音色风格');
     if (Array.from(style).length > 200) throw Error('风格不能超过 200 个字符');
-    const item = { id: crypto.randomUUID(), name, style, source: { id: source.id, title: source.title, url: source.url, blobId: source.blobId }, sourceName: source.title, sourceId: source.id, status: 'generating', attemptId: crypto.randomUUID(), createdAt: new Date().toISOString(), savedBy: context.account, demo: true };
-    if (details.folderId) {
-      timbreFolderPath(readTimbreFolders(timbreFolderKey(context.team)), details.folderId);
-      item.folderId = details.folderId;
-    }
-    if (details.generationConfig) item.generationConfig = details.generationConfig;
-    const key = timbreStorageKey(context.team);
-    localStorage.setItem(key, JSON.stringify([item, ...readTimbres(key)]));
+    const key = timbreStorageKey(context.team), records = readTimbres(key);
+    const previous = records.find(record => record.id === draftRecord.id);
+    if (previous?.status !== 'confirming' || previous.draft?.revision !== draftRecord.draft.revision) throw Error('该任务已更新，请重新打开');
+    const item = {
+      id: previous.id, name, style,
+      source: { id: source.id, title: source.title, url: source.url, blobId: source.blobId },
+      sourceName: source.title, sourceId: source.id,
+      status: 'generating', attemptId: crypto.randomUUID(), generationConfig,
+      createdAt: previous.createdAt, savedBy: previous.savedBy, folderId: previous.folderId, demo: true
+    };
+    localStorage.setItem(key, JSON.stringify(records.map(record => record.id === item.id ? item : record)));
     runTimbreJob(key, item.id);
-    return item;
   }
-  function openLibraryTimbreCreation() {
+  function runSongDraftJob(key, id) {
+    const jobKey = JSON.stringify(['song', key, id]);
+    if (timbreUnpersistedJobs.has(jobKey)) return Promise.reject(Error('歌曲状态无法保存，请刷新后重试'));
+    if (timbreJobs.has(jobKey)) return timbreJobs.get(jobKey);
+    const started = readTimbres(key).find(item => item.id === id && item.status === 'song-generating');
+    if (!started?.draft) return Promise.reject(Error('歌曲生成任务已变更，请重新打开'));
+    const finish = (status, candidates, error = '') => {
+      const records = readTimbres(key);
+      const current = records.find(item => item.id === id);
+      if (current?.attemptId !== started.attemptId) return null;
+      if (current.status !== 'song-generating') return current;
+      const next = { ...current, status, error, updatedAt: new Date().toISOString(), draft: { ...current.draft, candidates } };
+      localStorage.setItem(key, JSON.stringify(records.map(item => item.id === id ? next : item)));
+      return next;
+    };
+    const job = (async () => {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 1600));
+        const config = started.draft.config;
+        const audio = await fileOperation('get', config.reference?.blobId);
+        if (!audio?.size) throw Error('参考音频不可用，请重新选择后生成歌曲');
+        const demoSongs = window.orchestraReferenceSongTask?.candidates;
+        if (!demoSongs) throw Error('歌曲生成暂时不可用，请重试');
+        const name = Array.from(config.reference.title.replace(/\.[a-z0-9]+$/i, '').trim() || '参考音频').slice(0, 42).join('');
+        const results = demoSongs(false, config.count);
+        if (!Array.isArray(results) || results.length !== config.count || results.some(result => !result.url)) throw Error('歌曲生成结果不完整，请重试');
+        const candidates = results.map((candidate, index) => ({
+          ...candidate, id: `${started.attemptId}:${index + 1}`, title: `${name} · 版本 ${index + 1}`
+        }));
+        const completed = finish('confirming', candidates);
+        if (completed?.status !== 'confirming') throw Error('歌曲生成任务已变更，请重新打开');
+        return completed.draft.candidates;
+      } catch (error) {
+        try { finish('failed', [], error.message || '歌曲生成失败，请重试'); }
+        catch { timbreUnpersistedJobs.add(jobKey); }
+        throw error;
+      } finally {
+        timbreJobs.delete(jobKey);
+        refreshTimbreScope(key);
+      }
+    })();
+    timbreJobs.set(jobKey, job);
+    return job;
+  }
+
+  async function openLibraryTimbreCreation(existingId) {
+    if (openingLibraryTimbre || document.querySelector('.timbre-creation[open]')) return;
     const context = timbreContext();
     requireTimbreManagement(context);
     const studio = window.orchestraTimbreCreation, picker = window.orchestraTaskAudioPicker;
-    const generateDemoSongs = window.orchestraReferenceSongTask?.candidates;
-    if (!studio || !picker || !generateDemoSongs) throw Error('创建音色暂时不可用，请刷新后重试');
-    const folderId = timbreFolderLocations.get(timbreFolderKey(context.team)) || null;
-    const isCurrent = () => selectedLibrary === 'timbre' && !timbreManagementReason(context);
-    let reference = null, generation = null;
-
-    studio.open({
-      isCurrent,
-      async chooseReference() {
-        requireTimbreManagement(context);
-        const [selection] = await picker.open({ max: 1, includeWorkflow: false, title: '选择参考音频', isCurrent }) || [];
-        if (!selection) return null;
-        requireTimbreManagement(context);
-        const blob = selection.kind === 'file' ? selection.file : await materialBlob(selection.record);
-        if (!isCurrent()) throw Error('账号或团队已切换，请重新选择参考音频');
-        if (!blob?.size) throw Error('无法读取参考音频，请重新选择');
-        reference = {
-          title: selection.record?.title || selection.file?.name || '参考音频',
-          id: selection.record?.id || '',
-          sourceLibrary: selection.record?.sourceLibrary || 'upload',
-          blob
-        };
-        generation = null;
-        return reference;
-      },
-      generate(config) {
-        requireTimbreManagement(context);
-        generation = null;
-        if (!reference || config.reference !== reference) throw Error('请选择参考音频');
-        if (!config.lyrics?.trim() || !config.prompt?.trim()) throw Error('请填写歌词和提示词');
-        if (config.model !== 'hawk-v6' || ![2, 4].includes(config.count)) throw Error('请选择有效的模型版本和生成数量');
-        const name = Array.from(reference.title.replace(/\.[a-z0-9]+$/i, '').trim() || '参考音频').slice(0, 42).join('');
-        const candidates = generateDemoSongs(true, config.count).map((candidate, index) => ({
-          ...candidate,
-          id: candidate.generationId,
-          title: `${name} · 版本 ${index + 1}`
-        }));
-        generation = {
-          candidates,
-          config: {
-            reference: { id: reference.id, title: reference.title, sourceLibrary: reference.sourceLibrary },
-            lyrics: config.lyrics.trim(), prompt: config.prompt.trim(), model: config.model, count: config.count,
-            negativePrompt: config.negativePrompt, styleStrength: config.styleStrength, randomness: config.randomness,
-            instrumental: false, skipCopyrightCheck: Boolean(config.skipCopyrightCheck)
-          }
-        };
-        return candidates;
-      },
-      submitPersona(candidate, _generatedConfig, { name, style } = {}) {
-        requireTimbreManagement(context);
-        const source = generation?.candidates.find(result => result.id === candidate?.id);
-        if (!source) throw Error('请先选择一个本次生成的结果');
-        submitTimbreGeneration(context, source, String(name || ''), style, { folderId, generationConfig: generation.config });
-        generation = null;
-        timbreFilters.delete(timbreStorageKey(context.team));
-        render();
-        showToast('已提交 Persona 生成，可在音色库查看进度');
+    if (!studio || !picker || !window.orchestraReferenceSongTask?.candidates) throw Error('创建音色暂时不可用，请刷新后重试');
+    const key = timbreStorageKey(context.team), id = existingId || crypto.randomUUID();
+    const original = existingId ? readTimbres(key).find(item => item.id === id) : null;
+    if (existingId && (!original?.draft || original.status === 'song-generating')) throw Error('当前任务暂时不可继续');
+    const folderId = original?.folderId ?? timbreFolderLocations.get(timbreFolderKey(context.team)) ?? null;
+    let revision = original?.draft?.revision;
+    let dialog, unsavedAudioId;
+    const isCurrent = () => selectedLibrary === 'timbre' && !timbreManagementReason(context) && (!dialog || dialog.open);
+    const discardAudio = blobId => {
+      if (blobId) fileOperation('delete', blobId).catch(() => {});
+    };
+    function writableDraft() {
+      requireTimbreManagement(context);
+      const current = readTimbres(key).find(item => item.id === id);
+      if (current && (!current.draft || current.status === 'song-generating' || current.draft.revision !== revision)) {
+        throw Error('该任务已更新，请关闭后重新打开');
       }
-    });
+      return current;
+    }
+    function saveDraft({ config, candidates, selectedId, name, style }) {
+      const current = writableDraft();
+      const reference = config.reference || (candidates.length ? current?.draft.config.reference : null);
+      const previousAudioId = current?.draft.config.reference?.blobId;
+      const nextRevision = crypto.randomUUID();
+      const next = {
+        ...current, id, name: name || '未命名音色', style,
+        folderId: current ? current.folderId : folderId,
+        savedBy: current?.savedBy || context.account,
+        createdAt: current?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(), status: candidates.length ? 'confirming' : 'draft', error: '',
+        draft: {
+          config: { ...config, reference: reference ? { id: reference.id, title: reference.title, sourceLibrary: reference.sourceLibrary, blobId: reference.blobId } : null },
+          candidates, selectedId, name, style, revision: nextRevision
+        }
+      };
+      const records = readTimbres(key);
+      localStorage.setItem(key, JSON.stringify(current ? records.map(item => item.id === id ? next : item) : [next, ...records]));
+      revision = nextRevision;
+      if (unsavedAudioId === reference?.blobId) unsavedAudioId = null;
+      if (previousAudioId !== reference?.blobId) discardAudio(previousAudioId);
+    }
+    openingLibraryTimbre = true;
+    try {
+      let initialDraft = null;
+      if (original?.draft) {
+        const savedReference = original.draft.config.reference;
+        const blob = savedReference?.blobId ? await fileOperation('get', savedReference.blobId).catch(() => null) : null;
+        initialDraft = {
+          ...original.draft,
+          config: { ...original.draft.config, reference: blob?.size ? { ...savedReference, blob } : null },
+          status: original.status,
+          error: original.error || (savedReference && !blob?.size ? '参考音频不可用，可重新选择。' : '')
+        };
+        writableDraft();
+      }
+      if (!isCurrent()) throw Error('账号或团队已切换，请重新打开创建音色');
+      dialog = studio.open({
+        isCurrent, initialDraft, saveDraft,
+        onClose() { discardAudio(unsavedAudioId); refreshTimbreScope(key); },
+        async chooseReference() {
+          writableDraft();
+          const [selection] = await picker.open({ max: 1, includeWorkflow: false, title: '选择参考音频', isCurrent }) || [];
+          if (!selection) return null;
+          const blob = selection.kind === 'file' ? selection.file : await materialBlob(selection.record);
+          if (!isCurrent()) throw Error('账号或团队已切换，请重新选择参考音频');
+          if (!blob?.size) throw Error('无法读取参考音频，请重新选择');
+          const blobId = 'timbre-draft-reference:' + crypto.randomUUID();
+          await fileOperation('put', blobId, blob);
+          if (!isCurrent()) { discardAudio(blobId); return null; }
+          discardAudio(unsavedAudioId);
+          unsavedAudioId = blobId;
+          return {
+            title: selection.record?.title || selection.file?.name || '参考音频',
+            id: selection.record?.id || '', sourceLibrary: selection.record?.sourceLibrary || 'upload', blob, blobId
+          };
+        },
+        generate(config) {
+          const current = writableDraft();
+          if (!current?.draft.config.reference?.blobId || config.reference?.blobId !== current.draft.config.reference.blobId) throw Error('请选择并保存参考音频');
+          if (!config.lyrics?.trim() || !config.prompt?.trim()) throw Error('请填写歌词和提示词');
+          if (config.model !== 'hawk-v6' || ![2, 4].includes(config.count)) throw Error('请选择有效的模型版本和生成数量');
+          const next = {
+            ...current, status: 'song-generating', error: '', attemptId: crypto.randomUUID(), updatedAt: new Date().toISOString(),
+            draft: { ...current.draft, config: { ...config, reference: current.draft.config.reference }, candidates: [], selectedId: null }
+          };
+          localStorage.setItem(key, JSON.stringify(readTimbres(key).map(item => item.id === id ? next : item)));
+          const job = runSongDraftJob(key, id);
+          refreshTimbreScope(key);
+          return job;
+        },
+        submitPersona(candidate, _generatedConfig, { name, style } = {}) {
+          const current = writableDraft();
+          const source = current?.draft.candidates.find(result => result.id === candidate?.id);
+          if (current?.status !== 'confirming' || !source || current.draft.selectedId !== source.id) throw Error('请先选择并保存一个本次生成的结果');
+          const { reference, ...config } = current.draft.config;
+          const generationConfig = { ...config, reference: { id: reference?.id, title: reference?.title, sourceLibrary: reference?.sourceLibrary } };
+          submitTimbreGeneration(context, source, String(name || ''), style, { draftRecord: current, generationConfig });
+          discardAudio(reference?.blobId);
+          timbreFilters.delete(key);
+          render();
+          showToast('已提交音色生成，可在音色库查看进度');
+        }
+      });
+    } finally {
+      openingLibraryTimbre = false;
+    }
   }
   function retryTimbreGeneration(id) {
     requireTimbreManagement();
     const key = timbreStorageKey(), records = readTimbres(key), current = records.find(item => item.id === id);
-    if (!current || timbreStatus(current) !== 'failed') return;
+    if (!current || current.draft || timbreStatus(current) !== 'failed') return;
     const next = { ...current, status: 'generating', error: '', attemptId: crypto.randomUUID(), updatedAt: new Date().toISOString() };
     localStorage.setItem(key, JSON.stringify(records.map(item => item.id === id ? next : item)));
     runTimbreJob(key, id); render();
-  }
-  function createTimbre(task, candidate) {
-    if (document.querySelector('#createTimbreDialog')) return;
-    const context = { team: taskTeam(task), account: currentAccount() }, source = { ...candidate }, trigger = document.activeElement;
-    const reason = timbreManagementReason(context);
-    if (reason) { showToast(reason, 'error'); return; }
-    const dialog = document.createElement('dialog');
-    dialog.id = 'createTimbreDialog'; dialog.className = 'material-dialog timbre-create-dialog'; dialog.setAttribute('aria-labelledby', 'createTimbreTitle');
-    dialog.innerHTML = `<form><header><h2 id="createTimbreTitle">创建音色</h2><button type="button" data-timbre-close aria-label="关闭" title="关闭">×</button></header><section class="timbre-source"><span>原音频</span><strong>${escapeHtml(source.title || '生成歌曲')}</strong><audio controls preload="metadata" src="${escapeHtml(source.url || '')}" aria-label="试听原音频"></audio></section><label>名称 <span>*</span><input name="title" required maxlength="100" placeholder="请输入音色名称，最多 50 个字符" autocomplete="off"></label><label>风格 <span>*</span><textarea name="style" required maxlength="400" placeholder="例如：温暖、细腻、轻柔的流行唱法"></textarea></label><p class="material-dialog-hint">交互演示：保存原音频用于试听，暂未接入真实音色提取服务。</p><p data-timbre-status role="status" aria-live="polite">提交创建后即可关闭，可在音色库查看生成进度。</p><p class="material-dialog-error" role="alert"></p><footer><button type="button" data-timbre-close>关闭</button><button type="submit" class="material-primary">生成音色</button></footer></form>`;
-    const form = dialog.querySelector('form'), audio = dialog.querySelector('audio'), status = dialog.querySelector('[data-timbre-status]'), error = dialog.querySelector('.material-dialog-error'), submit = dialog.querySelector('[type=submit]');
-    let submitted = false;
-    form.elements.title.value = Array.from(source.title || '').slice(0, 50).join('');
-    dialog.querySelectorAll('[data-timbre-close]').forEach(button => button.addEventListener('click', () => { dialog.close(); }));
-    audio.addEventListener('play', () => document.querySelectorAll('audio').forEach(other => { if (other !== audio) other.pause(); }));
-    form.addEventListener('submit', event => {
-      event.preventDefault(); if (submitted) return;
-      error.textContent = '';
-      if (!form.reportValidity()) return;
-      try {
-        submitTimbreGeneration(context, source, form.elements.title.value, form.elements.style.value);
-        submitted = true;
-        form.elements.title.readOnly = form.elements.style.readOnly = true;
-        submit.hidden = true;
-        status.textContent = '创建已提交，可关闭弹窗。音色正在生成，成功后才可使用；失败后可在音色库重新生成。';
-        dialog.querySelector('footer [data-timbre-close]').textContent = '完成并关闭';
-        dialog.querySelector('footer [data-timbre-close]').focus();
-      } catch (failure) { error.textContent = failure.message || '创建失败，请重试'; }
-    });
-    dialog.addEventListener('close', () => { audio.pause(); dialog.remove(); render(); if (trigger?.isConnected) trigger.focus(); }, { once: true });
-    document.querySelectorAll('audio').forEach(other => other.pause());
-    document.body.append(dialog); dialog.showModal(); form.elements.title.focus();
   }
   const timbreExamples = [
     { id: 'timbre-demo-a', name: '温暖抒情（生成示例）', status: 'succeeded', description: '温暖柔和的抒情风格（示例）', url: './assets/reference-song-result-a.wav' },
@@ -804,6 +882,8 @@
     const referenceLibrary = libraries[reference?.sourceLibrary];
     const referenceLabel = referenceTitle && referenceLibrary ? `${referenceTitle}（${referenceLibrary}）` : referenceTitle;
     const booleanValue = value => typeof value === 'boolean' ? (value ? '是' : '否') : null;
+    const percentageValue = value => Number.isFinite(value) ? `${Math.round(value * 100)}%` : null;
+    const voiceGenderLabels = { unspecified: '不指定', female: '女声', male: '男声' };
     const field = (label, value, wide = false) => `<div class="timbre-detail-field${wide ? ' is-wide' : ''}">
       <dt>${label}</dt><dd>${escapeHtml(value ?? '未记录')}</dd>
     </div>`;
@@ -816,9 +896,10 @@
         ${field('歌词', config.lyrics, true)}
         ${field('提示词', config.prompt, true)}
         ${field('反向提示词', config.negativePrompt === '' ? '未填写' : config.negativePrompt, true)}
-        ${field('风格强度', config.styleStrength)}
-        ${field('随机度', config.randomness)}
-        ${field('生成纯音乐', booleanValue(config.instrumental))}
+        ${field('风格强度', percentageValue(config.styleStrength))}
+        ${field('随机度', percentageValue(config.randomness))}
+        ${field('人声性别', voiceGenderLabels[config.voiceGender])}
+        ${field('生成纯音乐', config.instrumental === 'unspecified' ? '不指定' : booleanValue(config.instrumental))}
         ${field('跳过版权检查', booleanValue(config.skipCopyrightCheck))}
       </dl>
     </section>`;
@@ -908,21 +989,53 @@
     if (timbreManagementReason()) return '';
     return `<button type="button" class="timbre-more" data-timbre-move-kind="${kind}" data-timbre-move-id="${escapeHtml(item.id)}" title="更多操作" aria-label="${escapeHtml(item.name)}的更多操作" aria-haspopup="menu" aria-expanded="false">⋯</button>`;
   }
+  function currentTimbreFilters() {
+    return timbreFilters.get(timbreStorageKey()) || { name: '', statuses: [] };
+  }
   function filteredTimbres(records, filters, folderId) {
-    const keyword = normalizeSearch(filters.name), searching = Boolean(keyword || filters.status);
-    return records.filter(item => (searching || (item.folderId || null) === folderId) && (!keyword || normalizeSearch(item.name).includes(keyword)) && (!filters.status || timbreStatus(item) === filters.status));
+    const keyword = normalizeSearch(filters.name), statuses = new Set(filters.statuses);
+    const searching = Boolean(keyword || statuses.size);
+    return records.filter(item => (searching || (item.folderId || null) === folderId)
+      && (!keyword || normalizeSearch(item.name).includes(keyword))
+      && (!statuses.size || statuses.has(timbreStatus(item))));
   }
-  function updateTimbreFilter(event) {
-    const key = timbreStorageKey(), filters = timbreFilters.get(key) || { name: '', status: '' };
-    filters[event.currentTarget.id === 'timbreNameSearch' ? 'name' : 'status'] = event.currentTarget.value;
-    timbreFilters.set(key, filters); if (!event.isComposing) render();
+  function updateTimbreNameFilter(event) {
+    timbreFilters.set(timbreStorageKey(), { ...currentTimbreFilters(), name: event.currentTarget.value });
+    if (!event.isComposing) render();
   }
-  q('#timbreNameSearch').addEventListener('input', updateTimbreFilter);
-  q('#timbreNameSearch').addEventListener('compositionend', updateTimbreFilter);
-  q('#timbreStatusFilter').addEventListener('change', updateTimbreFilter);
+  q('#timbreNameSearch').addEventListener('input', updateTimbreNameFilter);
+  q('#timbreNameSearch').addEventListener('compositionend', updateTimbreNameFilter);
   q('#clearTimbreSearch').addEventListener('click', () => {
-    const key = timbreStorageKey(), filters = timbreFilters.get(key) || { name: '', status: '' };
-    filters.name = ''; timbreFilters.set(key, filters); render(); q('#timbreNameSearch').focus();
+    timbreFilters.set(timbreStorageKey(), { ...currentTimbreFilters(), name: '' });
+    render(); q('#timbreNameSearch').focus();
+  });
+  const statusPopover = q('#timbreStatusOptions');
+  statusPopover.querySelector('[data-timbre-status-options]').innerHTML = Object.entries(timbreStateLabels).map(([value, label]) =>
+    `<label><input type="checkbox" value="${value}">${label}</label>`).join('');
+  function renderTimbreStatusFilter(statuses) {
+    statusPopover.querySelectorAll('input').forEach(input => { input.checked = statuses.includes(input.value); });
+    const label = statuses.length > 1 ? `已选 ${statuses.length} 项` : timbreStateLabels[statuses[0]] || '全部状态';
+    q('#timbreStatusFilter [data-timbre-status-summary]').textContent = label;
+    q('#timbreStatusFilter').title = statuses.map(status => timbreStateLabels[status]).join('、') || '全部状态';
+    statusPopover.querySelector('[data-clear-timbre-status]').disabled = !statuses.length;
+  }
+  statusPopover.addEventListener('change', () => {
+    const statuses = [...statusPopover.querySelectorAll('input:checked')].map(input => input.value);
+    timbreFilters.set(timbreStorageKey(), { ...currentTimbreFilters(), statuses }); render();
+  });
+  statusPopover.querySelector('[data-clear-timbre-status]').addEventListener('click', () => {
+    timbreFilters.set(timbreStorageKey(), { ...currentTimbreFilters(), statuses: [] }); render();
+    statusPopover.querySelector('input')?.focus();
+  });
+  statusPopover.addEventListener('toggle', event => {
+    const trigger = q('#timbreStatusFilter');
+    trigger.setAttribute('aria-expanded', String(event.newState === 'open'));
+    if (event.newState !== 'open') return;
+    const rect = trigger.getBoundingClientRect();
+    const left = Math.max(8, Math.min(rect.left, innerWidth - statusPopover.offsetWidth - 8));
+    const below = rect.bottom + 6;
+    const top = below + statusPopover.offsetHeight <= innerHeight - 8 ? below : Math.max(8, rect.top - statusPopover.offsetHeight - 6);
+    statusPopover.style.left = `${left}px`; statusPopover.style.top = `${top}px`;
   });
   function listUsableTimbres(team = activeTeam()) {
     if (team !== activeTeam()) throw Error('团队已切换，请重新选择音色');
@@ -1014,11 +1127,11 @@
     const createButton = q('[data-create-library-timbre]');
     createButton.hidden = true;
     requireTimbreAccess(); migrateTeamTimbres(); seedTimbreExamples(); seedFailedTimbreExample();
-    const filters = timbreFilters.get(timbreStorageKey()) || { name: '', status: '' };
-    const searching = Boolean(normalizeSearch(filters.name) || filters.status), managementReason = timbreManagementReason(), canManage = !managementReason;
+    const filters = currentTimbreFilters();
+    const searching = Boolean(normalizeSearch(filters.name) || filters.statuses.length), managementReason = timbreManagementReason(), canManage = !managementReason;
     createButton.hidden = !canManage;
     const input = q('#timbreNameSearch'); if (input.value !== filters.name) input.value = filters.name;
-    q('#timbreStatusFilter').value = filters.status; q('#clearTimbreSearch').hidden = !filters.name;
+    renderTimbreStatusFilter(filters.statuses); q('#clearTimbreSearch').hidden = !filters.name;
     const folders = readTimbreFolders(), key = timbreFolderKey();
     let folderId = timbreFolderLocations.get(key) || null;
     if (folderId && !folders.some(folder => folder.id === folderId)) { folderId = null; timbreFolderLocations.delete(key); }
@@ -1030,14 +1143,24 @@
     const folderCards = (searching ? '' : `<div class="material-add-card" role="listitem"><button type="button" class="material-new-folder timbre-new-folder" data-create-timbre-folder ${canCreate ? '' : 'disabled'} aria-label="新建文件夹" title="${canCreate ? '新建文件夹' : escapeHtml(managementReason || '最多支持两级文件夹，根目录不计入层级')}"><span class="material-folder-cover" aria-hidden="true">${folderArtwork}<span>＋</span></span><strong>新建文件夹</strong></button></div>`) + children.map(folder => `<div class="material-folder-item" role="listitem"><button type="button" class="material-folder-card" data-open-timbre-folder="${escapeHtml(folder.id)}" aria-label="打开文件夹：${escapeHtml(folder.name)}"><span class="material-folder-cover" aria-hidden="true">${folderArtwork}</span><span class="material-folder-info"><strong title="${escapeHtml(folder.name)}">${escapeHtml(folder.name)}</strong><time>${materialDate(folder.createdAt)}</time></span></button>${timbreMoveButton('folder', folder)}</div>`).join('');
     const grid = q('#timbreLibraryGrid');
     grid.innerHTML = folderCards + items.map(item => {
-      const state = timbreStatus(item), ready = state === 'succeeded', label = state === 'generating' ? '生成中' : '生成失败';
-      return `<div class="timbre-card" data-timbre-state="${state}" role="listitem"><div class="timbre-card-visual"><button type="button" class="timbre-preview-button" ${ready ? 'aria-haspopup="dialog"' : 'disabled'} aria-label="${escapeHtml(item.name)}，${ready ? '打开试听弹窗' : label}" title="${ready ? '点击试听' : '生成成功后才可使用'}"><span class="timbre-cover">${timbreArtwork}</span></button>${!ready ? `<span class="timbre-generation-status is-${state}" role="status">${label}</span>` : ''}${state === 'failed' && canManage ? `<button type="button" class="timbre-retry" data-retry-timbre="${escapeHtml(item.id)}" title="重新生成" aria-label="重新生成${escapeHtml(item.name)}"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 8a6.2 6.2 0 1 0 .1 4M16 3v5h-5"/></svg></button>` : ''}</div><div class="timbre-card-info"><strong title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</strong><p title="${escapeHtml(item.description || item.style || '暂无音色描述')}">${escapeHtml(item.description || item.style || '暂无音色描述')}</p></div>${timbreMoveButton('timbre', item)}</div>`;
+      const state = timbreStatus(item), ready = state === 'succeeded';
+      const resume = canManage && item.draft && state !== 'song-generating';
+      const label = timbreStateLabels[state] || '生成失败';
+      const action = ready ? '打开试听弹窗' : resume ? '继续创建音色' : label;
+      return `<div class="timbre-card" data-timbre-state="${state}" role="listitem"><div class="timbre-card-visual"><button type="button" class="timbre-preview-button" ${ready || resume ? 'aria-haspopup="dialog"' : 'disabled'} aria-label="${escapeHtml(item.name)}，${action}" title="${action}"><span class="timbre-cover">${timbreArtwork}</span></button>${!ready ? `<span class="timbre-generation-status is-${state}" role="status">${label}</span>` : ''}${state === 'failed' && canManage && !item.draft ? `<button type="button" class="timbre-retry" data-retry-timbre="${escapeHtml(item.id)}" title="重新生成" aria-label="重新生成${escapeHtml(item.name)}"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 8a6.2 6.2 0 1 0 .1 4M16 3v5h-5"/></svg></button>` : ''}</div><div class="timbre-card-info"><strong title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</strong><p title="${escapeHtml(item.description || item.style || '暂无音色描述')}">${escapeHtml(item.description || item.style || '暂无音色描述')}</p></div>${timbreMoveButton('timbre', item)}</div>`;
     }).join('') + (searching && !items.length ? '<p class="timbre-no-results" role="status">未找到匹配的音色，请调整名称或状态条件。</p>' : '');
     grid.querySelectorAll('[data-timbre-move-id]').forEach(button => button.addEventListener('click', () => {
       openMenu(button, [{ label: '移动到', action: () => openTimbreMove(button.dataset.timbreMoveKind, button.dataset.timbreMoveId) }]);
     }));
     grid.querySelectorAll('.timbre-preview-button').forEach((button, index) => {
-      button.addEventListener('click', () => { if (!button.disabled) openTimbrePlayback(items[index]); });
+      button.addEventListener('click', async () => {
+        if (button.disabled) return;
+        const item = items[index];
+        try {
+          if (item.draft) await openLibraryTimbreCreation(item.id);
+          else await openTimbrePlayback(item);
+        } catch (error) { showToast(error.message, 'error'); }
+      });
     });
     grid.querySelectorAll('[data-retry-timbre]').forEach(button => button.addEventListener('click', () => {
       try { retryTimbreGeneration(button.dataset.retryTimbre); } catch (error) { showToast(error.message || '重新生成失败，请重试', 'error'); }
@@ -1674,7 +1797,7 @@
   document.addEventListener('pointerdown', event => { if (activeMenu && !insideActiveMenu(event.target)) closeMenu(); });
   window.addEventListener('resize', () => closeMenu());
   document.addEventListener('scroll', event => { if (activeMenu && !insideActiveMenu(event.target)) closeMenu(); }, true);
-  window.orchestraMaterialLibrary = { hasSaved, save, folderArtwork, createTimbre, listUsableTimbres, validateTimbreSelection, timbreSelectionMarkup, openTimbrePicker };
+  window.orchestraMaterialLibrary = { hasSaved, save, folderArtwork, listUsableTimbres, validateTimbreSelection, timbreSelectionMarkup, openTimbrePicker };
   Object.assign(window.orchestraMaterialLibrary, {
     listForComposition(team = activeTeam()) {
       if (team !== activeTeam()) throw new Error('当前团队已变更，请重新打开成品');

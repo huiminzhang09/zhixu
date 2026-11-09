@@ -299,3 +299,33 @@
   padding: 8px 10px;
   font-size: 13px;
 }
+
+.timbre-creation-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.timbre-creation-phase {
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.timbre-creation-phase[data-phase="generating"],
+.timbre-creation-phase[data-phase="confirming"] {
+  border-color: #9872df66;
+  background: #9872df22;
+  color: var(--text);
+}
+
+.timbre-creation-phase[data-phase="failed"] {
+  border-color: #e9768166;
+  background: #e9768120;
+  color: #e97681;
+}
