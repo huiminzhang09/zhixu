@@ -1,0 +1,301 @@
+.material-dialog.timbre-creation {
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+  padding: 0;
+}
+
+.timbre-creation form {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 34px);
+}
+
+.timbre-creation form > header {
+  flex: none;
+  margin: 0;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.timbre-creation header p {
+  margin: 6px 0 0;
+}
+
+.timbre-creation-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr);
+  gap: 22px;
+  min-height: 0;
+  padding: 20px 24px;
+  overflow: auto;
+}
+
+.timbre-creation-settings,
+.timbre-creation-count {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.timbre-creation-settings > legend,
+.timbre-creation-results h3 {
+  margin: 0 0 12px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.timbre-creation-reference {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.timbre-creation-reference-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.timbre-creation-reference-heading strong {
+  font-size: 14px;
+}
+
+.timbre-creation-reference-heading strong > span {
+  color: #e97681;
+}
+
+.timbre-creation-reference-heading button {
+  padding: 6px 9px;
+  font-size: 13px;
+}
+
+.timbre-creation-reference p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.timbre-creation audio {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  margin-top: 10px;
+}
+
+.timbre-creation [hidden] {
+  display: none;
+}
+
+.timbre-creation label {
+  margin-top: 15px;
+}
+
+.timbre-creation textarea,
+.timbre-creation select {
+  min-height: 0;
+  margin-top: 7px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.timbre-creation-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .7fr);
+  gap: 14px;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.timbre-creation-options > label {
+  margin: 0;
+}
+
+.timbre-creation-count {
+  display: flex;
+  gap: 12px;
+}
+
+.timbre-creation-count legend {
+  margin-bottom: 7px;
+  font-size: 14px;
+}
+
+.timbre-creation-count label,
+.timbre-creation .timbre-creation-check,
+.timbre-creation-result label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.timbre-creation-count label {
+  margin: 0;
+  padding: 8px 4px;
+}
+
+.timbre-creation input[type="radio"],
+.timbre-creation input[type="checkbox"] {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  padding: 0;
+  accent-color: #a076ef;
+}
+
+.timbre-creation-advanced {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.timbre-creation-advanced summary {
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.timbre-creation-advanced output,
+.timbre-creation-check small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.timbre-creation-advanced input[type="range"] {
+  margin: 6px 0 0;
+  padding: 0;
+  accent-color: #a076ef;
+}
+
+.timbre-creation button.timbre-creation-generate {
+  width: 100%;
+  margin-top: 16px;
+  background: #714acb;
+  color: #fff;
+}
+
+.timbre-creation-results {
+  min-width: 0;
+  padding: 0 0 0 22px;
+  border-left: 1px solid var(--line);
+}
+
+.timbre-creation-results > .material-dialog-hint {
+  margin-top: -6px;
+}
+
+.timbre-creation-empty {
+  display: grid;
+  min-height: 108px;
+  place-items: center;
+  padding: 16px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.timbre-creation-result {
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.timbre-creation-result:has(input:checked) {
+  border-color: #a076ef;
+  background: color-mix(in srgb, #a076ef 12%, var(--surface-2));
+}
+
+.timbre-creation-result label {
+  margin: 0;
+  cursor: pointer;
+}
+
+.timbre-creation-result label > span {
+  min-width: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.timbre-creation-feedback {
+  flex: none;
+  padding: 12px 24px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.timbre-creation-feedback footer {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.timbre-creation-feedback footer p {
+  flex: 1 1 180px;
+  margin: 0;
+}
+
+.timbre-creation-feedback footer > div {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.timbre-creation-feedback .material-dialog-error {
+  margin: 0 0 8px;
+}
+
+@media (max-width: 700px) {
+  .timbre-creation-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .timbre-creation form > header,
+  .timbre-creation-body,
+  .timbre-creation-feedback {
+    padding-inline: 16px;
+  }
+
+  .timbre-creation-results {
+    padding: 14px 0 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+}
+
+.timbre-creation-metadata {
+  min-width: 0;
+  margin: 20px 0 0;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.timbre-creation-metadata > legend {
+  padding: 0 4px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.timbre-creation-metadata > label:first-of-type {
+  margin-top: 0;
+}
+
+.timbre-creation-metadata input[type="text"] {
+  margin-top: 7px;
+  padding: 8px 10px;
+  font-size: 13px;
+}

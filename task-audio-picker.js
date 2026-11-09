@@ -14,7 +14,7 @@
     if (!count) throw new Error('请至少选择 1 个音频文件');
     if (count > max) throw new Error(replacing ? '每次只能选择 1 个音频进行替换' : `本次最多可添加 ${max} 个音频，请重新选择`);
   }
-  function open({ max = 1, replacing = false, task = null, isCurrent = () => true } = {}) {
+  function open({ max = 1, replacing = false, task = null, isCurrent = () => true, includeWorkflow = true, title } = {}) {
     if (max < 1) { showToast('参考歌曲最多 4 个，已达上限，可替换现有音频', 'error'); return Promise.resolve(null); }
     const origin = { team: team(), account: account() }, trigger = document.activeElement;
     const current = () => isCurrent() && team() === origin.team && account() === origin.account;
@@ -24,12 +24,13 @@
       if (!window.orchestraMaterialLibrary?.listForComposition) throw new Error('素材库暂时不可用，请稍后重试');
       return window.orchestraMaterialLibrary.listForComposition(origin.team).filter(record => record.type === 'audio');
     };
+    const sourceTabs = includeWorkflow ? ['personal', 'team', 'workflow', 'local'] : ['personal', 'team', 'local'];
     let source = 'personal';
     return new Promise(resolve => {
       const dialog = document.createElement('dialog'); dialog.className = 'task-audio-picker';
       dialog.setAttribute('aria-labelledby', 'taskAudioPickerTitle');
-      dialog.innerHTML = `<form><header><div><h2 id="taskAudioPickerTitle">${replacing ? '替换参考歌曲' : '上传参考歌曲'}</h2><p>${replacing ? '选择 1 个音频替换当前歌曲' : `本次可添加 1～${max} 个音频`}</p></div><button type="button" data-audio-cancel aria-label="关闭">×</button></header>
-        <div class="task-audio-picker-tabs" role="tablist" aria-label="音频来源"><button type="button" role="tab" aria-selected="true" aria-controls="taskAudioMaterialPanel" id="taskAudioMaterialTab" data-audio-source="personal">个人素材库</button><button type="button" role="tab" aria-selected="false" aria-controls="taskAudioMaterialPanel" id="taskAudioTeamTab" data-audio-source="team" tabindex="-1">团队素材库</button><button type="button" role="tab" aria-selected="false" aria-controls="taskAudioMaterialPanel" id="taskAudioWorkflowTab" data-audio-source="workflow" tabindex="-1">结果资源<span class="task-audio-result-info" role="img" aria-label="仅展示当前工作流本次运行中已设为输出或备选的资源。" title="仅展示当前工作流本次运行中已设为输出或备选的资源。">ⓘ</span></button><button type="button" role="tab" aria-selected="false" aria-controls="taskAudioLocalPanel" id="taskAudioLocalTab" data-audio-source="local" tabindex="-1">本地上传</button></div>
+      dialog.innerHTML = `<form><header><div><h2 id="taskAudioPickerTitle">${escapeHtml(title || (replacing ? '替换参考歌曲' : '上传参考歌曲'))}</h2><p>${replacing ? '选择 1 个音频替换当前歌曲' : `本次可添加 1～${max} 个音频`}</p></div><button type="button" data-audio-cancel aria-label="关闭">×</button></header>
+        <div class="task-audio-picker-tabs" role="tablist" aria-label="音频来源"><button type="button" role="tab" aria-selected="true" aria-controls="taskAudioMaterialPanel" id="taskAudioMaterialTab" data-audio-source="personal">个人素材库</button><button type="button" role="tab" aria-selected="false" aria-controls="taskAudioMaterialPanel" id="taskAudioTeamTab" data-audio-source="team" tabindex="-1">团队素材库</button>${includeWorkflow ? '<button type="button" role="tab" aria-selected="false" aria-controls="taskAudioMaterialPanel" id="taskAudioWorkflowTab" data-audio-source="workflow" tabindex="-1">结果资源<span class="task-audio-result-info" role="img" aria-label="仅展示当前工作流本次运行中已设为输出或备选的资源。" title="仅展示当前工作流本次运行中已设为输出或备选的资源。">ⓘ</span></button>' : ''}<button type="button" role="tab" aria-selected="false" aria-controls="taskAudioLocalPanel" id="taskAudioLocalTab" data-audio-source="local" tabindex="-1">本地上传</button></div>
         <div class="task-audio-picker-body"><section id="taskAudioMaterialPanel" role="tabpanel" aria-labelledby="taskAudioMaterialTab"><div class="task-audio-picker-filters"><select aria-label="筛选结果资源" name="workflowState" hidden><option value="all">输出与备选</option><option value="selected">输出</option><option value="backup">备选</option></select><input type="search" name="search" placeholder="搜索音频名称或文件夹" aria-label="搜索音频"></div><div class="task-audio-picker-list"></div></section>
         <section id="taskAudioLocalPanel" role="tabpanel" aria-labelledby="taskAudioLocalTab" hidden><label class="task-audio-upload-zone"><span aria-hidden="true">↑</span><b>选择本地音频文件</b><small>支持 MP3、WAV、M4A、AAC、OGG、FLAC 等音频</small><input type="file" name="files" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus,.webm,.aiff" ${max > 1 ? 'multiple' : ''}></label><div class="task-audio-local-files"></div></section>
         <p class="task-audio-picker-error" role="alert" hidden></p></div><footer><span data-audio-picked-count aria-live="polite">已选择 0 / ${max} 个</span><div><button type="button" class="secondary-button" data-audio-cancel>取消</button><button type="submit" class="primary-button" disabled>${replacing ? '确认替换' : '确认添加'}</button></div></footer></form>`;
@@ -66,7 +67,7 @@
       dialog.querySelectorAll('[data-audio-source]').forEach(button => button.addEventListener('click', () => setSource(button.dataset.audioSource)));
       dialog.querySelector('.task-audio-picker-tabs').addEventListener('keydown', event => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-        const sources = ['personal', 'team', 'workflow', 'local'], index = sources.indexOf(source);
+        const sources = sourceTabs, index = sources.indexOf(source);
         event.preventDefault(); setSource(sources[event.key === 'Home' ? 0 : event.key === 'End' ? sources.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : sources.length - 1)) % sources.length]); dialog.querySelector(`[data-audio-source="${source}"]`).focus();
       });
       form.elements.workflowState.addEventListener('change', renderList); form.elements.search.addEventListener('input', renderList);
