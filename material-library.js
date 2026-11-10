@@ -2,7 +2,8 @@
 (() => {
   const panel = document.querySelector('#assetMaterialsPanel');
   const assetsPage = document.querySelector('#assetsPage');
-  const onTimbreTab = () => selectedLibrary === 'timbre' && assetsPage.classList.contains('active');
+  const timbrePage = document.querySelector('#timbrePage');
+  const onTimbrePage = () => timbrePage.classList.contains('active');
   const libraryTabs = Array.from(panel.querySelectorAll('[data-material-library]'));
   let selectedLibrary = 'personal';
   let renderVersion = 0;
@@ -14,7 +15,7 @@
   const scriptLoads = new Map();
   const failedExampleSeeds = new Set();
   const locations = new Map(), searches = new Map(), previewUrls = new Set();
-  const q = selector => panel.querySelector(selector);
+  const q = selector => panel.querySelector(selector) || timbrePage.querySelector(selector);
   const libraryName = library => library === 'personal' ? '个人素材库' : '团队素材库';
   const allowsRootMaterials = context => ['personal', 'team'].includes(context.library);
   const activeTeam = () => document.querySelector('.workspace-option.active')?.dataset.workspaceId || 'orchestra-studio';
@@ -637,7 +638,7 @@
     return item.status || (item.blobId || item.url ? 'succeeded' : 'failed');
   }
   function refreshTimbreScope(key) {
-    if (key === timbreStorageKey() && onTimbreTab()) render();
+    if (key === timbreStorageKey() && onTimbrePage()) render();
   }
   function runTimbreJob(key, id) {
     const jobKey = JSON.stringify([key, id]);
@@ -764,7 +765,7 @@
     const folderId = original?.folderId ?? timbreFolderLocations.get(timbreFolderKey(context.team)) ?? null;
     let revision = original?.draft?.revision;
     let dialog, unsavedAudioId;
-    const isCurrent = () => onTimbreTab() && !timbreManagementReason(context) && (!dialog || dialog.open);
+    const isCurrent = () => onTimbrePage() && !timbreManagementReason(context) && (!dialog || dialog.open);
     const discardAudio = blobId => {
       if (blobId) fileOperation('delete', blobId).catch(() => {});
     };
@@ -909,7 +910,7 @@
     lyrics: '风吹过窗前，唤醒沉睡的街。\n把日出的颜色，写进新的诗页。',
     prompt: '温暖抒情，清晰女声，钢琴伴奏',
     model: 'hawk-v6', count: 2, negativePrompt: '', styleStrength: .5, randomness: .5,
-    voiceGender: 'female', instrumental: 'unspecified', skipCopyrightCheck: false
+    voiceGender: 'female', instrumental: 'no', skipCopyrightCheck: false
   };
   const exampleSongs = [
     { id: 'timbre-example-song-a', title: '微光回声 · 版本一', url: './assets/reference-song-result-a.wav' },
@@ -952,7 +953,7 @@
       : undefined;
     document.querySelectorAll('audio').forEach(player => player.pause());
     studio.open({
-      isCurrent: () => onTimbreTab() && context.team === activeTeam() && context.account === currentAccount(),
+      isCurrent: () => onTimbrePage() && context.team === activeTeam() && context.account === currentAccount(),
       initialDraft: {
         config: { ...config, reference },
         candidates: item.draft?.candidates || item.candidates || [],
@@ -973,6 +974,7 @@
     const booleanValue = value => typeof value === 'boolean' ? (value ? '是' : '否') : null;
     const percentageValue = value => Number.isFinite(value) ? `${Math.round(value * 100)}%` : null;
     const voiceGenderLabels = { unspecified: '不指定', female: '女声', male: '男声' };
+    const instrumentalLabels = { unspecified: '不指定', yes: '是', no: '否' };
     const field = (label, value, wide = false) => `<div class="timbre-detail-field${wide ? ' is-wide' : ''}">
       <dt>${label}</dt><dd>${escapeHtml(value ?? '未记录')}</dd>
     </div>`;
@@ -988,7 +990,7 @@
         ${field('风格强度', percentageValue(config.styleStrength))}
         ${field('随机度', percentageValue(config.randomness))}
         ${field('人声性别', voiceGenderLabels[config.voiceGender])}
-        ${field('生成纯音乐', config.instrumental === 'unspecified' ? '不指定' : booleanValue(config.instrumental))}
+        ${field('生成纯音乐', instrumentalLabels[config.instrumental] ?? booleanValue(config.instrumental))}
         ${field('跳过版权检查', booleanValue(config.skipCopyrightCheck))}
       </dl>
     </section>`;
@@ -1289,10 +1291,7 @@
     clearMaterialDrag(); closeMenu(); releasePreviews();
     try { resumeTimbreJobs(); } catch {}
     const version = ++renderVersion;
-    const timbreSelected = selectedLibrary === 'timbre';
-    q('#materialLibraryContent').hidden = timbreSelected;
-    q('#timbreLibraryContent').hidden = !timbreSelected;
-    if (onTimbreTab()) {
+    if (onTimbrePage()) {
       try { renderTimbres(); }
       catch (error) {
         q('#timbreLibraryGrid').innerHTML = '<p class="timbre-no-results" role="status">' + escapeHtml(error.message) + '</p>';
@@ -1301,7 +1300,6 @@
       return;
     }
     if (statusPopover.matches(':popover-open')) statusPopover.hidePopover();
-    if (timbreSelected) return;
     try {
       const context = contextNow(); seedTeamExamples(context); organizeLooseMaterials(context);
       const folders = foldersFor(context);
@@ -1833,7 +1831,7 @@
       item.setAttribute('aria-selected', String(selected));
       item.tabIndex = selected ? 0 : -1;
     });
-    if (selectedLibrary !== 'timbre') q('#materialLibraryContent').setAttribute('aria-labelledby', tab.id);
+    q('#materialLibraryContent').setAttribute('aria-labelledby', tab.id);
     render();
   }
   libraryTabs.forEach((tab, index) => {
@@ -1910,7 +1908,10 @@
     if (event.target.tagName !== 'AUDIO') return;
     document.querySelectorAll('audio').forEach(audio => { if (audio !== event.target) audio.pause(); });
   }, true);
-  new MutationObserver(render).observe(assetsPage, { attributes: true, attributeFilter: ['class'] });
+  const pageObserver = new MutationObserver(render);
+  for (const page of [assetsPage, timbrePage]) {
+    pageObserver.observe(page, { attributes: true, attributeFilter: ['class'] });
+  }
   new MutationObserver(() => { if (panel.hidden) { clearMaterialDrag(); stopAudio(); closeMenu(); } }).observe(panel, { attributes: true, attributeFilter: ['hidden'] });
   document.addEventListener('click', event => { if (event.target.closest('.workspace-option')) queueMicrotask(render); });
   window.addEventListener('pagehide', releasePreviews);

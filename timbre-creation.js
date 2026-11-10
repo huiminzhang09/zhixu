@@ -97,7 +97,7 @@
               </select>
             </label>
             <label>生成纯音乐
-              <select name="instrumental" disabled><option value="unspecified">不指定</option></select>
+              <select name="instrumental" disabled><option value="no">否</option></select>
             </label>
             <label class="timbre-creation-check"><input type="checkbox" name="skipCopyrightCheck">跳过版权检查</label>
           </details>

@@ -1,6 +1,6 @@
 /* Material library: flat tabs, a single chronological grid, and cascading actions. */
-body:has(#assetsPage.active) main { max-width: none; padding: 64px 24px 40px 12px; }
-body:has(#assetsPage.active) .player { display: none; }
+body:has(:is(#assetsPage,#timbrePage).active) main { max-width: none; padding: 64px 24px 40px 12px; }
+body:has(:is(#assetsPage,#timbrePage).active) .player { display: none; }
 #assetMaterialsPanel.material-library-panel { margin: 0; padding: 0; min-height: 0; border: 0; border-radius: 0; background: transparent; text-align: left; }
 .material-library-tabs { display: flex; gap: 24px; width: 100%; margin: 0; padding: 0; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
 .material-library-tabs button { position: relative; height: 40px; flex: none; padding: 0; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 16px; font-weight: 650; white-space: nowrap; cursor: pointer; }
@@ -167,7 +167,7 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .material-add-dialog footer .material-primary:disabled { background: #ffffff12; color: var(--muted); opacity: .5; }
 @media(hover:none) { .material-more-button { opacity: 1; pointer-events: auto; } .material-folder-info strong,.material-file-info h3 { padding-right: 26px; } }
 @media(max-width:700px) {
-  body:has(#assetsPage.active) main { padding: 76px 16px 32px; }
+  body:has(:is(#assetsPage,#timbrePage).active) main { padding: 76px 16px 32px; }
   .material-library-toolbar { flex-wrap: wrap; }
   .material-library-actions { width: 100%; gap: 12px; }
   .material-search { flex: 1; min-width: 160px; width: auto; }
@@ -178,8 +178,7 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .song-studio-result-actions .song-studio-save-material { color: #b99af5; border-color: #9774e766; background: #8058e714; }
 .song-studio-result-actions .song-studio-save-material.is-saved:disabled { color: #6ac9a1; border-color: #6ac9a144; background: #6ac9a10a; opacity: 1; cursor: default; }
 
-#materialLibraryContent[hidden],#timbreLibraryContent[hidden]{display:none}
-#assetsPage,#assetMaterialsPanel,#materialLibraryContent,#timbreLibraryContent{min-width:0;max-width:100%}
+#assetsPage,#timbrePage,#assetMaterialsPanel,#materialLibraryContent,#timbreLibraryContent{min-width:0;max-width:100%}
 .timbre-library-grid{--timbre-item-width:120px;--timbre-item-height:154px;--timbre-cover-height:98px;display:grid;grid-template-columns:repeat(auto-fill,min(100%,var(--timbre-item-width)));align-items:start;gap:32px;width:100%;min-width:0}
 .timbre-card{display:flex;flex-direction:column;min-width:0;width:100%;height:var(--timbre-item-height);padding:0;border:0;border-radius:0;background:transparent;overflow:hidden}
 .timbre-card:is([data-timbre-state="failed"],[data-timbre-state="song-failed"]) .timbre-cover{border-color:#d84b6145}
