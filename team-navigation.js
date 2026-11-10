@@ -27,7 +27,10 @@
  const roleSection=document.createElement('section');roleSection.className='role-menu-management';roleSection.innerHTML='<div class="role-menu-toolbar"><button type="button" class="primary-button" data-add-team-role>＋ 增加角色</button></div><div class="role-menu-cards"></div>';
  infoHeader.after(roleSection);
  const roleDialog=document.createElement('dialog');roleDialog.className='team-config-dialog';document.body.append(roleDialog);
- const menuLabels=[...document.querySelectorAll('#primaryNav .nav-item')].map(item=>item.querySelector('.nav-label-full')?.textContent.trim()).filter(Boolean);
+ const libraryLabels=[...document.querySelectorAll('#assetLibraryTabs [role="tab"]')].map(tab=>tab.textContent.trim());
+ const menuLabels=[...document.querySelectorAll('#primaryNav .nav-item')].flatMap(item=>
+   item.dataset.page==='assets'?libraryLabels:[item.querySelector('.nav-label-full')?.textContent.trim()]
+ ).filter(Boolean);
  const escapeHtml=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
  const getTeamKey=()=>document.querySelector('#managedTeamId').textContent.trim()||'default-team';
  const readStore=key=>{try{const value=JSON.parse(localStorage.getItem(key)||'{}');if(key.startsWith('team-role-menus:')&&value&&typeof value==='object')for(const role of Object.keys(value))if(Array.isArray(value[role]))value[role]=[...new Set(value[role].map(name=>name==='资产'||name==='素材'?'素材库':name==='成品'?'成品库':name))];return value}catch{return {}}};

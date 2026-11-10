@@ -1,13 +1,11 @@
-const navItems=[['collection','创作集合','','集合'],['home','首页','active','首页'],['tasks','待办','','待办'],['projects','项目','','项目'],['materials','素材库','','素材'],['timbres','音色库','','音色'],['finished','成品库','','成品'],['more','更多','','更多']];
-const navPageMap={'首页':'home','待办':'tasks','项目':'projects','创作集合':'workflows','素材库':'assets','音色库':'timbre','成品库':'finished'};
+const navItems=[['collection','创作集合','','集合'],['home','首页','active','首页'],['tasks','待办','','待办'],['projects','项目','','项目'],['materials','资产','','资产'],['more','更多','','更多']];
+const navPageMap={'首页':'home','待办':'tasks','项目':'projects','创作集合':'workflows','资产':'assets'};
 const navIconPaths={
   collection:'<g fill="currentColor" stroke="none"><circle cx="6.5" cy="6.5" r="3.5"/><circle cx="6.5" cy="17.5" r="3.5"/><circle cx="17.5" cy="17.5" r="3.5"/><rect x="15.5" y="2.2" width="4" height="9" rx="2" transform="rotate(40 17.5 6.7)"/></g>',
   home:'<path fill="currentColor" fill-rule="evenodd" stroke="none" d="m10.7 3.4-6.5 5A3 3 0 0 0 3 10.8V18a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-7.2a3 3 0 0 0-1.2-2.4l-6.5-5a2.1 2.1 0 0 0-2.6 0ZM8.2 14.5a.8.8 0 0 1 1.1-.1 4.2 4.2 0 0 0 5.4 0 .8.8 0 0 1 1 1.2 5.8 5.8 0 0 1-7.4 0 .8.8 0 0 1-.1-1.1Z"/>',
   tasks:'<path fill="currentColor" fill-rule="evenodd" stroke="none" d="M5 3.5h14A2.5 2.5 0 0 1 21.5 6v12a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 18V6A2.5 2.5 0 0 1 5 3.5ZM7 7a.75.75 0 0 0 0 1.5h10A.75.75 0 0 0 17 7H7Zm0 3.5a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5H7Zm9.1 1.1-5.2 5.2-2-2a.75.75 0 0 0-1.1 1.1l2.5 2.5a.75.75 0 0 0 1.1 0l5.8-5.8a.75.75 0 0 0-1.1-1Z"/>',
   projects:'<path d="M3.5 11V5.5a2 2 0 0 1 2-2H9l2 3h6.5a2 2 0 0 1 2 2V11"/><path fill="currentColor" stroke="none" d="M2.5 10h19a1 1 0 0 1 1 1.2l-1.3 7.5a2.5 2.5 0 0 1-2.5 2.1H5.3a2.5 2.5 0 0 1-2.5-2.1L1.5 11.2a1 1 0 0 1 1-1.2Z"/>',
   materials:'<path d="m12 2.5 10 4.3-10 4.3L2 6.8 12 2.5Z"/><path d="m5.5 9.5-3.5 2L12 16l10-4.5-3.5-2M5.5 14.3 2 16.5 12 21l10-4.5-3.5-2.2"/><path d="m8 8.5 7.7-3.3M8 13.1l3-1.3M8 18l3-1.3"/>',
-  timbres:'<path d="M3 11v4m4-8v12m4-9v6m4-2v5m4-7v3"/><path d="m17 2 1.3 3.7L22 7l-3.7 1.3L17 12l-1.3-3.7L12 7l3.7-1.3L17 2Z"/>',
-  finished:'<path d="M6 8V5.5A2.5 2.5 0 0 1 8.5 3h7A2.5 2.5 0 0 1 18 5.5V8M4 8h16l2 4H2l2-4Z"/><path fill="currentColor" fill-rule="evenodd" stroke="none" d="M2 11h20v7.5a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V11Zm7 3a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5H9Z"/>',
   more:'<g fill="currentColor" stroke="none"><circle cx="4" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="20" cy="12" r="2"/></g>'
 };
 const navIcon=key=>`<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${navIconPaths[key]}</svg>`;
@@ -17,7 +15,36 @@ const records=['绯红海岸','雨过后的风景','Dear D（亲爱的告白）'
 const photos=['photo-1516280440614-37939bbacd81','photo-1500530855697-b586d89ba3ee','photo-1511671782779-c97d3d27a1d4','photo-1506157786151-b8491531f063','photo-1460661419201-fd4cecdf8a8b','photo-1501612780327-45045538702b','photo-1494232410401-ad00d5433cfa','photo-1511379938547-c1f69419868d','photo-1507838153414-b4b713384a76','photo-1524650359799-842906ca1c06','photo-1519508234439-4f23643125c1','photo-1525362081669-2b476bb628c3','photo-1524368535928-5b5e00ddc76b','photo-1496293455970-f8581aae0e3b','photo-1459749411175-04bf5292ceea'];
 const titles=['深夜回声','城市失重','旧唱片新表达','雨后散步','雨后散步','远方来信','夏夜循环','潮汐之后','一镜到底的春天','一镜到底的春天','深夜回声','公路交换','星际唱片','坠入光中','模糊边界'];
 const url=id=>`https://images.unsplash.com/${id}?auto=format&fit=crop&w=700&q=82`;
-const nav=document.querySelector('#primaryNav');nav.innerHTML=navItems.map(([i,t,c,s])=>{const page=navPageMap[t];return `<button type="button" class="nav-item ${c}" aria-label="${t}" ${page?`data-page="${page}"`:`data-toast="${t+'功能即将开放'}"`}><span class="icon" aria-hidden="true">${navIcon(i)}</span><span class="nav-label-full">${t}</span><span class="nav-label-short">${s}</span></button>`}).join('');
+function navButton([icon,label,classes,shortLabel]){
+  const page=navPageMap[label];
+  return `<button type="button" class="nav-item ${classes}" aria-label="${label}" ${page?`data-page="${page}"`:`data-toast="${label}功能即将开放"`}><span class="icon" aria-hidden="true">${navIcon(icon)}</span><span class="nav-label-full">${label}</span><span class="nav-label-short">${shortLabel}</span></button>`;
+}
+const nav=document.querySelector('#primaryNav');
+nav.innerHTML=navItems.map(navButton).join('');
+const assetLibraryTabBar=document.querySelector('#assetLibraryTabs');
+const assetLibraryTabs=Array.from(assetLibraryTabBar.querySelectorAll('[data-asset-page]'));
+function syncAssetLibraryTabs(page){
+  const current=assetLibraryTabs.find(tab=>tab.dataset.assetPage===page);
+  assetLibraryTabBar.hidden=!current;
+  if(!current)return false;
+  assetLibraryTabs.forEach(tab=>{
+    const selected=tab===current;
+    tab.setAttribute('aria-selected',String(selected));
+    tab.tabIndex=selected?0:-1;
+  });
+  return true;
+}
+assetLibraryTabs.forEach((tab,index)=>{
+  tab.addEventListener('click',()=>switchPage(tab.dataset.assetPage));
+  tab.addEventListener('keydown',event=>{
+    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    event.preventDefault();
+    const next=event.key==='Home'?0:event.key==='End'?assetLibraryTabs.length-1:
+      (index+(event.key==='ArrowRight'?1:-1)+assetLibraryTabs.length)%assetLibraryTabs.length;
+    assetLibraryTabs[next].click();
+    assetLibraryTabs[next].focus({preventScroll:true});
+  });
+});
 const recordCarousel=document.querySelector('#records');
 recordCarousel.innerHTML=[...records,...records].map((recordName,index)=>{const sourceIndex=index%records.length;const clone=index>=records.length;return `<article class="record ${sourceIndex===2?'active':''}" data-record-index="${sourceIndex}" ${clone?'aria-hidden="true"':''}><div class="record-art" style="background-image:url('${url(recordImages[sourceIndex])}')"></div><b>${recordName}</b><small>${sourceIndex%2?'Dizzy Dizzo':'艺术家 · 灵感频道'}</small></article>`}).join('');
 const recordCards=Array.from(recordCarousel.querySelectorAll('.record'));
@@ -1499,9 +1526,20 @@ document.querySelector('#mobileMenu').onclick=()=>document.querySelector('#sideb
 let canvasReturnPage='projects';
 function getCanvasReturnPage(){return canvasReturnPage}
 function setProfileIsolation(active){document.querySelectorAll('body > .sidebar,body > .topbar,body > .player,.page-view:not(#profilePage)').forEach(element=>{if(active)element.setAttribute('inert','');else element.removeAttribute('inert')})}
-function switchPage(page,item){if(window.noOrganizationMode&&page!=='home'){page='home';item=null}const pages={assets:'#assetsPage',timbre:'#timbrePage',finished:'#finishedPage',home:'#homePage',tasks:'#taskPage',projects:'#projectsPage','project-detail':'#projectDetailPage',business:'#businessPage','project-create':'#projectCreatePage',workflows:'#workflowsPage',canvas:'#canvasPage',profile:'#profilePage'};const currentPage=document.querySelector('.page-view.active')?.id;if(currentPage==='taskPage'&&page!=='tasks')stopTaskSongPreview();if(page==='canvas'&&currentPage!=='profilePage'){canvasReturnPage=currentPage==='workflowsPage'?'workflows':currentPage==='homePage'?'home':'projects';document.querySelector('#canvasBreadcrumb').textContent=canvasReturnPage==='workflows'?'创作集合 / 节点编排':canvasReturnPage==='home'?'首页 / Music Show / 创作流程':'项目管理 / 节点编排'}document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));const projectChild=['business','project-create','project-detail'].includes(page);const navItem=item||document.querySelector(`.nav-item[data-page="${page}"]`)||(projectChild?document.querySelector('.nav-item[data-page="projects"]'):null);navItem?.classList.add('active');document.querySelectorAll('.page-view').forEach(x=>x.classList.remove('active'));document.querySelector(pages[page]||pages.home).classList.add('active');document.body.classList.toggle('task-mode',page==='tasks');document.body.classList.toggle('project-mode',page==='projects');document.body.classList.toggle('project-detail-mode',page==='project-detail');document.body.classList.toggle('business-mode',page==='business');document.body.classList.toggle('project-create-mode',page==='project-create');document.body.classList.toggle('workflow-mode',page==='workflows');document.body.classList.toggle('canvas-mode',page==='canvas');document.body.classList.toggle('profile-mode',page==='profile');setProfileIsolation(page==='profile');document.querySelector('#avatarButton').classList.toggle('active',page==='profile');document.querySelector('#sidebar').classList.remove('open');if(page==='tasks')renderTaskCenter();if(page==='workflows')renderWorkflows();window.scrollTo(0,0);if(page==='projects')requestMoreProjects()}
+function switchPage(page,item){if(window.noOrganizationMode&&page!=='home'){page='home';item=null}const pages={assets:'#assetsPage',timbre:'#timbrePage',finished:'#finishedPage',home:'#homePage',tasks:'#taskPage',projects:'#projectsPage','project-detail':'#projectDetailPage',business:'#businessPage','project-create':'#projectCreatePage',workflows:'#workflowsPage',canvas:'#canvasPage',profile:'#profilePage'};const currentPage=document.querySelector('.page-view.active')?.id;if(currentPage==='taskPage'&&page!=='tasks')stopTaskSongPreview();if(page==='canvas'&&currentPage!=='profilePage'){canvasReturnPage=currentPage==='workflowsPage'?'workflows':currentPage==='homePage'?'home':'projects';document.querySelector('#canvasBreadcrumb').textContent=canvasReturnPage==='workflows'?'创作集合 / 节点编排':canvasReturnPage==='home'?'首页 / Music Show / 创作流程':'项目管理 / 节点编排'}document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));const projectChild=['business','project-create','project-detail'].includes(page);const navPage=syncAssetLibraryTabs(page)?'assets':page;const navItem=item||document.querySelector(`.nav-item[data-page="${navPage}"]`)||(projectChild?document.querySelector('.nav-item[data-page="projects"]'):null);navItem?.classList.add('active');document.querySelectorAll('.page-view').forEach(x=>x.classList.remove('active'));document.querySelector(pages[page]||pages.home).classList.add('active');document.body.classList.toggle('task-mode',page==='tasks');document.body.classList.toggle('project-mode',page==='projects');document.body.classList.toggle('project-detail-mode',page==='project-detail');document.body.classList.toggle('business-mode',page==='business');document.body.classList.toggle('project-create-mode',page==='project-create');document.body.classList.toggle('workflow-mode',page==='workflows');document.body.classList.toggle('canvas-mode',page==='canvas');document.body.classList.toggle('profile-mode',page==='profile');setProfileIsolation(page==='profile');document.querySelector('#avatarButton').classList.toggle('active',page==='profile');document.querySelector('#sidebar').classList.remove('open');if(page==='tasks')renderTaskCenter();if(page==='workflows')renderWorkflows();window.scrollTo(0,0);if(page==='projects')requestMoreProjects()}
 function openPrimaryCanvas(item){window.orchestraWorkflowCanvas?.open({id:'primary',name:'未命名音乐工作流'});switchPage('canvas',item)}
-nav.addEventListener('click',e=>{const item=e.target.closest('.nav-item[data-page]');if(!item)return;if(item.dataset.page==='canvas')openPrimaryCanvas(item);else switchPage(item.dataset.page,item)});
+nav.addEventListener('click',event=>{
+  const item=event.target.closest('.nav-item[data-page]');
+  if(!item)return;
+  const page=item.dataset.page;
+  if(page==='canvas'){openPrimaryCanvas(item);return;}
+  if(page==='assets'){
+    const selected=assetLibraryTabs.find(tab=>tab.getAttribute('aria-selected')==='true');
+    switchPage(selected?.dataset.assetPage||page,item);
+    return;
+  }
+  switchPage(page,item);
+});
 document.querySelector('#projectSearch').addEventListener('input',resetProjectLoading);
 document.querySelector('#projectSort').addEventListener('change',resetProjectLoading);
 projectFilterTabs.forEach(tab=>tab.addEventListener('click',()=>setProjectFilter(tab.dataset.projectFilter)));
