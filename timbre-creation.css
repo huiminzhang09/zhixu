@@ -182,6 +182,17 @@
   color: #fff;
 }
 
+.timbre-creation button.timbre-creation-generate:disabled {
+  border-color: var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.timbre-creation-song-error {
+  margin: 12px 0 0;
+  overflow-wrap: anywhere;
+}
+
 .timbre-creation-results {
   min-width: 0;
   padding: 0 0 0 22px;
@@ -276,8 +287,9 @@
 }
 
 .timbre-creation-metadata {
+  grid-column: 1 / -1;
   min-width: 0;
-  margin: 20px 0 0;
+  margin: 0;
   padding: 8px 12px 12px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -290,8 +302,21 @@
   font-weight: 650;
 }
 
-.timbre-creation-metadata > label:first-of-type {
-  margin-top: 0;
+.timbre-creation-metadata-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 14px;
+}
+
+.timbre-creation-metadata-fields label {
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .timbre-creation-metadata-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
 }
 
 .timbre-creation-metadata input[type="text"] {
@@ -317,6 +342,7 @@
   white-space: nowrap;
 }
 
+.timbre-creation-phase[data-phase="song-generating"],
 .timbre-creation-phase[data-phase="generating"],
 .timbre-creation-phase[data-phase="confirming"] {
   border-color: #9872df66;
@@ -324,8 +350,40 @@
   color: var(--text);
 }
 
+.timbre-creation-phase[data-phase="song-failed"],
 .timbre-creation-phase[data-phase="failed"] {
   border-color: #e9768166;
   background: #e9768120;
   color: #e97681;
+}
+
+.timbre-creation-phase[data-phase="succeeded"] {
+  border-color: #70bf9766;
+  background: #70bf9720;
+  color: var(--text);
+}
+
+.timbre-creation.is-example :is(label, strong) > [aria-hidden="true"] {
+  display: none;
+}
+
+.timbre-creation.is-example :is(input, textarea, select):disabled {
+  opacity: 1;
+  color: var(--text);
+}
+
+.timbre-creation-example-result h4,
+.timbre-creation-example-result p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.timbre-creation-example-result h4 {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.timbre-creation-example-result p {
+  color: var(--muted);
+  font-size: 13px;
 }

@@ -178,7 +178,7 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .song-studio-result-actions .song-studio-save-material { color: #b99af5; border-color: #9774e766; background: #8058e714; }
 .song-studio-result-actions .song-studio-save-material.is-saved:disabled { color: #6ac9a1; border-color: #6ac9a144; background: #6ac9a10a; opacity: 1; cursor: default; }
 
-#assetMaterialsPanel .material-library-toolbar[hidden],#materialItems[hidden],#timbreLibraryContent[hidden]{display:none}
+#materialLibraryContent[hidden],#timbreLibraryContent[hidden]{display:none}
 #assetsPage,#assetMaterialsPanel,#materialLibraryContent,#timbreLibraryContent{min-width:0;max-width:100%}
 .timbre-library-grid{--timbre-item-width:120px;--timbre-item-height:154px;--timbre-cover-height:98px;display:grid;grid-template-columns:repeat(auto-fill,min(100%,var(--timbre-item-width)));align-items:start;gap:32px;width:100%;min-width:0}
 .timbre-card{display:flex;flex-direction:column;min-width:0;width:100%;height:var(--timbre-item-height);padding:0;border:0;border-radius:0;background:transparent;overflow:hidden}
@@ -272,7 +272,6 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .timbre-picker-details small{font-size:11px;color:var(--muted)}
 .timbre-picker-empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
 
-.timbre-generation-status.is-draft { background: var(--surface-2); color: var(--muted); }
 .timbre-generation-status.is-confirming { background: #413224; color: #eec68c; }
 .timbre-status-trigger {
   display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; padding: 7px 10px;
@@ -291,3 +290,9 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .timbre-status-popover label { display: flex; align-items: center; gap: 8px; padding: 8px 6px; border-radius: 6px; font-size: 13px; cursor: pointer; }
 .timbre-status-popover label:hover { background: var(--surface-2); }
 .timbre-status-popover input { margin: 0; accent-color: #9c72ed; }
+
+.timbre-status-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.timbre-status-summary strong { padding: 4px 8px; border-radius: 6px; font-size: 12px; }
+.timbre-status-summary strong { color: var(--text); background: var(--surface-2); }
+.timbre-status-error { color: #ec7486; font-size: 13px; overflow-wrap: anywhere; }
+.timbre-status-track { display: grid; gap: 8px; font-size: 13px; }
