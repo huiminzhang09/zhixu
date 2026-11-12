@@ -8,3 +8,15 @@
 #musicGrid .music-workflow-tooltip { position: absolute; z-index: 3; right: 0; bottom: calc(100% + 7px); width: max-content; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; color: var(--text); background: var(--surface-2); box-shadow: 0 4px 14px #0002; font-size: 11px; font-weight: 400; line-height: 1.4; white-space: nowrap; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .16s,visibility .16s; }
 #musicGrid .music-workflow-button:hover .music-workflow-tooltip,#musicGrid .music-workflow-button:focus-visible .music-workflow-tooltip { opacity: 1; visibility: visible; }
 @media(prefers-reduced-motion:reduce) { #musicGrid .music-workflow-button,#musicGrid .music-workflow-tooltip { transition: none; } }
+
+/* Reveal cover actions on hover and keyboard focus. */
+#musicGrid .art-wrap { position: relative; border-radius: 18px; overflow: hidden; }
+#musicGrid .art-wrap .hover-play { width: 70px; height: 70px; background: #17191db3; display: grid; place-items: center; opacity: 0; transform: scale(.9); pointer-events: none; }
+#musicGrid .hover-play svg { width: 30px; height: 30px; }
+#musicGrid .art-wrap .music-workflow-button { position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; width: auto; height: 32px; margin: 0; padding: 0 10px; border: 0; border-radius: 9px; color: #fff; background: #303032b3; backdrop-filter: blur(10px); font-size: 12px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .18s,background .18s; }
+#musicGrid .art-wrap .music-workflow-button svg { width: 17px; height: 17px; }
+#musicGrid .art-wrap:is(:hover,:focus-within) .hover-play,
+#musicGrid .art-wrap:is(:hover,:focus-within) .music-workflow-button { opacity: 1; transform: none; pointer-events: auto; }
+#musicGrid .art-wrap .music-workflow-button:hover { background: #444448df; color: #fff; }
+#musicGrid .hover-play:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+@media(hover:none) { #musicGrid .art-wrap .hover-play,#musicGrid .art-wrap .music-workflow-button { opacity: 1; transform: none; pointer-events: auto; } }

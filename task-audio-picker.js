@@ -14,7 +14,7 @@
     if (!count) throw new Error('请至少选择 1 个音频文件');
     if (count > max) throw new Error(replacing ? '每次只能选择 1 个音频进行替换' : `本次最多可添加 ${max} 个音频，请重新选择`);
   }
-  function open({ max = 1, replacing = false, task = null, isCurrent = () => true, includeWorkflow = true, title } = {}) {
+  function open({ max = 1, replacing = false, task = null, isCurrent = () => true, includeWorkflow = true, includePersonal = true, initialSource, title } = {}) {
     if (max < 1) { showToast('参考歌曲最多 4 个，已达上限，可替换现有音频', 'error'); return Promise.resolve(null); }
     const origin = { team: team(), account: account() }, trigger = document.activeElement;
     const current = () => isCurrent() && team() === origin.team && account() === origin.account;
@@ -22,10 +22,10 @@
       if (!current()) throw new Error('当前任务、账号或团队已变更，请重新选择');
       if (source === 'workflow') return listWorkflowAudio(task);
       if (!window.orchestraMaterialLibrary?.listForComposition) throw new Error('素材库暂时不可用，请稍后重试');
-      return window.orchestraMaterialLibrary.listForComposition(origin.team).filter(record => record.type === 'audio');
+      return window.orchestraMaterialLibrary.listForComposition(origin.team).filter(record => record.type === 'audio' && (includePersonal || record.sourceLibrary !== 'personal'));
     };
-    const sourceTabs = includeWorkflow ? ['personal', 'team', 'workflow', 'local'] : ['personal', 'team', 'local'];
-    let source = 'personal';
+    const sourceTabs = [...(includePersonal ? ['personal'] : []), 'team', ...(includeWorkflow ? ['workflow'] : []), 'local'];
+    let source = sourceTabs.includes(initialSource) ? initialSource : sourceTabs[0];
     return new Promise(resolve => {
       const dialog = document.createElement('dialog'); dialog.className = 'task-audio-picker';
       dialog.setAttribute('aria-labelledby', 'taskAudioPickerTitle');
@@ -34,6 +34,7 @@
         <div class="task-audio-picker-body"><section id="taskAudioMaterialPanel" role="tabpanel" aria-labelledby="taskAudioMaterialTab"><div class="task-audio-picker-filters"><select aria-label="筛选结果资源" name="workflowState" hidden><option value="all">输出与备选</option><option value="selected">输出</option><option value="backup">备选</option></select><input type="search" name="search" placeholder="搜索音频名称或文件夹" aria-label="搜索音频"></div><div class="task-audio-picker-list"></div></section>
         <section id="taskAudioLocalPanel" role="tabpanel" aria-labelledby="taskAudioLocalTab" hidden><label class="task-audio-upload-zone"><span aria-hidden="true">↑</span><b>选择本地音频文件</b><small>支持 MP3、WAV、M4A、AAC、OGG、FLAC 等音频</small><input type="file" name="files" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus,.webm,.aiff" ${max > 1 ? 'multiple' : ''}></label><div class="task-audio-local-files"></div></section>
         <p class="task-audio-picker-error" role="alert" hidden></p></div><footer><span data-audio-picked-count aria-live="polite">已选择 0 / ${max} 个</span><div><button type="button" class="secondary-button" data-audio-cancel>取消</button><button type="submit" class="primary-button" disabled>${replacing ? '确认替换' : '确认添加'}</button></div></footer></form>`;
+      if (!includePersonal) dialog.querySelector('[data-audio-source="personal"]').remove();
       document.body.append(dialog);
       const form = dialog.querySelector('form'), list = dialog.querySelector('.task-audio-picker-list'), error = dialog.querySelector('.task-audio-picker-error');
       const submit = form.querySelector('[type="submit"]'), count = dialog.querySelector('[data-audio-picked-count]');
@@ -55,6 +56,7 @@
         updateCount();
       }
       function setSource(next) {
+        if (!sourceTabs.includes(next)) return;
         source = next; chosen = selections[source] || selections.library; showError(''); releasePreviews();
         dialog.querySelectorAll('[data-audio-source]').forEach(button => { const active = button.dataset.audioSource === source; button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; });
         dialog.querySelector('#taskAudioMaterialPanel').hidden = source === 'local';
@@ -124,7 +126,7 @@
       });
       dialog.querySelectorAll('[data-audio-cancel]').forEach(button => button.addEventListener('click', () => dialog.close()));
       dialog.addEventListener('close', () => { disposed = true; releasePreviews(); dialog.remove(); if (trigger?.isConnected) trigger.focus(); resolve(answer); }, { once: true });
-      renderList(); dialog.showModal();
+      setSource(source); dialog.showModal();
     });
   }
   window.orchestraTaskAudioPicker = { open, validAudio, checkCount, listWorkflowAudio, resolveWorkflowAudio };

@@ -331,3 +331,153 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .timbre-status-summary strong { color: var(--text); background: var(--surface-2); }
 .timbre-status-error { color: #ec7486; font-size: 13px; overflow-wrap: anywhere; }
 .timbre-status-track { display: grid; gap: 8px; font-size: 13px; }
+
+/* Square timbre gallery matching the supplied state treatments. */
+#timbreLibraryGrid.timbre-library-grid { --timbre-item-width: 124px; --timbre-cover-height: 124px; --timbre-item-height: 180px; column-gap: 20px; row-gap: 18px; }
+#timbreLibraryGrid .timbre-cover { box-sizing: border-box; height: 124px; border: 0; border-radius: 16px; background: #2b2833; color: #9c80d5; }
+#timbreLibraryGrid .timbre-cover > svg { width: 48px; height: 48px; }
+#timbreLibraryGrid .timbre-card[data-timbre-state="succeeded"] .timbre-cover { background: linear-gradient(165deg,#6852d2 0%,#6263bf 43%,#4c9c83 100%); color: #d3ede7; }
+#timbreLibraryGrid .timbre-card:is([data-timbre-state="draft"],[data-timbre-state="confirming"]) .timbre-cover { background: #322f2b; color: #b88b30; }
+#timbreLibraryGrid .timbre-card:is([data-timbre-state="failed"],[data-timbre-state="song-failed"]) .timbre-cover { background: #342d30; color: #c26356; }
+#timbreLibraryGrid .timbre-generation-status { top: 12px; left: 12px; right: auto; max-width: calc(100% - 24px); box-sizing: border-box; padding: 1px 5px; border: 1px solid currentColor; border-radius: 4px; font-size: 10px; line-height: 15px; }
+#timbreLibraryGrid .timbre-generation-status:is(.is-generating,.is-song-generating) { color: #9d7ed5; background: #6b4ca52b; }
+#timbreLibraryGrid .timbre-generation-status:is(.is-draft,.is-confirming) { color: #c19638; background: #9c76222b; }
+#timbreLibraryGrid .timbre-generation-status:is(.is-failed,.is-song-failed) { color: #c66b60; background: #a3473c30; }
+#timbreLibraryGrid .timbre-card-info { margin-top: 10px; gap: 4px; }
+#timbreLibraryGrid .timbre-card-info strong { padding-right: 0; font-size: 12px; line-height: 18px; font-weight: 400; color: #c5c5ca; }
+#timbreLibraryGrid .timbre-card-date { color: #77777f; font-size: 10px; line-height: 16px; }
+#timbreLibraryGrid .timbre-more { top: 130px; }
+#timbreLibraryGrid .timbre-card:is(:hover,:focus-within) .timbre-card-info strong { padding-right: 24px; }
+#timbreLibraryGrid .timbre-retry { opacity: 0; transition: opacity .15s; }
+#timbreLibraryGrid .timbre-card:is(:hover,:focus-within) .timbre-retry { opacity: 1; }
+#timbreLibraryGrid .timbre-preview-button:disabled { opacity: 1; }
+#timbreLibraryGrid .timbre-preview-button:hover .timbre-cover { filter: brightness(1.08); }
+#timbreLibraryGrid .material-folder-cover { height: 124px; }
+@media(max-width:480px) { #timbreLibraryGrid.timbre-library-grid { grid-template-columns: repeat(auto-fill,minmax(110px,1fr)); gap: 16px; } }
+
+/* Consistent folder entry actions and tile dimensions across libraries. */
+.library-create-folder { flex: none; padding: 8px 13px; border: 1px solid #a280df66; border-radius: 8px; background: #8c60d526; color: var(--text); font: inherit; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.library-create-folder:disabled { opacity: .4; cursor: not-allowed; }
+.library-create-folder:focus-visible { outline: 2px solid #b998ff; outline-offset: 2px; }
+#finishedCreateFolder { order: 10; margin-left: auto; }
+#timbreLibraryContent .timbre-filter-toolbar [data-create-timbre-folder] { order: 9; margin-left: auto; }
+#timbreLibraryContent .timbre-filter-toolbar [data-create-library-timbre] { order: 10; }
+#timbreLibraryContent .timbre-filter-toolbar { flex-wrap: wrap; }
+#assetsPage .material-folder-item,#finishedPage .material-folder-item,#timbreLibraryGrid .material-folder-item { width: 106px; height: 160px; }
+#assetsPage .material-folder-cover,#finishedPage .material-folder-cover,#timbreLibraryGrid .material-folder-cover { display: grid; place-items: center; width: 106px; height: 106px; max-width: 106px; border-radius: 15px; background: linear-gradient(130deg,#19191c,#161618); }
+#assetsPage .material-folder-art,#finishedPage .material-folder-art,#timbreLibraryGrid .material-folder-art { width: 72px; height: 64px; }
+#assetsPage .material-folder-info,#finishedPage .material-folder-info,#timbreLibraryGrid .material-folder-info { padding-top: 10px; }
+#assetsPage .material-folder-info strong,#finishedPage .material-folder-info strong,#timbreLibraryGrid .material-folder-info strong { font-size: 12px; line-height: 18px; font-weight: 400; }
+#assetsPage .material-folder-info time,#finishedPage .material-folder-info time,#timbreLibraryGrid .material-folder-info time { margin-top: 4px; font-size: 10px; line-height: 16px; color: var(--muted); }
+#assetsPage .material-folder-item > .material-more-button,#timbreLibraryGrid .material-folder-item > .timbre-more { top: 116px; }
+
+/* Material library header: one compact row under the library tabs. */
+.asset-library-tabs { gap: 22px; margin-bottom: 12px; }
+.asset-library-tabs button { height: 34px; font-size: 14px; font-weight: 400; }
+.asset-library-tabs button[aria-selected="true"] { font-weight: 600; }
+#assetsPage .material-library-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 0 24px; min-height: 36px; }
+#assetsPage .material-library-tabs { display: inline-flex; flex: none; align-items: center; margin: 0; padding: 0; gap: 0; border: 0; border-radius: 6px; background: #1d1d20; overflow: hidden; }
+#assetsPage .material-library-tabs button { height: 32px; padding: 0 14px; margin: 0; border: 0; border-radius: 0; font-size: 12px; color: #88888f; background: transparent; }
+#assetsPage .material-library-tabs button::after { display: none; }
+#assetsPage .material-library-tabs button[aria-selected="true"] { background: #303034; color: #fff; font-weight: 500; }
+#assetsPage #materialCount { flex: none; font-size: 11px; color: #74747c; }
+#assetsPage .material-library-actions { width: auto; margin-left: auto; display: flex; align-items: center; flex-wrap: nowrap; gap: 10px; }
+#assetsPage .material-search { width: 280px; height: 36px; border: 0; border-radius: 8px; background: #202023; }
+#assetsPage .material-library-actions .library-create-folder { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 36px; padding: 0 14px; border: 0; border-radius: 7px; background: #29292c; color: #bdbdc3; font-size: 12px; }
+#assetsPage .library-create-folder svg { width: 19px; height: 19px; }
+#assetsPage .material-library-actions [data-add-material] { background: #f1f1f3; color: #29292d; }
+#assetsPage [data-add-material] > span { font-size: 21px; font-weight: 300; }
+#assetsPage #materialBreadcrumb { order: 20; width: 100%; margin: 0; }
+#assetsPage #materialBreadcrumb:not(:has(button)) { display: none; }
+@media(max-width:900px) { #assetsPage .material-library-actions { width: 100%; } #assetsPage .material-search { flex: 1; min-width: 100px; } }
+
+/* Shared library typography: tabs 16, controls / names 14, metadata 12. */
+#timbreLibraryContent .timbre-filter-toolbar { display: flex; align-items: center; gap: 12px; margin: 0 0 24px; overflow: visible; }
+#timbreBreadcrumb { order: 0; margin: 0; flex: none; }
+#timbreLibraryCount { order: 1; }
+#timbreStatusFilter { order: 2; margin-left: auto; }
+#timbreLibraryContent .timbre-filter-toolbar .material-search { order: 3; flex: 0 1 280px; height: 40px; border: 0; background: #202023; }
+#timbreLibraryContent .timbre-filter-toolbar [data-create-timbre-folder] { order: 4; margin-left: 0; display: inline-flex; align-items: center; gap: 8px; background: #29292c; border: 0; color: #bdbdc3; }
+#timbreLibraryContent .timbre-filter-toolbar [data-create-library-timbre] { order: 5; background: #f1f1f3; color: #29292d; border: 0; }
+#assetLibraryTabs button { font-size: 16px; height: 44px; }
+#assetsPage .material-library-tabs button { font-size: 14px; height: 40px; }
+#assetsPage #materialCount,#finishedPage .finished-library-count,#timbreLibraryCount { font-size: 12px; }
+#assetsPage .material-search .material-search-input,#finishedPage .finished-search input,#timbreLibraryContent .material-search-input { font-size: 14px; }
+#assetsPage .material-search,#finishedPage .finished-search { height: 40px; width: 320px; }
+#assetsPage .material-library-actions .library-create-folder,#finishedPage #finishedCreateFolder,#timbreLibraryContent .library-create-folder,#timbreLibraryContent .timbre-library-create,#timbreStatusFilter { font-size: 14px; min-height: 40px; padding: 0 16px; }
+#assetsPage .library-create-folder svg,#finishedPage #finishedCreateFolder svg,#timbreLibraryContent .library-create-folder svg { width: 18px; height: 18px; }
+#assetsPage .material-search > svg,#finishedPage .finished-search > svg,#timbreLibraryContent .material-search > svg { width: 18px; height: 18px; flex-basis: 18px; }
+#assetsPage .material-folder-info strong,#finishedPage .material-folder-info strong,#timbreLibraryGrid .material-folder-info strong,#assetsPage .material-file-info h3,#finishedPage .finished-card-open h2,#timbreLibraryGrid .timbre-card-info strong { font-size: 14px; line-height: 21px; }
+#assetsPage .material-folder-info time,#finishedPage .material-folder-info time,#timbreLibraryGrid .material-folder-info time,#assetsPage .material-file-info time,#finishedPage .finished-card-open time,#timbreLibraryGrid .timbre-card-date { font-size: 12px; line-height: 18px; }
+#assetsPage .material-folder-item,#finishedPage .material-folder-item,#timbreLibraryGrid .material-folder-item { height: 166px; }
+#timbreLibraryGrid.timbre-library-grid { --timbre-item-height: 180px; }
+#timbreBreadcrumb { font-size: 14px; }
+#finishedPage .finished-card-more,#assetsPage .material-more-button,#timbreLibraryGrid .timbre-more { width: 24px; height: 24px; font-size: 22px; }
+@media(max-width:1100px) { #timbreLibraryContent .timbre-filter-toolbar { flex-wrap: wrap; } #assetsPage .material-library-actions,#finishedPage .finished-header-actions { flex-wrap: wrap; } }
+
+/* Balanced weights, consistent spacing and restrained supporting text. */
+#assetLibraryTabs { gap: 24px; margin-bottom: 16px; }
+#assetLibraryTabs button { font-weight: 500; }
+#assetLibraryTabs button[aria-selected="true"] { font-weight: 650; }
+#assetsPage .material-library-tabs button { font-weight: 400; }
+#assetsPage .material-library-tabs button[aria-selected="true"] { font-weight: 600; }
+#assetsPage .material-library-actions .library-create-folder,#finishedPage #finishedCreateFolder,#timbreLibraryContent .library-create-folder,#timbreStatusFilter { font-weight: 500; border-radius: 8px; }
+#assetsPage [data-add-material],#timbreLibraryContent .timbre-library-create { font-weight: 600; }
+#timbreStatusFilter strong { font-size: 14px; font-weight: 500; }
+#assetsPage .material-folder-info strong,#finishedPage .material-folder-info strong,#timbreLibraryGrid .material-folder-info strong,#assetsPage .material-file-info h3,#finishedPage .finished-card-open h2,#timbreLibraryGrid .timbre-card-info strong { font-weight: 500; letter-spacing: 0; }
+#assetsPage #materialCount,#finishedPage .finished-library-count,#timbreLibraryCount { font-weight: 400; line-height: 18px; color: var(--muted); }
+#assetsPage .material-folder-info time,#finishedPage .material-folder-info time,#timbreLibraryGrid .material-folder-info time,#assetsPage .material-file-info time,#finishedPage .finished-card-open time,#timbreLibraryGrid .timbre-card-date { font-weight: 400; color: var(--muted); }
+#finishedPage .finished-header-actions { gap: 12px; }
+#finishedPage .finished-header-divider { height: 22px; }
+#timbreLibraryGrid .timbre-card-info { gap: 4px; }
+#assetsPage .material-library-actions,#finishedPage .finished-header-actions { row-gap: 10px; }
+
+/* All three libraries use exact 124px square preview tiles. */
+#assetsPage #materialItems,#finishedPage .finished-gallery-layout,#timbreLibraryGrid.timbre-library-grid {
+  grid-template-columns: repeat(auto-fill,124px);
+  column-gap: 20px;
+  row-gap: 24px;
+}
+#assetsPage .material-folder-item,#assetsPage .material-file-card,#finishedPage .material-folder-item,#finishedPage .finished-work-card,#timbreLibraryGrid .material-folder-item,#timbreLibraryGrid .timbre-card {
+  width: 124px;
+  min-width: 0;
+  height: auto;
+  min-height: 178px;
+}
+#assetsPage .material-folder-cover,#assetsPage .material-file-preview,#finishedPage .material-folder-cover,#finishedPage .finished-gallery-cover,#timbreLibraryGrid .material-folder-cover,#timbreLibraryGrid .timbre-cover {
+  box-sizing: border-box;
+  width: 124px;
+  min-width: 124px;
+  max-width: 124px;
+  height: 124px;
+  min-height: 124px;
+  max-height: 124px;
+  flex: none;
+}
+#assetsPage .material-folder-item > .material-more-button,#finishedPage .material-folder-item > .material-more-button,#finishedPage .finished-card-more,#timbreLibraryGrid .material-folder-item > .timbre-more,#timbreLibraryGrid .timbre-more { top: 134px; }
+
+/* Shared asset-library spacing rhythm. */
+#assetLibraryTabs { gap: 28px; margin-bottom: 20px; }
+#assetsPage .material-library-toolbar,#finishedPage .finished-library-toolbar,#timbreLibraryContent .timbre-filter-toolbar { gap: 12px; margin-top: 0; margin-bottom: 28px; }
+#assetsPage .material-library-actions,#finishedPage .finished-header-actions { gap: 12px; }
+#assetsPage #materialItems,#finishedPage .finished-gallery-layout,#timbreLibraryGrid.timbre-library-grid { column-gap: 24px; row-gap: 28px; }
+#assetsPage .material-folder-info,#assetsPage .material-file-info,#finishedPage .material-folder-info,#timbreLibraryGrid .material-folder-info { padding-top: 10px; }
+#finishedPage .finished-card-open h2 { margin: 10px 0 4px; }
+#timbreLibraryGrid .timbre-card-info { margin-top: 10px; gap: 4px; }
+#assetsPage .material-folder-info time,#assetsPage .material-file-info time,#finishedPage .material-folder-info time,#timbreLibraryGrid .material-folder-info time { margin-top: 4px; }
+#assetsPage .material-folder-item,#assetsPage .material-file-card,#finishedPage .material-folder-item,#finishedPage .finished-work-card,#timbreLibraryGrid .material-folder-item,#timbreLibraryGrid .timbre-card { min-height: 178px; }
+@media(max-width:700px) {
+  #assetLibraryTabs { gap: 22px; margin-bottom: 16px; }
+  #assetsPage #materialItems,#finishedPage .finished-gallery-layout,#timbreLibraryGrid.timbre-library-grid { column-gap: 18px; row-gap: 24px; }
+  #assetsPage .material-library-toolbar,#finishedPage .finished-library-toolbar,#timbreLibraryContent .timbre-filter-toolbar { margin-bottom: 24px; }
+}
+
+/* Give finished-work cards more room horizontally and vertically. */
+#finishedPage .finished-gallery-layout {
+  column-gap: 32px;
+  row-gap: 32px;
+  padding: 4px 0 12px;
+}
+@media(max-width:700px) {
+  #finishedPage .finished-gallery-layout { column-gap: 22px; row-gap: 28px; }
+}

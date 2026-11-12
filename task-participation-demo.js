@@ -33,7 +33,7 @@
    '副歌情绪仍不够突出，请增强情绪递进，并保留已确认的主歌内容。'
   ].map((remark,index)=>({id:`multiple-return-demo-${index+1}`,remark,fromNodeId:returnedContext.snapshot.nodes[1]?.id||returnedNode.id,fromNodeTitle:returnedContext.snapshot.nodes[1]?.title||returnedNode.title,toNodeId:returnedNode.id,toNodeTitle:returnedNode.title,returnedAt:new Date(seedTime-(3-index)*40*60*1000).toISOString()}));
   Object.assign(task,{workName:returnedRun.name,status:'in_progress',requiresHuman:true,executionMode:'manual',participationDemo:true,assignmentCreated:true,returnHistory:history,returnNote:history[history.length-1],executionCount:Math.max(history.length+1,Number(task.executionCount)||1),updatedAt:seedTime+5,updatedLabel:'刚刚'});
-  if(!task.failureDemoSeeded){if(!task.candidates?.length)task.generationStage='failed';task.failureDemoSeeded=true;}
+  if(!task.failureDemoSeeded){if(!task.candidates?.length)task.generationStage='failed';task.failureReason='生成服务请求超时（演示）';task.failureDemoSeeded=true;}
   returnedRun.status='制作中';returnedRun.stage=returnedNode.title;returnedRun.startedAt||=new Date(seedTime).toISOString();delete returnedRun.waitingNodeIndex;
  }
  // Seed one editable AI-lyrics task without resetting saved work on reload.
@@ -63,7 +63,7 @@
  if(retryContext&&!modelDone(failedRun)&&!productionTasks.some(t=>t.projectId===project.id&&String(t.workId)===failedId)){
   failedRun.nodeAssignments||={};
   for(const node of retryContext.snapshot.nodes)failedRun.nodeAssignments[projectWorkAssignmentKey(retryContext,node.id)]={workflowId:retryContext.plan.workflowId,workflowVersion:retryContext.plan.workflowVersion,nodeId:node.id,nodeName:node.title,memberId:member.id,memberName:member.name,assignedAt:seedTime};
-  productionTasks.push(Object.assign(createProductionTask(retryContext,retryContext.snapshot.nodes[0],0,'in_progress',seedTime+9),{assignmentCreated:true,generationStage:'failed',formValues:{prompt:'以雨后的街道为主题，写一首温暖的城市民谣。',count:'2'},candidates:[],updatedLabel:'刚刚'}));
+  productionTasks.push(Object.assign(createProductionTask(retryContext,retryContext.snapshot.nodes[0],0,'in_progress',seedTime+9),{assignmentCreated:true,generationStage:'failed',failureReason:'生成服务请求超时（演示）',formValues:{prompt:'以雨后的街道为主题，写一首温暖的城市民谣。',count:'2'},candidates:[],updatedLabel:'刚刚'}));
  }
  // A separate playlist workflow keeps the four-audio example linked to a real run and review node.
  const playlistPlanId='DEMO-PLAYLIST-PLAN',playlistRunId='DEMO-PLAYLIST-001';

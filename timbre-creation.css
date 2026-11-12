@@ -387,3 +387,181 @@
   color: var(--muted);
   font-size: 13px;
 }
+
+/* Compact two-column creation studio. */
+.material-dialog.timbre-creation { width: min(1000px, calc(100vw - 32px)); border-radius: 12px; }
+.timbre-creation form > header { padding: 18px 20px; }
+.timbre-creation-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; padding: 0; overflow: hidden; }
+.timbre-creation-editor { min-width: 0; overflow-y: auto; padding: 14px 18px; scrollbar-width: thin; }
+.timbre-creation-metadata { padding: 0 0 12px; border: 0; border-radius: 0; background: transparent; }
+.timbre-creation-metadata > legend, .timbre-creation-settings > legend { display: none; }
+.timbre-creation-metadata-fields { gap: 10px; }
+.timbre-creation label { font-size: 12px; margin-top: 10px; }
+.timbre-creation textarea, .timbre-creation select, .timbre-creation input[type="text"] { border-radius: 6px; font-size: 12px; margin-top: 5px; }
+.timbre-creation-reference { padding: 8px 10px; border-radius: 6px; }
+.timbre-creation-reference-heading strong { font-size: 12px; }
+.timbre-creation-options { grid-template-columns: 1fr; gap: 10px; }
+.timbre-creation-options > label { display: flex; align-items: center; gap: 18px; }
+.timbre-creation-options select { width: auto; margin: 0; }
+.timbre-creation-count { align-items: center; gap: 0; }
+.timbre-creation-count legend { float: left; margin: 6px 18px 0 0; font-size: 12px; }
+.timbre-creation-count label { position: relative; margin: 0; padding: 6px 16px; background: var(--surface-2); border-radius: 4px; }
+.timbre-creation-count input { position: absolute; opacity: 0; }
+.timbre-creation-count label:has(:checked) { background: #eee; color: #17181d; }
+.timbre-creation-count label:has(:focus-visible) { outline: 2px solid #a076ef; }
+.timbre-creation-advanced { border: 0; padding: 0; margin-top: 14px; }
+.timbre-creation-advanced summary { padding: 5px 10px; border-radius: 5px; background: var(--surface-2); text-align: center; color: var(--muted); font-size: 12px; }
+.timbre-creation-advanced output { float: right; }
+.timbre-creation-advanced input[type="range"] { accent-color: #ddd; width: 100%; }
+.timbre-creation .timbre-creation-check { gap: 18px; margin-top: 14px; }
+.timbre-creation input[role="switch"] { appearance: none; width: 32px; height: 18px; padding: 3px; border: 0; border-radius: 20px; background: #45454b; cursor: pointer; transition: background .15s; }
+.timbre-creation input[role="switch"]::before { content: ''; display: block; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.timbre-creation input[role="switch"]:checked { background: #8559e8; }
+.timbre-creation input[role="switch"]:checked::before { transform: translateX(14px); }
+.timbre-creation input[role="switch"]:focus-visible { outline: 2px solid #a076ef; outline-offset: 3px; }
+.timbre-creation-results { padding: 18px; overflow-y: auto; scrollbar-width: thin; }
+.timbre-creation-results h3 { font-size: 13px; }
+.timbre-creation-result { padding: 12px; border-radius: 7px; }
+.timbre-creation-result:has(input:checked) { border-color: #96969f; background: var(--surface-2); }
+.timbre-creation-result audio { color-scheme: dark; }
+.timbre-creation button.timbre-creation-generate { background: var(--surface-2); color: var(--text); border-radius: 6px; }
+.timbre-creation-feedback { padding: 12px 18px; }
+.timbre-creation-phase[data-phase="confirming"] { color: #d8ad4a; background: #d8ad4a16; border-color: #d8ad4a55; }
+.timbre-creation-feedback .material-primary { background: #eee; color: #17181d; }
+@media (max-width: 700px) {
+  .timbre-creation-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+  .timbre-creation-editor, .timbre-creation-results { overflow: visible; }
+  .timbre-creation-results { border-left: 0; border-top: 1px solid var(--line); }
+}
+
+/* Playback-only result cards: custom controls have no download menu. */
+.timbre-creation-result { background: #303133; border: 1px solid #45464a; padding: 12px; }
+.timbre-creation-result:has(input:checked) { background: #303133; border-color: #999a9d; }
+.timbre-creation-result label { position: relative; padding-bottom: 12px; color: #c4c4c7; font-size: 12px; }
+.timbre-creation-result label > span { color: #c4c4c7; }
+.timbre-creation-result input[type="radio"] { position: absolute; opacity: 0; }
+.timbre-creation-result:has(input:focus-visible) { outline: 2px solid #a076ef; outline-offset: 2px; }
+.timbre-wave-player { display: flex; align-items: center; gap: 12px; border-top: 1px solid #414246; padding-top: 8px; }
+.timbre-creation .timbre-wave-play { display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; padding: 0; margin: 0; border: 1px solid #57585c; border-radius: 50%; background: #414245; color: #eee; font-size: 15px; }
+.timbre-wave-play span { transform: translateX(1px); }
+.timbre-wave-play.is-playing span { transform: none; }
+.timbre-creation .timbre-wave-play:hover { background: #505156; }
+.timbre-wave-play:focus-visible { outline: 2px solid #a076ef; outline-offset: 3px; }
+.timbre-wave-time { flex: none; color: #929397; font-size: 11px; font-variant-numeric: tabular-nums; }
+.timbre-wave-bars { display: flex; flex: 1; min-width: 0; height: 34px; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
+.timbre-wave-bars i { display: block; width: 2px; flex: 1 1 2px; max-width: 2px; background: #5a5b60; border-radius: 2px; }
+.timbre-wave-bars i.is-played { background: #8559ef; }
+.timbre-creation-example-result .timbre-wave-player { margin-top: 12px; }
+@media (max-width: 420px) { .timbre-wave-player { gap: 8px; } }
+
+/* Spacious advanced settings and full-height percentage sliders. */
+.material-dialog.timbre-creation { width: min(1080px, calc(100vw - 40px)); }
+.timbre-creation-editor { padding: 20px 24px 28px; }
+.timbre-creation-results { padding: 20px 24px; }
+.timbre-creation label { margin-top: 18px; line-height: 1.5; }
+.timbre-creation-metadata-fields { gap: 16px; }
+.timbre-creation-metadata-fields label { margin-top: 0; }
+.timbre-creation-metadata { padding-bottom: 20px; }
+.timbre-creation-options { margin-top: 20px; gap: 18px; }
+.timbre-creation-options > label { margin: 0; }
+.timbre-creation-advanced { margin-top: 22px; }
+.timbre-creation-advanced summary { padding: 7px 12px; }
+.timbre-creation-advanced > label { display: block; margin-top: 22px; color: var(--muted); font-size: 13px; }
+.timbre-creation-advanced textarea { margin-top: 8px; padding: 10px 12px; }
+.timbre-range-track { display: flex; position: relative; align-items: center; height: 30px; margin-top: 8px; padding-right: 48px; border-radius: 7px; background: #242426; overflow: hidden; }
+.timbre-creation-advanced .timbre-range-track input[type="range"] { appearance: none; -webkit-appearance: none; display: block; flex: 1; min-width: 0; width: calc(100% - 48px); height: 26px; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; cursor: pointer; }
+.timbre-range-track input::-webkit-slider-runnable-track { height: 26px; border-radius: 5px; background: linear-gradient(to right, #29292b 0%, #999 var(--range-progress), transparent var(--range-progress)); }
+.timbre-range-track input::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 5px; height: 26px; border: 0; border-radius: 3px; background: #f0f0f0; }
+.timbre-range-track input::-moz-range-track { height: 26px; border-radius: 5px; background: linear-gradient(to right, #29292b 0%, #999 var(--range-progress), transparent var(--range-progress)); }
+.timbre-range-track input::-moz-range-thumb { width: 5px; height: 26px; border: 0; border-radius: 3px; background: #f0f0f0; }
+.timbre-range-track:focus-within { outline: 2px solid #a076ef; outline-offset: 2px; }
+.timbre-creation-advanced .timbre-range-track output { position: absolute; right: 10px; float: none; color: #f0f0f0; font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; }
+.timbre-creation-gender { margin-top: 26px; }
+.timbre-creation-gender legend { width: 80px; margin-right: 18px; color: var(--muted); }
+.timbre-creation-count label { margin: 0; min-width: 42px; justify-content: center; padding: 6px 14px; border-radius: 0; }
+.timbre-creation-count label:first-of-type { border-radius: 5px 0 0 5px; }
+.timbre-creation-count label:last-of-type { border-radius: 0 5px 5px 0; }
+.timbre-creation-advanced > .timbre-creation-check { display: grid; grid-template-columns: 98px 32px; align-items: center; gap: 0; margin-top: 26px; }
+.timbre-creation-check input[role="switch"] { margin: 0; }
+.timbre-creation-feedback { padding: 16px 24px; }
+@media (max-width: 700px) {
+  .timbre-creation-editor, .timbre-creation-results { padding: 18px 16px; }
+}
+
+/* Reference source entry and illustrated empty result. */
+.timbre-creation-reference { border: 0; padding: 0; background: transparent; }
+.timbre-creation-reference-heading { margin-bottom: 10px; }
+.timbre-creation-reference-heading strong { font-size: 14px; font-weight: 400; color: var(--muted); }
+.timbre-creation-reference-heading strong > span { color: #c68a56; margin-left: 5px; }
+.timbre-reference-dropzone { min-height: 144px; box-sizing: border-box; padding: 14px 18px; text-align: center; border: 1px dashed #3a3a40; border-radius: 13px; background: radial-gradient(ellipse at 48% 100%, #41605726, transparent 65%), radial-gradient(ellipse at 65% 40%, #50507b24, transparent 70%), #ffffff03; }
+.timbre-reference-actions { display: flex; justify-content: center; gap: 12px; }
+.timbre-creation .timbre-reference-actions button { display: grid; place-items: center; width: 76px; height: 60px; padding: 0; border: 1px dashed #3e3e45; border-radius: 10px; background: #ffffff02; color: #aaaab0; }
+.timbre-reference-actions svg { width: 28px; height: 28px; }
+.timbre-creation .timbre-reference-actions button:hover { background: #ffffff09; border-color: #888; }
+.timbre-creation-reference .timbre-reference-title { margin: 10px 0 0; font-size: 14px; color: #c2c2c6; }
+.timbre-creation-reference .timbre-reference-formats { margin: 5px 0 0; font-size: 14px; color: #626269; }
+.timbre-creation-empty { display: flex; flex-direction: column; justify-content: center; gap: 12px; min-height: 264px; margin-top: 14px; padding: 16px; border-color: #303036; border-radius: 13px; background: radial-gradient(ellipse at 90% 0%, #49497915, transparent 65%), radial-gradient(ellipse at 20% 100%, #33594c0c, transparent 65%); color: #626269; font-size: 14px; }
+.timbre-creation-empty::before { content: ''; display: block; flex: none; width: 230px; max-width: 100%; height: 190px; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20240%20200%22%20fill%3D%22none%22%20stroke%3D%22%2377797d%22%20stroke-width%3D%221.3%22%3E%3Cpath%20d%3D%22M110%2013a72%2072%200%200%201%2054%20115M49%2065a65%2065%200%200%200%200%2044M31%20104l10%208m142-4%2010-8M25%20164h190M39%20172h51m-34%208h35m44%200h35m-12-8h42%22%2F%3E%3Cpath%20d%3D%22M69%2040h61l23%2023v85q0%206-6%206H69q-6%200-6-6V46q0-6%206-6Z%22%2F%3E%3Cpath%20d%3D%22M130%2040v22h23M106%2083H93q-19%200-19%2019v17q0%2019%2019%2019h27q19%200%2019-19v-19M86%20106v11m10-19v29m10-22v20m10-14v7m10-17v22%22%2F%3E%3Cpath%20fill%3D%22%2377797d%22%20stroke%3D%22none%22%20d%3D%22m130%2068%204%2010%2010%204-10%204-4%2010-4-10-10-4%2010-4Z%22%2F%3E%3Ccircle%20cx%3D%2241%22%20cy%3D%2252%22%20r%3D%225%22%2F%3E%3Ccircle%20cx%3D%22190%22%20cy%3D%22138%22%20r%3D%224%22%2F%3E%3Cpath%20stroke-dasharray%3D%221%204%22%20stroke-width%3D%222%22%20d%3D%22M167%2039h43m-43%206h43m-43%206h43m-43%206h43m-43%206h43m-43%206h43m-198%2059h20m-20%206h20m-20%206h20m-20%206h20m-20%206h20%22%2F%3E%3C%2Fsvg%3E") center / contain no-repeat; }
+
+.timbre-creation-metadata-fields{grid-template-columns:minmax(0,1fr);gap:18px}.timbre-reference-dropzone.has-reference{position:relative;min-height:170px;padding:12px;border:0;border-radius:8px;background:#29292c;text-align:left}.has-reference .timbre-reference-actions{position:absolute;right:12px;top:20px;gap:12px;flex-direction:row-reverse}.timbre-creation .has-reference .timbre-reference-actions button{width:24px;height:24px;border:0;border-radius:0;background:transparent}.has-reference .timbre-reference-actions svg{width:23px;height:23px}.timbre-creation-reference .has-reference .timbre-reference-title{margin:0 72px 0 48px;min-height:21px;font-size:14px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.timbre-creation-reference .has-reference .timbre-reference-formats{margin:5px 72px 0 48px;font-size:13px;color:#606064}.timbre-reference-file-icon{position:absolute;left:12px;top:15px;display:grid;place-items:center;width:40px;height:40px;border-radius:7px;background:#303033;color:#aaa;font-size:25px}.timbre-reference-times{display:flex;justify-content:space-between;margin:10px 0 4px;color:#929296;font-size:12px}.timbre-creation .timbre-reference-wave{display:flex;align-items:center;justify-content:space-between;gap:3px;width:100%;height:78px;padding:4px 12px;border:0;border-radius:10px;background:#222225;cursor:pointer}.timbre-reference-wave i{display:block;width:2px;flex:0 1 2px;background:#62626b}.timbre-reference-wave i.is-played{background:#986bf0}.timbre-reference-wave:focus-visible{outline:2px solid #a076ef;outline-offset:2px}
+
+/* Compact selected-reference player; source actions remain in the header. */
+.timbre-reference-dropzone.has-reference { min-height: 0; padding: 10px 12px; border: 1px solid #3a3b3f; border-radius: 6px; background: #303133; }
+.timbre-creation-reference .has-reference .timbre-reference-title { margin: 0; padding: 0 66px 10px 0; min-height: 22px; color: #bfc0c3; font-size: 12px; line-height: 22px; font-weight: 400; }
+.has-reference .timbre-reference-formats { display: none; }
+.has-reference .timbre-reference-actions { top: 9px; right: 12px; gap: 10px; }
+.timbre-creation .has-reference .timbre-reference-actions button { width: 22px; height: 22px; color: #a5a6aa; }
+.has-reference .timbre-reference-actions svg { width: 20px; height: 20px; }
+.has-reference .timbre-reference-preview { display: flex; align-items: center; gap: 10px; padding-top: 8px; border-top: 1px solid #424347; }
+.timbre-creation .timbre-reference-play { display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; padding: 0; margin: 0; border: 1px solid #535458; border-radius: 50%; background: #414245; color: #eee; font-size: 14px; cursor: pointer; }
+.timbre-creation .timbre-reference-play:hover { background: #505156; }
+.timbre-reference-play:focus-visible { outline: 2px solid #a076ef; outline-offset: 2px; }
+.timbre-reference-time { flex: none; color: #999a9e; font-size: 11px; font-variant-numeric: tabular-nums; }
+.timbre-creation .timbre-reference-wave { flex: 1; min-width: 0; width: auto; height: 34px; gap: 2px; padding: 0; margin: 0; border: 0; border-radius: 0; background: transparent; cursor: default; }
+.timbre-reference-wave i { flex: 1 1 2px; max-width: 2px; background: #62636a; }
+.timbre-reference-wave i.is-played { background: #8559ef; }
+
+/* Result titles must not inherit the form-field spacing. */
+.material-dialog.timbre-creation .timbre-creation-result > label {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 0 10px;
+  min-height: 0;
+  line-height: 18px;
+}
+.material-dialog.timbre-creation .timbre-creation-result > label > span {
+  display: block;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Strong, stable selection treatment for generated audio candidates. */
+.material-dialog.timbre-creation .timbre-creation-result:has(input[name="outputCandidate"]:checked) {
+  border-color: #a986ff;
+  background: #393247;
+  box-shadow: inset 0 0 0 1px #a986ff, 0 0 0 2px #a986ff16;
+}
+.material-dialog.timbre-creation .timbre-creation-result:has(input[name="outputCandidate"]:checked) > label > span {
+  color: #fff;
+  font-weight: 700;
+  flex: 1;
+  min-width: 0;
+}
+.material-dialog.timbre-creation .timbre-creation-result:has(input[name="outputCandidate"]:checked) > label::after {
+  content: '✓ 已选择';
+  flex: none;
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: #a986ff29;
+  color: #d8c7ff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+}
+.material-dialog.timbre-creation .timbre-creation-result:has(input[name="outputCandidate"]:checked) .timbre-wave-player {
+  border-top-color: #a986ff40;
+}

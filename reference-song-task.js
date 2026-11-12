@@ -70,6 +70,7 @@
       ${select('voiceGender', '人声性别', [['unspecified', '不指定'], ['female', '女声'], ['male', '男声']], 'unspecified')}
       ${select('instrumental', '生成纯音乐', [['unspecified', '不指定'], ['yes', '是'], ['no', '否']], 'unspecified')}
       <label class="song-studio-setting"><span>跳过版权检查</span><span class="song-studio-switch"><input type="checkbox" role="switch" aria-label="跳过版权检查" data-task-field="skipCopyrightCheck" ${String(values.skipCopyrightCheck) === 'true' ? 'checked' : ''} ${disabled}><i aria-hidden="true"></i></span></label>
+      <label class="song-studio-setting"><span>Max 模式</span><span class="song-studio-switch"><input type="checkbox" role="switch" aria-label="Max 模式" data-task-field="maxMode" ${String(values.maxMode ?? true) === 'true' ? 'checked' : ''} ${disabled}><i aria-hidden="true"></i></span></label>
     </div>`;
   }
   const downloadIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 6v8m-3-3 3 3 3-3M7 15v3h10v-3"/></svg>';
@@ -151,7 +152,7 @@
           <label class="song-studio-field task-form-field"><span class="song-studio-label">反向提示词</span><input data-task-field="negativePrompt" ${disabled} value="${taskFormValue(task, 'negativePrompt')}" placeholder="选填需要规避的声音或风格"></label>
           ${generationSettings(task, locked)}
         </div></section>
-        <section class="song-studio-panel song-studio-output" aria-labelledby="referenceSongOutputTitle"><header><h3 id="referenceSongOutputTitle">输出</h3>${downloadAllButton(task)}</header><div class="song-studio-scroll"><div class="song-studio-label">生成歌曲 ${info('输出只能选择一个，备选可选择多个，二者不能重复。输出和备选均可在成品编辑中添加。此处为本地交互演示音频。')}</div><div class="song-studio-results">${outputs}</div>${!locked ? `<div data-output-run-slot><button class="song-studio-run" type="button" data-task-generate="song" ${referenceReady ? '' : 'disabled'}>▶ ${results.length ? '再次运行' : '开始运行'}</button></div>` : ''}</div>
+        <section class="song-studio-panel song-studio-output" aria-labelledby="referenceSongOutputTitle"><header><h3 id="referenceSongOutputTitle">输出</h3>${downloadAllButton(task)}</header><div class="song-studio-scroll"><div class="song-studio-label">生成歌曲 ${info('输出只能选择一个，备选可选择多个，二者不能重复。输出和备选均可在成品编辑中添加。此处为本地交互演示音频。')}</div><div class="song-studio-results">${task.generationStage==='failed'?taskFailureMarkup(task):outputs}</div>${!locked ? `<div data-output-run-slot>${task.generationStage==='failed'?taskRetryMarkup('song'):`<button class="song-studio-run" type="button" data-task-generate="song" ${referenceReady ? '' : 'disabled'}>▶ ${results.length ? '再次运行' : '开始运行'}</button>`}</div>` : ''}</div>
           ${!locked ? `<footer class="song-studio-actions"><button class="task-return-button" type="button" data-task-action="return">打回</button><button class="task-complete-button" type="button" data-task-action="complete" ${referenceReady && taskNodeCanComplete(task) ? '' : 'disabled'}>确认提交</button></footer>` : ''}
         </section>
       </div>

@@ -70,3 +70,14 @@ body.task-mode .task-page .task-item-statuses .task-status { display: inline-fle
 .task-page .task-sort-direction[data-direction="Asc"]{background:#30263f;color:#cdb2f5}
 .task-page .task-sort-direction:hover{border-color:#a780fb}
 .task-page .task-sort-direction:focus-visible{outline:2px solid #a780fb;outline-offset:2px}
+
+.task-page .task-sort-control{gap:6px;width:100%}#taskSort[hidden]{display:none}#taskSortSegments{display:flex;flex:1;height:32px;overflow:hidden;border-radius:6px;background:#242426}#taskSortSegments button{flex:1;padding:0 10px;border:0;border-right:1px solid #19191b;background:transparent;color:#aaa;font-size:14px;cursor:pointer}#taskSortSegments button:last-child{border-right:0}#taskSortSegments button[aria-pressed="true"]{color:#eee;background:#333335;font-weight:600}.task-page .task-sort-direction,.task-page .task-sort-direction[data-direction="Asc"]{width:32px;height:32px;min-height:32px;padding:6px;border:0;background:#242426;color:#aaa}.task-sort-direction span{display:none}#taskSortSegments button:focus-visible{outline:2px solid #a076ef;outline-offset:-2px}
+
+/* Explicit selected states in the task menu. */
+body.task-mode .task-page .task-tabs button.active,
+body.task-mode .task-page .task-tabs button.active span,
+.task-page #taskSortSegments button[aria-pressed="true"] { color: #fff; font-weight: 700; }
+.task-page #taskSortSegments button[aria-pressed="true"] { background: #3a3a3e; box-shadow: inset 0 0 0 1px #ffffff12; }
+.task-page .task-item.active { background: #303034; border-color: #77777f; box-shadow: inset 0 0 0 1px #ffffff12; }
+body.task-mode .task-page .task-item.active .task-item-title b,
+body.task-mode .task-page .task-item.active .task-item-title small { color: #fff; font-weight: 700; }

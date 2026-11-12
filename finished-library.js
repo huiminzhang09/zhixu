@@ -179,6 +179,7 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
   document.querySelector('#finishedFolderUp').onclick=()=>{
     const data=folderData();openFolders.set(team(),data.folders.find(f=>f.id===currentFolder(data))?.parent||'');clearSearch();
   };
+  document.querySelector('#finishedCreateFolder').onclick=()=>folderForm('create');
   folderGrid.addEventListener('click',event=>{
     if(event.target.closest('[data-new-folder]'))return folderForm('create');
     const folder=event.target.closest('[data-open-folder],[data-move-folder]');if(!folder)return;
@@ -192,19 +193,21 @@ function renderFinishedLibrary(){ window.orchestraFinishedLibrary?.render(); }
     const folder=currentFolder(data);
     document.querySelector('#finishedFolderPath').textContent=folderPath(data,folder);
     document.querySelector('#finishedFolderUp').hidden=!folder;
+    document.querySelector('.finished-folder-navigation').hidden=!folder;
     closeMenu();const value=searches.get(searchScope())||'',keyword=normalizeSearch(value),all=entries().sort(newestFirst),items=all.filter(({key,work})=>keyword?normalizeSearch(work.name).includes(keyword):(data.locations[key]||'')===folder);
     const folders=keyword?[]:data.folders.filter(f=>f.parent===folder);
     const artwork=window.orchestraMaterialLibrary?.folderArtwork||'';
     folderGrid.hidden=Boolean(keyword);
-    folderGrid.innerHTML=`<div class="material-add-card" role="listitem"><button type="button" class="material-new-folder" data-new-folder ${folderDepth(data,folder)>=2?'disabled':''} aria-label="新建文件夹" title="${folderDepth(data,folder)>=2?'最多支持两级文件夹，根目录不计入层级':'新建文件夹'}"><span class="material-folder-cover" aria-hidden="true">${artwork}<span>＋</span></span><span class="material-folder-info"><strong>新建文件夹</strong></span></button></div>`+folders.map(f=>{
+    document.querySelector('#finishedCreateFolder').disabled=folderDepth(data,folder)>=2;
+    folderGrid.innerHTML=folders.map(f=>{
       const name=escapeHtml(f.name),id=escapeHtml(f.id),date=f.createdAt?formatDate(f.createdAt).split(' ')[0].replaceAll('/','-'):'';
       return `<div class="material-folder-item" role="listitem"><button type="button" class="material-folder-card" data-open-folder="${id}" aria-label="打开文件夹：${name}"><span class="material-folder-cover" aria-hidden="true">${artwork}</span><span class="material-folder-info"><strong title="${name}">${name}</strong>${date?`<time>${date}</time>`:''}</span></button><button class="material-more-button" type="button" data-move-folder="${id}" aria-label="${name}的更多操作" aria-haspopup="menu" aria-expanded="false">⋯</button></div>`;
     }).join('');
     if(searchInput&&searchInput.value!==value)searchInput.value=value;
     if(clearSearchButton)clearSearchButton.hidden=!value;
-    document.querySelector('#finishedWorkCount').textContent=keyword?`找到 ${items.length} 个成品，共 ${all.length} 个成品`:folder?`${folders.length} 个文件夹 · ${items.length} 个成品`:`${folders.length} 个文件夹`;
-    grid.innerHTML=items.map(({work,key})=>`<article class="finished-work-card" role="listitem" data-finished-key="${escapeHtml(key)}"><button type="button" class="finished-card-open" data-finished-view aria-label="查看${escapeHtml(work.name)}"><span class="finished-card-types">${typeCounts(work.resources||[]).map(([type,count])=>`<span class="finished-type-tile is-${type}" aria-label="${typeNames[type]} ${count} 个">${resourceIcon(type)}<span>${count}</span></span>`).join('')}</span><h2 title="${escapeHtml(work.name)}">${escapeHtml(work.name)}</h2><time>创建于 ${formatDate(work.createdAt)}</time>${keyword?`<small class="finished-result-location" title="${escapeHtml(folderPath(data,data.locations[key]))}">所在位置 · ${escapeHtml(folderPath(data,data.locations[key]))}</small>`:''}</button><button type="button" class="finished-card-more" data-finished-more aria-label="${escapeHtml(work.name)}的更多操作" aria-haspopup="menu" aria-expanded="false">⋯</button></article>`).join('')||`<p class="finished-empty">${keyword?'未找到匹配的成品，请尝试其他名称或清空搜索。':folder?'此文件夹暂无成品。':'暂无成品，请先在待办的「成品组装」任务中组合成品并提交。'}</p>`;
-    grid.hidden=!keyword&&!folder;
+    document.querySelector('#finishedWorkCount').textContent=keyword?`找到 ${items.length} 个成品，共 ${all.length} 个成品`:`共 ${folders.length} 个文件夹，${items.length} 个成品`;
+    grid.innerHTML=items.map(({work,key})=>`<article class="finished-work-card" role="listitem" data-finished-key="${escapeHtml(key)}"><button type="button" class="finished-card-open" data-finished-view aria-label="查看${escapeHtml(work.name)}"><span class="finished-gallery-cover"><svg class="finished-gallery-symbol" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m24 14 13 7-13 8-13-8zM11 21v14l13 7 13-7V21M24 29v13M8 37l-4 2m36-2 4 2M24 10v4"/><circle cx="24" cy="6" r="4"/><circle cx="4" cy="40" r="3"/><circle cx="44" cy="40" r="3"/></svg><span class="finished-gallery-strip"><span class="finished-gallery-types">${typeCounts(work.resources||[]).map(([type,count])=>`<span title="${typeNames[type]} ${count} 个" aria-label="${typeNames[type]} ${count} 个">${resourceIcon(type)}</span>`).join('')}</span><span class="finished-gallery-count" aria-label="共 ${(work.resources||[]).length} 个资源">${(work.resources||[]).length}</span></span></span><h2 title="${escapeHtml(work.name)}">${escapeHtml(work.name)}</h2><time>创建于 ${formatDate(work.createdAt)}</time>${keyword?`<small class="finished-result-location" title="${escapeHtml(folderPath(data,data.locations[key]))}">所在位置 · ${escapeHtml(folderPath(data,data.locations[key]))}</small>`:''}</button><button type="button" class="finished-card-more" data-finished-more aria-label="${escapeHtml(work.name)}的更多操作" aria-haspopup="menu" aria-expanded="false">⋯</button></article>`).join('')||`<p class="finished-empty">${keyword?'未找到匹配的成品，请尝试其他名称或清空搜索。':folder?'此文件夹暂无成品。':'暂无成品，请先在待办的「成品组装」任务中组合成品并提交。'}</p>`;
+    grid.hidden=false;
     document.querySelector('#finishedListEnd').hidden=!items.length;
     document.querySelector('#finishedListEnd').textContent=keyword?'已显示全部搜索结果':'已显示全部成品';
   }

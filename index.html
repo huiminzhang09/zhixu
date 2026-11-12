@@ -13,11 +13,11 @@
   <link rel="stylesheet" href="./business.css?v=13" />
   <link rel="stylesheet" href="./project-create.css?v=17" />
   <link rel="stylesheet" href="./project-detail.css?v=20261021-full-width" />
-  <link rel="stylesheet" href="./task-center.css?v=20261106-return-source" />
+  <link rel="stylesheet" href="./task-center.css?v=20261112-failure-reason" />
   <link rel="stylesheet" href="./workflows.css?v=20261102-finished-cleanup" />
   <link rel="stylesheet" href="./playlist-import.css?v=1" />
   <link rel="stylesheet" href="./profile-center.css?v=20261026-account-security" />
-  <link rel="stylesheet" href="./node-editor.css?v=20261106-timbre-picker" />
+  <link rel="stylesheet" href="./node-editor.css?v=20261112-menu-left-zero" />
   <link rel="stylesheet" href="./production-model.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./team-navigation.css?v=8" />
   <link rel="stylesheet" href="./team-invites.css?v=20261028-auth-design">
@@ -29,15 +29,15 @@
   <link rel="stylesheet" href="./task-participation.css?v=20261028-progress-style">
   <link rel="stylesheet" href="./reference-song-task.css?v=20261109-timbre-library-entry">
   <link rel="stylesheet" href="./task-audio-picker.css?v=20261022-personal-team">
-  <link rel="stylesheet" href="./material-library.css?v=20261110-asset-tab-style">
-  <link rel="stylesheet" href="./timbre-creation.css?v=20261110-timbre-tab-song-retry">
-  <link rel="stylesheet" href="./finished-library.css?v=20261105-empty-folder-sort-toggle">
+  <link rel="stylesheet" href="./material-library.css?v=20261112-finished-spacing">
+  <link rel="stylesheet" href="./timbre-creation.css?v=20261112-result-selected">
+  <link rel="stylesheet" href="./finished-library.css?v=20261112-grid-cascade-fix">
   <link rel="stylesheet" href="./task-material-reference.css?v=20261022-result-help">
   <link rel="stylesheet" href="./work-output-task.css?v=20261106-assembly-confirm-width">
-  <link rel="stylesheet" href="./task-list.css?v=20261105-empty-folder-sort-toggle">
+  <link rel="stylesheet" href="./task-list.css?v=20261112-selected">
   <link rel="stylesheet" href="./task-scroll.css?v=20261102-assembly-layout">
   <link rel="stylesheet" href="./reference-lyrics-task.css?v=20261103-ai-lyrics-return">
-  <link rel="stylesheet" href="./music-show.css?v=20261030-workflow-icon">
+  <link rel="stylesheet" href="./music-show.css?v=20261112-home-hover">
   <link rel="stylesheet" href="./canvas-preview.css?v=20261102-canvas-ui">
   <link rel="stylesheet" href="./task-output-run.css?v=20261103-output-run-dock">
 <link rel="stylesheet" href="./library-forms.css?v=finished-folder-style">
@@ -129,7 +129,7 @@
             <div class="task-list-summary"><b id="taskListTitle">进行中任务</b><span id="taskResultCount" role="status">0 条</span></div>
             <div class="task-list-filters">
               <label class="task-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 5 5"/></svg><input id="taskSearch" type="search" placeholder="搜索作品、项目或节点" aria-label="搜索任务" aria-controls="taskList" /></label>
-              <div class="task-sort-control"><select id="taskSort" aria-label="排序时间字段" aria-controls="taskList"><option value="created">创建时间</option></select><button id="taskSortDirection" class="task-sort-direction" type="button" data-direction="Asc" aria-label="当前正序（早到晚），点击切换为倒序" aria-controls="taskList">正序</button></div>
+              <div class="task-sort-control"><div id="taskSortSegments" role="group" aria-label="排序时间字段"></div><select hidden id="taskSort" aria-label="排序时间字段" aria-controls="taskList"><option value="created">创建时间</option></select><button id="taskSortDirection" class="task-sort-direction" type="button" data-direction="Asc" aria-label="当前正序（早到晚），点击切换为倒序" aria-controls="taskList">正序</button></div>
             </div>
           </div>
           <div class="task-list-scroll" id="taskListScroll" role="region" aria-label="任务列表">
@@ -196,7 +196,7 @@
         <div role="tablist">
           <button class="active" id="projectPlanTab" type="button" role="tab" aria-selected="true" aria-controls="projectPlanPanel" data-project-detail-tab="plan">生产计划</button>
           <button id="projectWorksTab" type="button" role="tab" aria-selected="false" aria-controls="projectWorksPanel" data-project-detail-tab="runs">生产运行</button>
-          <button type="button" role="tab" data-project-detail-tab="consumption" aria-selected="false">运行统计</button>
+          <button type="button" role="tab" data-project-detail-tab="consumption" aria-selected="false" hidden style="display:none">运行统计</button>
           <button type="button" role="tab" data-project-detail-tab="efficiency" aria-selected="false">人效统计</button>
         </div>
       </nav>
@@ -296,20 +296,22 @@
     </div>
     <section class="page-view assets-page library-page" id="assetsPage" role="tabpanel" aria-labelledby="assetsLibraryTab">
       <div id="assetMaterialsPanel" class="asset-panel material-library-panel" role="region" aria-label="素材库内容">
+        <div id="materialLibraryContent" role="tabpanel" aria-labelledby="personalMaterialTab">
+          <div class="material-library-toolbar">
         <div class="material-library-tabs" role="tablist" aria-label="素材库分类">
           <button id="personalMaterialTab" type="button" role="tab" data-material-library="personal" aria-selected="true" aria-controls="materialLibraryContent" tabindex="0">个人素材库</button>
           <button id="teamMaterialTab" type="button" role="tab" data-material-library="team" aria-selected="false" aria-controls="materialLibraryContent" tabindex="-1">团队素材库</button>
         </div>
-        <div id="materialLibraryContent" role="tabpanel" aria-labelledby="personalMaterialTab">
-          <div class="material-library-toolbar">
+
             <nav id="materialBreadcrumb" class="material-breadcrumb" aria-label="素材文件夹路径"></nav>
+            <span id="materialCount" class="material-count" aria-live="polite">共 0 个文件夹，0 个文件</span>
             <div class="material-library-actions">
               <div class="material-search" role="search" aria-label="素材名称搜索">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5" stroke-linecap="round"/></svg>
-                <input id="materialSearch" class="material-search-input" type="search" placeholder="搜索名称" aria-label="搜索素材名称" aria-controls="materialItems" autocomplete="off">
+                <input id="materialSearch" class="material-search-input" type="search" placeholder="搜索作品、项目或节点" aria-label="搜索素材名称" aria-controls="materialItems" autocomplete="off">
                 <button id="clearMaterialSearch" class="material-search-clear" type="button" aria-label="清空素材搜索" title="清空搜索" hidden>×</button>
               </div>
-              <span id="materialCount" class="material-count" aria-live="polite">共 0 个文件夹，0 个文件</span>
+              <button type="button" class="library-create-folder" data-create-material-folder><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3zM3 7V5h7l2 2h7v2M12 12v5m-2.5-2.5h5"/></svg>新建文件夹</button><button type="button" class="library-create-folder" data-add-material><span aria-hidden="true">＋</span>添加资源</button>
             </div>
           </div>
           <div id="materialItems" class="material-content-grid" role="list" aria-label="文件夹和素材"></div>
@@ -319,12 +321,12 @@
     </section>
     <section class="page-view library-page" id="timbrePage" role="tabpanel" aria-labelledby="timbreLibraryTab">
       <section id="timbreLibraryContent" class="timbre-library-content" aria-label="音色库内容">
-        <nav id="timbreBreadcrumb" class="material-breadcrumb timbre-breadcrumb" aria-label="音色文件夹路径"></nav>
         <div class="timbre-filter-toolbar">
+          <nav id="timbreBreadcrumb" class="material-breadcrumb timbre-breadcrumb" aria-label="音色文件夹路径"></nav>
           <button type="button" class="timbre-library-create" data-create-library-timbre aria-haspopup="dialog" hidden>＋ 创建音色</button>
           <button type="button" id="timbreStatusFilter" class="timbre-status-trigger" popovertarget="timbreStatusOptions" aria-expanded="false" aria-controls="timbreStatusOptions timbreLibraryGrid"><span>状态</span><strong data-timbre-status-summary>全部状态</strong><span aria-hidden="true">▾</span></button>
-          <div class="material-search" role="search" aria-label="音色名称搜索"><input id="timbreNameSearch" class="material-search-input" type="search" placeholder="搜索音色名称" aria-label="搜索音色名称，含子文件夹" aria-controls="timbreLibraryGrid" autocomplete="off"><button id="clearTimbreSearch" class="material-search-clear" type="button" aria-label="清空音色名称搜索" hidden>×</button></div>
-          <span id="timbreLibraryCount" class="material-count" aria-live="polite"></span>
+          <div class="material-search" role="search" aria-label="音色名称搜索"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input id="timbreNameSearch" class="material-search-input" type="search" placeholder="搜索音色名称" aria-label="搜索音色名称，含子文件夹" aria-controls="timbreLibraryGrid" autocomplete="off"><button id="clearTimbreSearch" class="material-search-clear" type="button" aria-label="清空音色名称搜索" hidden>×</button></div>
+          <button type="button" class="library-create-folder" data-create-timbre-folder><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3zM3 7V5h7l2 2h7v2"/></svg>新建文件夹</button><span id="timbreLibraryCount" class="material-count" aria-live="polite"></span>
         </div>
         <div id="timbreStatusOptions" class="timbre-status-popover" popover role="group" aria-label="筛选状态，可多选">
           <div class="timbre-status-popover-heading"><strong>筛选状态</strong><button type="button" data-clear-timbre-status disabled>清空</button></div>
@@ -336,15 +338,21 @@
     <section class="page-view finished-page library-page" id="finishedPage" role="tabpanel" aria-labelledby="finishedLibraryTab">
       <div id="finishedLibraryPanel" class="finished-library-panel" role="region" aria-label="成品列表">
         <div class="finished-library-toolbar">
-          <div><button id="finishedFolderUp" class="library-tool" hidden>← 上一级</button> <span id="finishedFolderPath"></span></div><span id="finishedWorkCount" class="finished-library-count" aria-live="polite">0 个成品</span>
+          <div class="finished-folder-navigation"><button id="finishedFolderUp" class="library-tool" hidden>← 上一级</button> <span id="finishedFolderPath"></span></div><span id="finishedWorkCount" class="finished-library-count" aria-live="polite">0 个成品</span>
+          <div class="finished-header-actions">
           <div class="finished-search" role="search" aria-label="成品名称搜索">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5" stroke-linecap="round"/></svg>
-            <input id="finishedWorkSearch" type="search" placeholder="搜索名称" aria-label="搜索成品名称" aria-controls="finishedWorkGrid" autocomplete="off">
+            <input id="finishedWorkSearch" type="search" placeholder="搜索作品、项目或节点" aria-label="搜索成品名称" aria-controls="finishedWorkGrid" autocomplete="off">
             <button id="clearFinishedWorkSearch" type="button" aria-label="清空成品搜索" title="清空搜索" hidden>×</button>
           </div>
+            <span class="finished-header-divider" aria-hidden="true"></span>
+            <button type="button" id="finishedCreateFolder" class="library-create-folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3zM3 7V5h7l2 2h7v2"/></svg>新建文件夹</button>
+          </div>
         </div>
+        <div class="finished-gallery-layout">
         <div id="finishedFolderGrid" class="material-content-grid" role="list" aria-label="成品文件夹"></div>
         <div id="finishedWorkGrid" class="finished-work-grid" role="list" aria-label="成品卡片"></div>
+        </div>
         <p id="finishedListEnd" class="finished-list-end" hidden>已显示全部成品</p>
       </div>
       <div id="finishedEditorPanel" aria-label="成品详情" hidden></div>
@@ -528,7 +536,7 @@
     <section class="page-view node-editor-page" id="canvasPage" aria-labelledby="canvasTitle">
       <header class="canvas-header">
         <div class="canvas-brand-menu"><button type="button" id="canvasMenuToggle" aria-label="画布菜单" aria-expanded="false" aria-controls="canvasMenu"><span class="brand-mark"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
-          <div id="canvasMenu" class="canvas-popover" hidden><button type="button" id="backProjects">返回上一页</button><button type="button" data-canvas-page="workflows">创作合集</button><button type="button" data-canvas-page="home">首页</button></div>
+          <div id="canvasMenu" class="canvas-popover" aria-label="画布快捷导航" hidden><button type="button" id="backProjects" hidden>返回上一页</button><button type="button" data-canvas-page="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10l6-5 6 5v8H6z"/></svg><span>首页</span></button><button type="button" data-canvas-page="tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z M8 8h8M8 12h5m-5 4 2 2 6-6"/></svg><span>待办</span></button><button type="button" data-canvas-page="projects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-2 13H7z M8 8V4h8v4"/></svg><span>项目</span></button><button type="button" data-canvas-page="workflows" class="is-current" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 6h2v2H7zM15 5h2v2h-2zM6 14h2v2H6zM14 13h3v3h-3z"/></svg><span>创作</span></button><button type="button" data-canvas-page="assets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 10 5-10 5L2 8z M4 12l-2 1 10 5 10-5-2-1 M4 17l-2 1 10 5 10-5-2-1"/></svg><span>素材库</span></button><button type="button" data-canvas-page="finished"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v5H3zM3 14h18v6H3zM7 6h2m-2 11h2"/></svg><span>成品库</span></button><div class="canvas-menu-divider"></div><button type="button" data-toast="积分超市即将开放"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l3-6h12l3 6M4 10v11h16V10M3 10q3 5 6 0 3 5 6 0 3 5 6 0"/></svg><span>购买…</span></button><button type="button" data-toast="已为你保留早鸟优惠"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 4-5h10l4 5-9 13z M3 8h18M7 3l5 18 5-18"/></svg><span>会员</span></button><button type="button" data-toast="创作积分：3,722"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 2-11 12h8l-1 8 11-13h-8z"/></svg><span>3,722</span></button></div>
         </div>
         <label class="canvas-title-group"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 4 5 5M5 19l4-1L21 6l-4-4L5 14v5ZM12 3H5a3 3 0 0 0-3 3v13a3 3 0 0 0 3 3h13a3 3 0 0 0 3-3v-7"/></svg><span id="canvasBreadcrumb" class="canvas-sr-only">工作流画布</span><input id="canvasTitle" class="canvas-name" value="未命名音乐工作流" aria-label="工作流名称" maxlength="100" /></label>
         <div class="draft-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span id="draftStatus">已保存</span></div>
@@ -719,7 +727,7 @@
   </footer>
   <div class="toast" id="toast" role="status"></div>
   <script src="./account-phone.js?v=20261026-account-security"></script>
-  <script src="./script.js?v=20261110-asset-library-tabs"></script>
+  <script src="./script.js?v=20261112-home-hover"></script>
   <script src="./profile-phone.js?v=20261026-account-security"></script>
   <script src="./account-ui.js?v=20261028-auth-design"></script>
   <script src="./profile-password.js?v=20261028-auth-design"></script>
@@ -728,20 +736,20 @@
   <script src="./finished-library-demo.js?v=20261027-team-examples"></script>
   <script src="./reference-library.js?v=2"></script>
   <script src="./playlist-import.js?v=1"></script>
-  <script src="./finished-library.js?v=20261105-empty-folder-sort-toggle"></script>
-  <script src="./workflow-editor.js?v=20261106-timbre-picker"></script>
+  <script src="./finished-library.js?v=20261112-finished-header"></script>
+  <script src="./workflow-editor.js?v=20261112-node-max"></script>
   <script src="./team-navigation.js?v=20261110-asset-library-tabs"></script>
   <script src="./logout.js?v=20261028-auth-design"></script>
   <script src="./team-invites.js?v=20261028-auth-design"></script>
   <script src="./run-pagination.js?v=20261013"></script>
   <script src="./assignee-search.js?v=20261013"></script>
   <script src="./avatar-team-entry.js?v=20261028-auth-design"></script>
-  <script src="./material-library.js?v=20261110-timbre-primary-nav"></script>
+  <script src="./material-library.js?v=20261112-library-scale"></script>
   <script src="./task-workflow-resources.js?v=20261022-result-resources"></script>
-  <script src="./task-audio-picker.js?v=20261109-timbre-creation"></script>
-  <script src="./reference-song-task.js?v=20261109-timbre-library-entry"></script>
-  <script src="./timbre-creation.js?v=20261110-timbre-no-instrumental"></script>
-  <script src="./task-participation-demo.js?v=20261104-task-marks"></script>
+  <script src="./task-audio-picker.js?v=20261112-reference-source"></script>
+  <script src="./reference-song-task.js?v=20261112-failure-reason"></script>
+  <script src="./timbre-creation.js?v=20261112-advanced-collapsed"></script>
+  <script src="./task-participation-demo.js?v=20261112-failure-reason"></script>
   <script src="./task-material-reference.js?v=20261029-library-labels"></script>
   <script src="./work-output-task.js?v=20261106-assembly-confirm-width"></script>
   <script src="./task-output-run.js?v=20261103-output-run-dock"></script>

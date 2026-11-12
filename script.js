@@ -69,7 +69,7 @@ document.querySelector('#filters').innerHTML=filterNames.map((x,i)=>`<button cla
 // Showcase cards use existing demo workflows as their preview destinations.
 const showcaseWorkflowIds=['midnight-melody','reference-lab'];
 const showcaseWorkflowIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 12h3a2 2 0 0 0 2-2V6h3M11 12a2 2 0 0 1 2 2v4h3"/><rect x="2" y="9" width="6" height="6" rx="1.6"/><rect x="16" y="3" width="6" height="6" rx="1.6"/><rect x="16" y="15" width="6" height="6" rx="1.6"/></svg>';
-const grid=document.querySelector('#musicGrid');grid.innerHTML=photos.map((p,i)=>`<article class="card" data-index="${i}"><div class="art-wrap"><img src="${url(p)}" alt="${titles[i]} 封面" loading="lazy"><span class="badge ${i%3?'video':''}">${i%3?'视频':'音频'}</span><span class="duration">05:10</span><button class="hover-play" aria-label="播放 ${titles[i]}">▶</button></div><h3>${titles[i]}</h3><small>${i%3===1?'氛围短片':'城市流行 Demo'}</small><div class="stats"><div class="music-card-metrics"><span>▷ 344</span><span>♡ 128</span><span>▢ 4</span></div><button type="button" class="music-workflow-button" data-showcase-workflow="${showcaseWorkflowIds[i%showcaseWorkflowIds.length]}" aria-label="查看「${titles[i]}」的创作流程">${showcaseWorkflowIcon}<span class="music-workflow-tooltip" aria-hidden="true">查看创作流程</span></button></div></article>`).join('');
+const grid=document.querySelector('#musicGrid');grid.innerHTML=photos.map((p,i)=>`<article class="card" data-index="${i}"><div class="art-wrap"><img src="${url(p)}" alt="${titles[i]} 封面" loading="lazy"><span class="badge ${i%3?'video':''}">${i%3?'视频':'音频'}</span><span class="duration">05:10</span><button type="button" class="hover-play" aria-label="播放 ${titles[i]}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4a1 1 0 0 1 1.5-.86l13 8a1 1 0 0 1 0 1.72l-13 8A1 1 0 0 1 7 20z" fill="currentColor"/></svg></button><button type="button" class="music-workflow-button" data-showcase-workflow="${showcaseWorkflowIds[i%showcaseWorkflowIds.length]}" aria-label="查看「${titles[i]}」的工作流"><span>查看工作流</span>${showcaseWorkflowIcon}</button></div><h3>${titles[i]}</h3><small>${i%3===1?'氛围短片':'城市流行 Demo'}</small><div class="stats"><div class="music-card-metrics"><span>▷ 344</span><span>♡ 128</span><span>▢ 4</span></div></div></article>`).join('');
 const projectData=[
   {id:'orchestra-theme-album',title:'项目名称',desc:'客户：番茄平台    负责人：张三',type:'团队专辑',progress:68,date:'今天 10:20',color:'linear-gradient(135deg,#4f28c8,#c34767)',members:['H','L','M','+3'],scope:'owned',risk:false},
   {id:'indie-artist-support',title:'独立音乐人扶持计划',desc:'为新锐音乐人提供制作与发行支持',type:'团队企划',progress:52,date:'8月24日',color:'linear-gradient(135deg,#057b8c,#41bd9c)',members:['H','Y','K'],scope:'owned',risk:true},
@@ -355,6 +355,11 @@ function compareTasksForSort(a,b,sort) {
   const delta=(left??0)-(right??0);
   return (sort.endsWith('Asc')?delta:-delta)||String(a.id).localeCompare(String(b.id));
 }
+function taskFailureMarkup(task){
+  const reason=task.failureReason||task.generationError||task.error?.message||(typeof task.error==='string'?task.error:'')||'未返回具体失败原因';
+  return `<div class="task-generation-failure" role="alert"><div><span class="task-failure-symbol" aria-hidden="true">!</span><strong>上次运行失败，可再次运行</strong></div><p>${escapeHtml(String(reason))}，无法生成内容，请点击「再次运行」进行生成。</p></div>`;
+}
+function taskRetryMarkup(kind){return `<div class="task-failure-run"><span class="task-failure-cost"><span aria-hidden="true">⚡</span>12</span><button type="button" data-task-generate="${kind}"><span class="task-failure-symbol" aria-hidden="true">▶</span>再次运行</button></div>`;}
 function renderTaskSortDirection(direction) {
   const button=document.querySelector('#taskSortDirection'),ascending=direction==='Asc';
   const label=ascending?'正序':'倒序',next=ascending?'倒序':'正序';
@@ -368,6 +373,9 @@ function renderTaskSortControl() {
   control.innerHTML=taskSortOptions[currentTaskStatus].map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
   const sort=taskSortByTab[currentTaskStatus];
   control.value=sort.replace(/Asc$|Desc$/,'');
+  const segments=document.querySelector('#taskSortSegments');
+  segments.innerHTML=taskSortOptions[currentTaskStatus].map(([value,label])=>`<button type="button" data-sort-field="${value}" aria-pressed="${control.value===value}">${label}</button>`).join('');
+  segments.onclick=event=>{const button=event.target.closest('[data-sort-field]');if(!button)return;control.value=button.dataset.sortField;control.dispatchEvent(new Event('change',{bubbles:true}));};
   renderTaskSortDirection(sort.endsWith('Asc')?'Asc':'Desc');
 }
 
@@ -525,10 +533,11 @@ function startProductionPlanTasks(project,works){
   return created;
 }
 function persistProductionTasks(){try{localStorage.setItem(taskCenterStorageKey,JSON.stringify(productionTasks));return true}catch{return false}}
+function hiddenCompletedDemoReview(task){return task.status==='completed'&&task.projectId==='orchestra-theme-album'&&['DEMO-WORK-OUTPUT-001','DEMO-ALLOCATION-007','DEMO-PLAYLIST-001'].includes(String(task.workId))&&(task.nodeType==='lyricsReview'||(String(task.workId)==='DEMO-WORK-OUTPUT-001'&&task.nodeType==='songReview'))}
 function taskMatchesStatus(task){if(currentTaskStatus==='active')return task.status==='in_progress';if(currentTaskStatus==='finished')return ['completed','terminated'].includes(task.status);return true}
 function filteredProductionTasks(){
   const keyword=taskSearch.value.trim().toLowerCase();
-  return productionTasks.filter(task=>taskMatchesStatus(task)&&`${task.workName} ${task.projectName} ${task.planName} ${task.nodeTitle}`.toLowerCase().includes(keyword)).sort((a,b)=>compareTasksForSort(a,b,taskSortByTab[currentTaskStatus]));
+  return productionTasks.filter(task=>!hiddenCompletedDemoReview(task)&&taskMatchesStatus(task)&&`${task.workName} ${task.projectName} ${task.planName} ${task.nodeTitle}`.toLowerCase().includes(keyword)).sort((a,b)=>compareTasksForSort(a,b,taskSortByTab[currentTaskStatus]));
 }
 function taskListIcon(name){
   const icons={
@@ -632,7 +641,7 @@ function renderReferenceLyricsWorkspace(task){
     <label class="task-form-field lyrics-field lyrics-prompt-field"><span>用户提示词 ${required}</span><textarea data-task-field="prompt" data-task-required data-generation-required ${disabled} placeholder="${ai?'描述希望生成的歌词，输入 @ 引用文本素材':'描述本次歌词改写要求，输入 @ 引用文本素材'}">${taskFormValue(task,'prompt')}</textarea></label>
     <div class="lyrics-count-setting"><span id="lyricsGenerationCountLabel">生成数量 ${info('选择本次生成的歌词方案数量，支持 1～3 份。')}</span><div class="lyrics-count-options" role="group" aria-labelledby="lyricsGenerationCountLabel">${[1,2,3].map(value=>`<label><input type="radio" name="lyricsGenerationCount" data-task-field="count" value="${value}" ${count===value?'checked':''} ${disabled}><span>${value}</span></label>`).join('')}</div></div>
     ${!ai?`${field('goldenLine','金句','选填希望保留的金句')}${field('rhyme','韵脚','选填押韵方式')}${field('avoidWords','规避词','选填需要避免的词语')}${field('imagery','意象','选填意象关键词')}${field('lyricsFormat','歌词格式','选填歌词段落格式')}`:''}
-    </div></section><section class="ref-workbench-panel ref-workbench-output"><header><h3>输出</h3></header><div class="ref-workbench-content"><div class="lyrics-output-label">歌词方案 ${info('仅可设置一个输出方案，可设置多个备选方案；输出与备选不能重复。')}</div><div class="lyrics-results">${results||`<div class="lyrics-empty"><span aria-hidden="true">▤</span><b>${task.generationStage==='failed'?'上次运行失败，可再次运行':'暂无生成结果'}</b><p>${ai?'填写用户提示词后':'填写参考歌词和用户提示词后'}，点击“开始运行”生成歌词方案。</p></div>`}</div>${!locked?`<div data-output-run-slot><button type="button" class="${ai?'lyrics-ai-run':'lyrics-run-button'}" data-task-generate="lyrics"><span aria-hidden="true">▶</span> ${candidates.length||task.generationStage==='failed'?'再次运行':'开始运行'}</button></div>`:''}</div>${!locked?`<footer class="lyrics-studio-actions${ai?' is-ai-actions':''}">${!ai?`<button type="button" class="task-return-button" data-task-action="return">打回</button>`:''}<button type="button" class="task-complete-button" data-task-action="complete" ${taskNodeCanComplete(task)?'':'disabled'}>确认提交</button></footer>`:''}</section></div></div>`;
+    </div></section><section class="ref-workbench-panel ref-workbench-output"><header><h3>输出</h3></header><div class="ref-workbench-content"><div class="lyrics-output-label">歌词方案 ${info('仅可设置一个输出方案，可设置多个备选方案；输出与备选不能重复。')}</div><div class="lyrics-results">${task.generationStage==='failed'?taskFailureMarkup(task):results||`<div class="lyrics-empty"><span aria-hidden="true">▤</span><b>${task.generationStage==='failed'?'上次运行失败，可再次运行':'暂无生成结果'}</b><p>${ai?'填写用户提示词后':'填写参考歌词和用户提示词后'}，点击“开始运行”生成歌词方案。</p></div>`}</div>${!locked?`<div data-output-run-slot>${task.generationStage==='failed'?taskRetryMarkup('lyrics'):`<button type="button" class="${ai?'lyrics-ai-run':'lyrics-run-button'}" data-task-generate="lyrics"><span aria-hidden="true">▶</span> ${candidates.length?'再次运行':'开始运行'}</button>`}</div>`:''}</div>${!locked?`<footer class="lyrics-studio-actions${ai?' is-ai-actions':''}">${!ai?`<button type="button" class="task-return-button" data-task-action="return">打回</button>`:''}<button type="button" class="task-complete-button" data-task-action="complete" ${taskNodeCanComplete(task)?'':'disabled'}>确认提交</button></footer>`:''}</section></div></div>`;
 }
 
 function renderReferenceSongWorkspace(task){
@@ -836,10 +845,10 @@ function renderTaskCenter(){
   taskList.hidden=!items.length;taskEmpty.hidden=Boolean(items.length);
   document.querySelector('#taskResultCount').textContent=`${items.length} 条`;
   document.querySelector('#taskListTitle').textContent=currentTaskStatus==='active'?'进行中任务':currentTaskStatus==='finished'?'已完成任务':'全部任务';
-  const activeCount=productionTasks.filter(task=>task.status==='in_progress').length,finishedCount=productionTasks.filter(task=>['completed','terminated'].includes(task.status)).length;
+  const activeCount=productionTasks.filter(task=>task.status==='in_progress').length,finishedCount=productionTasks.filter(task=>!hiddenCompletedDemoReview(task)&&['completed','terminated'].includes(task.status)).length;
   document.querySelector('#taskActiveTabCount').textContent=activeCount;
   document.querySelector('#taskFinishedTabCount').textContent=finishedCount;
-  document.querySelector('#taskAllTabCount').textContent=productionTasks.length;
+  document.querySelector('#taskAllTabCount').textContent=productionTasks.filter(task=>!hiddenCompletedDemoReview(task)).length;
   renderProductionTaskDetail(productionTasks.find(task=>task.id===selectedTaskId));
   renderTaskExecutionContext(productionTasks.find(task=>task.id===selectedTaskId));
   annotateTaskFieldTooltips();
@@ -981,6 +990,7 @@ function changeTaskSort() {
   const direction=document.querySelector('#taskSortDirection').dataset.direction;
   if(!taskSortOptions[currentTaskStatus].some(([key])=>key===field)||!['Asc','Desc'].includes(direction))return;
   taskSortByTab[currentTaskStatus]=field+direction;
+  renderTaskSortControl();
   taskList.innerHTML=filteredProductionTasks().map(productionTaskRow).join('');
   document.querySelector('#taskListScroll').scrollTop=0;
 }

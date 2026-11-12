@@ -41,6 +41,7 @@
         <button type="button" data-creation-close aria-label="关闭创建音色">×</button>
       </header>
       <div class="timbre-creation-body">
+        <div class="timbre-creation-editor">
         <fieldset class="timbre-creation-metadata">
           <legend>音色信息</legend>
           <div class="timbre-creation-metadata-fields">
@@ -57,12 +58,22 @@
         <fieldset class="timbre-creation-settings">
           <legend>配置</legend>
           <div class="timbre-creation-reference">
-            <div class="timbre-creation-reference-heading">
-              <strong>参考音频 <span aria-hidden="true">*</span></strong>
-              <button type="button" data-creation-reference>选择或上传音频</button>
+            <div class="timbre-creation-reference-heading"><strong>参考音频 <span aria-hidden="true">*</span></strong></div>
+            <div class="timbre-reference-dropzone">
+              <div class="timbre-reference-actions">
+                <button type="button" data-creation-reference data-reference-source="team" aria-label="从团队素材库选择音频" title="团队素材库"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 11 11-5 11 5-11 5z M7 15l-2 2 11 5 11-5-3-2 M7 21l-2 2 11 5 11-5-3-2"/></svg></button>
+                <button type="button" data-creation-reference data-reference-source="local" aria-label="上传本地音频" title="本地上传"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M16 22V5m-6 6 6-6 6 6M5 22v5h22v-5"/></svg></button>
+              </div>
+              <p class="timbre-reference-title" data-creation-reference-title>添加音频</p>
+              <p class="timbre-reference-formats">MP3、WAV 等常用音频格式</p>
+              <audio data-creation-reference-player controlslist="nodownload" preload="metadata" aria-label="试听参考音频" hidden></audio>
+              <div class="timbre-reference-preview" hidden>
+                <button type="button" class="timbre-reference-play" aria-label="播放参考音频" aria-pressed="false"><span aria-hidden="true">▶</span></button>
+                <span class="timbre-reference-time" data-reference-elapsed>0:00</span>
+                <div class="timbre-reference-wave" aria-hidden="true">${Array.from({length:48},(_,i)=>`<i style="height:${4+Math.round(Math.abs(Math.sin(i*1.73)*Math.cos(i*.21))*25)}px"></i>`).join('')}</div>
+                <span class="timbre-reference-time" data-reference-duration>--:--</span>
+              </div>
             </div>
-            <p data-creation-reference-title>支持从素材库选择，也可上传本地音频。</p>
-            <audio data-creation-reference-player controls preload="metadata" aria-label="试听参考音频" hidden></audio>
           </div>
           <label for="timbreCreationLyrics">歌词 <span aria-hidden="true">*</span></label>
           <textarea name="lyrics" id="timbreCreationLyrics" placeholder="输入歌曲歌词" required rows="4"></textarea>
@@ -83,31 +94,36 @@
             <label>反向提示词
               <textarea name="negativePrompt" placeholder="描述希望避免的声音或风格" rows="2"></textarea>
             </label>
-            <label>风格强度 <output for="timbreCreationStrength" data-creation-strength>50%</output>
-              <input type="range" name="styleStrength" id="timbreCreationStrength" aria-valuetext="50%" min="0" max="1" step="0.1" value="0.5">
-            </label>
-            <label>随机度 <output for="timbreCreationRandomness" data-creation-randomness>50%</output>
-              <input type="range" name="randomness" id="timbreCreationRandomness" aria-valuetext="50%" min="0" max="1" step="0.1" value="0.5">
-            </label>
-            <label>人声性别
-              <select name="voiceGender">
-                <option value="unspecified">不指定</option>
-                <option value="female">女声</option>
-                <option value="male">男声</option>
-              </select>
-            </label>
+            <label class="timbre-range-label" for="timbreCreationStrength">风格强度</label>
+            <div class="timbre-range-track" style="--range-progress:50%">
+              <input type="range" name="styleStrength" id="timbreCreationStrength" aria-valuetext="50%" min="0" max="1" step="0.01" value="0.5">
+              <output for="timbreCreationStrength" data-creation-strength>50%</output>
+            </div>
+            <label class="timbre-range-label" for="timbreCreationRandomness">随机度</label>
+            <div class="timbre-range-track" style="--range-progress:50%">
+              <input type="range" name="randomness" id="timbreCreationRandomness" aria-valuetext="50%" min="0" max="1" step="0.01" value="0.5">
+              <output for="timbreCreationRandomness" data-creation-randomness>50%</output>
+            </div>
+            <fieldset class="timbre-creation-count timbre-creation-gender">
+              <legend>人声性别</legend>
+              <label><input type="radio" name="voiceGender" value="unspecified" checked>不指定</label>
+              <label><input type="radio" name="voiceGender" value="male">男</label>
+              <label><input type="radio" name="voiceGender" value="female">女</label>
+            </fieldset>
             <label>生成纯音乐
               <select name="instrumental" disabled><option value="no">否</option></select>
             </label>
-            <label class="timbre-creation-check"><input type="checkbox" name="skipCopyrightCheck">跳过版权检查</label>
+            <label class="timbre-creation-check">跳过版权检查<input type="checkbox" role="switch" name="skipCopyrightCheck"></label>
+            <label class="timbre-creation-check">Max 模式<input type="checkbox" role="switch" name="maxMode" checked></label>
           </details>
-          <button type="submit" formnovalidate class="timbre-creation-generate" data-creation-generate>生成歌曲</button>
         </fieldset>
+        </div>
         <section class="timbre-creation-results" aria-labelledby="timbreCreationResultsTitle">
           <h3 id="timbreCreationResultsTitle">生成结果</h3>
           <p class="material-dialog-hint">交互演示使用样例音频。</p>
-          <p class="timbre-creation-empty" data-creation-empty>生成歌曲后，可在这里试听并选择一个输出。</p>
+          <p class="timbre-creation-empty" data-creation-empty>需要先生成歌曲并选择一个结果</p>
           <div data-creation-results role="radiogroup" aria-label="选择输出结果"></div>
+          <button type="submit" formnovalidate class="timbre-creation-generate" data-creation-generate>生成歌曲</button>
           <p class="material-dialog-error timbre-creation-song-error" data-creation-song-error role="alert"></p>
         </section>
       </div>
@@ -116,7 +132,7 @@
         <footer>
           <p class="material-dialog-hint" data-creation-status role="status"></p>
           <div>
-            <button type="button" data-creation-close>关闭</button>
+            <button type="button" data-creation-close>取消</button>
             <button type="button" class="material-primary" data-creation-persona disabled>创建音色</button>
           </div>
         </footer>
@@ -161,7 +177,11 @@
       const { name, style } = readMetadata();
       const metadataReady = Boolean(name && style);
       const busy = Boolean(operation);
-      settings.disabled = readOnly || busy;
+      settings.disabled = busy;
+      settings.querySelectorAll('input,textarea,select,button').forEach(control=>{
+        if(control.classList.contains('timbre-reference-play'))return;
+        control.disabled=readOnly||busy||control.name==='instrumental';
+      });
       metadata.disabled = readOnly || busy;
       const phase = example?.status || (operation === 'generating' ? 'song-generating' : draftStatus);
       phaseBadge.dataset.phase = phase;
@@ -169,9 +189,9 @@
       phaseBadge.hidden = !phaseBadge.textContent;
       const isGeneratingSong = phase === 'song-generating';
       generateButton.textContent = isGeneratingSong || candidates.length || phase === 'song-failed' ? '重新生成歌曲' : '生成歌曲';
-      generateButton.disabled = isGeneratingSong;
+      generateButton.disabled = readOnly || busy || isGeneratingSong;
       personaButton.disabled = busy || (readOnly ? !canRetry : !candidate || !metadataReady);
-      personaButton.textContent = operation === 'submitting' ? '正在提交…' : canRetry ? '重新生成音色' : '创建音色';
+      personaButton.textContent = operation === 'submitting' ? '正在提交…' : canRetry ? '重新生成音色' : '确认创建';
       closeButtons.forEach(button => { button.disabled = operation === 'submitting'; });
       results.querySelectorAll('input').forEach(input => { input.disabled = readOnly || busy; });
       if (operation) dialog.setAttribute('aria-busy', 'true');
@@ -181,8 +201,56 @@
       let nextStep = candidates.length ? '请选择一首歌曲作为输出。' : '生成歌曲后，选择一个输出以创建音色。';
       if (candidate) nextStep = metadataReady ? `已选择「${candidate.title}」，可创建音色。` : '请填写音色名称和风格描述。';
       if (phase === 'song-failed' && !candidate) nextStep = '歌曲生成失败，可重新生成';
-      if (readOnly) nextStep = canRetry ? '可使用已选歌曲重新生成音色。' : '状态示例';
+      if (readOnly) nextStep = example.details ? '仅查看，音色数据不可编辑。' : canRetry ? '可使用已选歌曲重新生成音色。' : '状态示例';
       status.textContent = progress[operation] || nextStep;
+    }
+
+    function playerMarkup(item) {
+      const bars = Array.from({ length: 48 }, (_, i) => {
+        const height = 5 + Math.round(Math.abs(Math.sin(i * 1.73) * Math.cos(i * .21)) * 26);
+        return `<i style="height:${height}px"></i>`;
+      }).join('');
+      return `<div class="timbre-wave-player">
+        <audio src="${escapeHtml(item.url)}" preload="metadata" controlslist="nodownload noplaybackrate noremoteplayback" disableremoteplayback hidden></audio>
+        <button type="button" class="timbre-wave-play" aria-label="播放 ${escapeHtml(item.title)}" aria-pressed="false"><span aria-hidden="true">▶</span></button>
+        <span class="timbre-wave-time" data-elapsed>0:00</span>
+        <div class="timbre-wave-bars" aria-hidden="true">${bars}</div>
+        <span class="timbre-wave-time" data-duration>--:--</span>
+      </div>`;
+    }
+
+    function bindPlayers() {
+      const time = value => Number.isFinite(value) && value >= 0
+        ? `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}` : '--:--';
+      results.querySelectorAll('.timbre-wave-player').forEach(player => {
+        const audio = player.querySelector('audio');
+        const button = player.querySelector('button');
+        const title = button.getAttribute('aria-label').slice(3);
+        const bars = [...player.querySelectorAll('.timbre-wave-bars i')];
+        const sync = () => {
+          const playing = !audio.paused && !audio.ended;
+          button.classList.toggle('is-playing', playing);
+          button.querySelector('span').textContent = playing ? 'Ⅱ' : '▶';
+          button.setAttribute('aria-label', `${playing ? '暂停' : '播放'} ${title}`);
+          button.setAttribute('aria-pressed', String(playing));
+          player.querySelector('[data-elapsed]').textContent = time(audio.currentTime);
+          player.querySelector('[data-duration]').textContent = time(audio.duration);
+          const progress = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.currentTime / audio.duration : 0;
+          bars.forEach((bar, index) => bar.classList.toggle('is-played', index < progress * bars.length));
+        };
+        button.addEventListener('click', async () => {
+          if (!audio.paused) { audio.pause(); return; }
+          try { await audio.play(); songError.textContent = ''; }
+          catch { songError.textContent = '音频暂时无法播放，请重试。'; }
+        });
+        for (const event of ['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'ended']) audio.addEventListener(event, sync);
+        audio.addEventListener('error', () => {
+          button.disabled = true;
+          songError.textContent = '音频加载失败，请重新生成或稍后重试。';
+        });
+        audio.addEventListener('contextmenu', event => event.preventDefault());
+        sync();
+      });
     }
 
     function showResults() {
@@ -198,15 +266,17 @@
           <h4>${heading}</h4>
           <p>${escapeHtml(title)}</p>
           ${playback.url
-            ? `<audio data-creation-example-audio src="${escapeHtml(playback.url)}" controls preload="metadata" aria-label="试听 ${escapeHtml(title)}"></audio>`
+            ? playerMarkup({ ...playback, title })
             : '<p class="material-dialog-hint">音频暂不可用。</p>'}
         </article>`;
+        bindPlayers();
         return;
       }
       results.innerHTML = candidates.map(item => `<article class="timbre-creation-result">
         <label><input type="radio" name="outputCandidate" value="${escapeHtml(item.id)}" ${item.id === selectedId ? 'checked' : ''}><span>${escapeHtml(item.title)}</span></label>
-        <audio src="${escapeHtml(item.url)}" controls preload="metadata" aria-label="试听 ${escapeHtml(item.title)}"></audio>
+        ${playerMarkup(item)}
       </article>`).join('');
+      bindPlayers();
     }
 
     function invalidateResults(message = '') {
@@ -215,7 +285,7 @@
       generatedConfig = null;
       draftStatus = 'draft';
       songError.textContent = '';
-      empty.textContent = message || '生成歌曲后，可在这里试听并选择一个输出。';
+      empty.textContent = message || '需要先生成歌曲并选择一个结果';
       showResults();
       updateControls();
     }
@@ -233,11 +303,16 @@
         randomness: Number(fields.randomness.value),
         voiceGender: fields.voiceGender.value,
         instrumental: fields.instrumental.value,
+        maxMode: fields.maxMode.checked,
         skipCopyrightCheck: fields.skipCopyrightCheck.checked
       };
     }
 
     function validateConfig(config) {
+      if (config.reference?.sourceLibrary === 'personal') {
+        referenceButton.focus();
+        throw Error('创建音色不支持使用个人素材，请选择团队素材或本地上传');
+      }
       if (!config.reference?.blob?.size) {
         referenceButton.focus();
         throw Error('请选择或上传参考音频');
@@ -276,19 +351,35 @@
       referenceURL = url;
       const previewURL = url || (readOnly ? source.url : null);
       if (previewURL) referenceAudio.src = previewURL;
-      referenceAudio.hidden = !previewURL;
+      referenceAudio.hidden = true;
+      dialog.querySelector('.timbre-reference-preview').hidden = !previewURL;
+      const extension=(source.title || '').split('.').pop().toUpperCase();
+      dialog.querySelector('.timbre-reference-formats').textContent = `${source.blob?.size ? (source.blob.size / 1048576).toFixed(1) + ' MB / ' : ''}${['WAV','MP3','M4A','AAC','OGG','FLAC'].includes(extension) ? extension : '音频'}`;
       referenceTitle.textContent = source.title || '参考音频';
-      referenceButton.textContent = '更换参考音频';
+      dialog.querySelector('.timbre-reference-dropzone').classList.add('has-reference');
     }
 
-    referenceButton.addEventListener('click', async () => {
+    const referenceWave=dialog.querySelector('.timbre-reference-wave');
+    const referencePlay=dialog.querySelector('.timbre-reference-play');
+    const referenceTime=value=>Number.isFinite(value)?`${Math.floor(value/60)}:${String(Math.floor(value%60)).padStart(2,'0')}`:'--:--';
+    const syncReference=()=>{
+      dialog.querySelector('[data-reference-elapsed]').textContent=referenceTime(referenceAudio.currentTime);
+      dialog.querySelector('[data-reference-duration]').textContent=referenceTime(referenceAudio.duration);
+      referencePlay.setAttribute('aria-pressed',String(!referenceAudio.paused));
+      referencePlay.setAttribute('aria-label',referenceAudio.paused?'播放参考音频':'暂停参考音频');
+      referencePlay.querySelector('span').textContent=referenceAudio.paused?'▶':'Ⅱ';
+      referenceWave.querySelectorAll('i').forEach((bar,i)=>bar.classList.toggle('is-played',i/48<referenceAudio.currentTime/referenceAudio.duration));
+    };
+    for(const event of ['loadedmetadata','timeupdate','play','pause','ended','emptied'])referenceAudio.addEventListener(event,syncReference);
+    referencePlay.onclick=async()=>{if(!referenceAudio.paused){referenceAudio.pause();return;}try{await referenceAudio.play();}catch{error.textContent='参考音频无法播放，请重新上传。';}};
+    dialog.querySelectorAll('[data-creation-reference]').forEach(button => button.addEventListener('click', async () => {
       if (readOnly || operation) return;
       error.textContent = '';
       try {
         requireCurrent();
         operation = 'reference';
         updateControls();
-        const source = await chooseReference();
+        const source = await chooseReference(button.dataset.referenceSource);
         if (!isOpen() || !source) return;
         requireCurrent();
         if (!source.blob?.size) throw Error('参考音频无法读取，请重新选择');
@@ -304,12 +395,13 @@
           referenceButton.focus();
         }
       }
-    });
+    }));
 
     function updatePercentage(control, output) {
       const value = `${Math.round(Number(control.value) * 100)}%`;
       dialog.querySelector(output).textContent = value;
       control.setAttribute('aria-valuetext', value);
+      control.closest('.timbre-range-track')?.style.setProperty('--range-progress', value);
     }
 
     function settingsChanged(event) {
@@ -423,6 +515,7 @@
         if (config[key] != null) fields[key].value = String(config[key]);
       }
       fields.skipCopyrightCheck.checked = Boolean(config.skipCopyrightCheck);
+      fields.maxMode.checked = config.maxMode == null ? true : Boolean(config.maxMode);
       fields.personaName.value = initialDraft.name || '';
       fields.personaStyle.value = initialDraft.style || '';
       if (config.reference) showReference(config.reference);
@@ -435,10 +528,16 @@
       if (draftStatus === 'song-failed') empty.textContent = '歌曲未生成，请重新生成。';
     }
     if (readOnly) {
-      referenceButton.hidden = true;
+      dialog.querySelectorAll('[data-creation-reference]').forEach(button => { button.hidden = true; });
       generateButton.hidden = example.status !== 'song-generating';
       personaButton.hidden = !canRetry;
-      dialog.querySelector('[data-creation-intro]').textContent = '查看音色创建流程的状态示例。';
+      dialog.querySelector('[data-creation-intro]').textContent = example.details ? '查看音色信息、生成配置及音频结果。' : '查看音色创建流程的状态示例。';
+      if(example.details){
+        dialog.querySelector('#timbreCreationTitle').textContent='音色详情';
+        closeButtons[0].setAttribute('aria-label','关闭音色详情');
+        closeButtons[1].textContent='关闭';
+        dialog.querySelector('.timbre-creation-advanced').open=true;
+      }
       dialog.querySelectorAll('[placeholder]').forEach(field => { field.placeholder = '未填写'; });
       if (!reference) referenceTitle.textContent = '未选择参考音频。';
       empty.textContent = exampleEmptyMessages[example.status] || '暂无结果。';
