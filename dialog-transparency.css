@@ -1,0 +1,18 @@
+/* Dialog panel backgrounds at 50%; foreground content stays fully opaque. */
+:root { --dialog-half-background: rgb(255 255 255 / 50%); }
+html[data-theme="dark"] { --dialog-half-background: rgb(23 24 30 / 50%); }
+html body dialog,
+html body .order-dialog,
+html body [role="dialog"][aria-modal="true"]:not([class*="backdrop"]):not(dialog) {
+  background: var(--dialog-half-background) !important;
+}
+/* Prevent structural wrappers from painting an opaque second background. */
+html body dialog > form,
+html body dialog > header,
+html body dialog > footer,
+html body dialog > form > header,
+html body dialog > form > footer,
+html body .order-dialog > header,
+html body .order-dialog > footer {
+  background: transparent !important;
+}

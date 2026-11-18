@@ -9,9 +9,9 @@
   <link rel="preconnect" href="https://images.unsplash.com" />
   <link rel="stylesheet" href="./styles.css?v=5" />
   <link rel="stylesheet" href="./sidebar-states.css?v=20261110-asset-library-tabs" />
-  <link rel="stylesheet" href="./projects.css?v=20261021-full-width" />
+  <link rel="stylesheet" href="./projects.css?v=20261113-fluid-project-grid" />
   <link rel="stylesheet" href="./business.css?v=13" />
-  <link rel="stylesheet" href="./project-create.css?v=17" />
+  <link rel="stylesheet" href="./project-create.css?v=20261113-project-dialog" />
   <link rel="stylesheet" href="./project-detail.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./task-center.css?v=20261112-failure-reason" />
   <link rel="stylesheet" href="./workflows.css?v=20261102-finished-cleanup" />
@@ -30,7 +30,7 @@
   <link rel="stylesheet" href="./reference-song-task.css?v=20261109-timbre-library-entry">
   <link rel="stylesheet" href="./task-audio-picker.css?v=20261022-personal-team">
   <link rel="stylesheet" href="./material-library.css?v=20261112-finished-spacing">
-  <link rel="stylesheet" href="./timbre-creation.css?v=20261112-result-selected">
+  <link rel="stylesheet" href="./timbre-creation.css?v=20261118-restore-before-1413">
   <link rel="stylesheet" href="./finished-library.css?v=20261112-grid-cascade-fix">
   <link rel="stylesheet" href="./task-material-reference.css?v=20261022-result-help">
   <link rel="stylesheet" href="./work-output-task.css?v=20261106-assembly-confirm-width">
@@ -41,6 +41,7 @@
   <link rel="stylesheet" href="./canvas-preview.css?v=20261102-canvas-ui">
   <link rel="stylesheet" href="./task-output-run.css?v=20261103-output-run-dock">
 <link rel="stylesheet" href="./library-forms.css?v=finished-folder-style">
+  <link rel="stylesheet" href="./dialog-transparency.css?v=20261112-half">
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
@@ -145,41 +146,18 @@
     </section>
 
     <section class="page-view projects-page" id="projectsPage" aria-labelledby="projectsTitle">
-      <header class="projects-heading">
-        <div class="project-heading-title">
-          <span class="eyebrow">TEAM WORKSPACE</span>
-          <h1 id="projectsTitle"><span id="projectTeamName">Orchestra Studio</span></h1>
-          <p>团队项目管理</p>
-        </div>
-        <div class="project-heading-aside">
-          <div class="project-team-brief">
-            <span>团队简介</span>
-            <p id="projectTeamIntro">AI 音乐产品与创作实验团队</p>
-            <small id="projectTeamMeta">8 位成员 · 6 个项目</small>
-          </div>
-          <button class="project-customer-button" id="projectCustomerManagement" type="button"><span aria-hidden="true">♙</span> 客户管理</button>
-          <button class="new-project" id="newProject">＋ 新建项目</button>
-        </div>
-      </header>
-
-      <nav class="project-tabs-shell" aria-label="项目范围筛选">
-        <div class="project-tabs" role="tablist">
-          <button class="project-tab active" type="button" role="tab" aria-selected="true" data-project-filter="all">全部项目</button>
-          <button class="project-tab" type="button" role="tab" aria-selected="false" data-project-filter="owned">我负责的</button>
-          <button class="project-tab" type="button" role="tab" aria-selected="false" data-project-filter="joined">我参与的</button>
-        </div>
-      </nav>
-
       <div class="project-browser">
         <div class="project-toolbar">
-          <div class="project-list-heading"><b id="projectFilterTitle">全部项目</b><span id="projectResultCount">6 个项目</span></div>
-          <div class="project-actions">
-            <label class="project-search"><span>⌕</span><input id="projectSearch" placeholder="搜索项目" aria-label="搜索项目" /></label>
-            <select id="projectSort" aria-label="项目排序"><option value="recent">最近更新</option><option value="name">项目名称</option><option value="progress">完成进度</option></select>
-          </div>
+          <h1 id="projectsTitle"><span id="projectFilterTitle">全部项目</span></h1>
+          <label class="project-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="projectSearch" placeholder="按项目编号或名称搜索" aria-label="按项目编号或名称搜索"></label>
+          <label class="project-date-filter" title="按创建日期筛选"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/></svg><span>创建时间</span><input id="projectCreatedFilter" type="date" aria-label="创建日期筛选"></label>
+          <select id="projectSort" aria-label="项目排序"><option value="recent">最近更新</option><option value="name">项目名称</option><option value="progress">完成进度</option></select>
+          <div class="project-view-switch" role="group" aria-label="项目展示方式"><button type="button" data-project-view="list" aria-label="列表视图" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h1M4 12h1M4 18h1"/></svg></button><button type="button" data-project-view="grid" aria-label="卡片视图" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></button></div>
+          <button class="new-project" id="newProject" type="button">＋ 新建项目</button>
         </div>
-        <div class="project-grid" id="projectGrid"></div>
+        <div class="project-grid is-list" id="projectGrid"></div>
         <div class="project-empty" id="projectEmpty"><span>⌕</span><h3>没有找到匹配项目</h3><p>换一个关键词试试吧</p></div>
+        <div class="project-pagination"><span id="projectResultCount"></span><div class="project-pagination-controls"><button type="button" data-project-page="first">首页</button><button type="button" data-project-page="prev" aria-label="上一页">‹</button><span id="projectPageNumber">1</span><button type="button" data-project-page="next" aria-label="下一页">›</button><button type="button" data-project-page="last">末页</button><label>每页 <select id="projectPageSize" aria-label="每页条数"><option>10</option><option>20</option><option selected>50</option></select> 条</label><label>跳至 <input id="projectPageJump" type="number" min="1" value="1" aria-label="跳转页码"></label><button type="button" id="projectPageGo">跳转</button></div></div>
       </div>
     </section>
 
@@ -249,20 +227,20 @@
       </section>
     </section>
 
-    <section class="page-view project-create-page" id="projectCreatePage" aria-labelledby="projectCreateTitle">
+    <dialog class="project-create-page project-create-dialog" id="projectCreatePage" aria-labelledby="projectCreateTitle">
       <header class="project-create-header">
         <div class="project-create-heading">
-          <button class="project-create-back" id="backProjectList" type="button" aria-label="返回项目管理">‹</button>
+          <button class="project-create-back" id="backProjectList" type="button" aria-label="关闭项目弹窗">×</button>
           <div><span class="eyebrow">PROJECT SETUP</span><h1 id="projectCreateTitle">新增项目</h1><p>填写项目与生产计划信息、选择已发布工作流并补充协作备注。</p></div>
         </div>
         <span class="project-create-status"><i></i> 新项目</span>
       </header>
 
       <form class="project-create-form" id="projectCreateForm" novalidate>
+        <div class="project-dialog-scroll">
         <section class="project-form-card project-info-card" aria-labelledby="projectInfoTitle">
-          <header class="project-form-card-heading"><div><small>01</small><div><h2 id="projectInfoTitle">项目信息</h2><p>填写客户、项目与业务协作信息。</p></div></div><span><i></i> 必填信息</span></header>
+          <header class="project-form-card-heading"><div><small>01</small><div><h2 id="projectInfoTitle">项目信息</h2><p>填写项目与业务协作信息。</p></div></div><span><i></i> 必填信息</span></header>
           <div class="project-form-grid">
-            <label class="project-field project-field-wide"><span>客户名称 <em>*</em></span><div class="order-select-row"><select id="projectCustomer" name="customer" required><option value="">请选择客户</option><option value="aurora-media">极光传媒</option><option value="north-island-studio">北岛工作室</option><option value="city-culture">城市文化中心</option></select><button class="add-order-button" id="addProjectCustomerButton" type="button">＋ 新增客户</button></div></label>
             <label class="project-field"><span>项目名称 <em>*</em></span><input id="projectName" name="projectName" type="text" maxlength="50" autocomplete="off" placeholder="请输入项目名称" required /></label>
             <label class="project-field"><span>负责人 <em>*</em></span><select id="projectOwner" name="owner" required><option value="">请选择负责人</option><option value="zhang-san">张三</option><option value="lin-chen">Lin Chen</option><option value="ming-xu">Ming Xu</option></select></label>
             <div class="project-field project-field-wide"><span>参考资料</span><label class="project-order-upload" id="projectOrderReferenceDrop" for="projectOrderReference" tabindex="0"><input id="projectOrderReference" type="file" multiple accept=".pdf,.doc,.docx,.txt,.md,.mp3,.wav,audio/mpeg,audio/wav" hidden /><i aria-hidden="true">↥</i><b>选择文件</b><small>最多上传 6 个，最大 60M；支持文档、音频等资料，音频可为 mp3、wav</small><span class="order-file-list" id="projectOrderFileList" aria-live="polite"></span></label></div>
@@ -271,23 +249,23 @@
         </section>
 
         <section class="project-form-card" id="projectInitialPlanFields" aria-labelledby="projectBasicTitle">
-          <header class="project-form-card-heading"><div><small>02</small><div><h2 id="projectBasicTitle">生产计划信息</h2><p>可添加最多 5 组生产计划，分别配置计划运行次数、工作流和交付日期。</p></div></div><span id="projectPlanGroupCount" aria-live="polite">1 / 5 组</span></header>
+          <header class="project-form-card-heading"><div><small>02</small><div><h2 id="projectBasicTitle">生产计划信息</h2><p>可添加最多 5 组生产计划，分别配置计划运行次数、工作流和备注。</p></div></div><span id="projectPlanGroupCount" aria-live="polite">1 / 5 组</span></header>
           <div id="projectPlanGroups">
           <div class="project-form-grid project-plan-group" data-project-plan-group role="group" aria-label="生产计划 1">
             <div class="project-plan-group-heading"><h3 data-plan-group-title>生产计划 1</h3><button type="button" data-remove-plan-group disabled>删除本组</button></div>
             <label class="project-field"><span>生产计划名称 <em>*</em><small id="batchNameCount" data-plan-name-count>0 / 50</small></span><input id="projectBatchName" name="productionName" type="text" maxlength="50" autocomplete="off" placeholder="输入生产计划名称" required /></label>
             <label class="project-field"><span>计划运行次数 <em>*</em></span><input id="projectQuantity" name="quantity" type="number" min="1" step="1" value="50" inputmode="numeric" required /></label>
             <label class="project-field"><span>工作流 <em>*</em><small>仅显示已发布</small></span><select id="projectWorkflow" name="workflow" required><option value="">请选择已发布工作流</option></select></label>
-            <label class="project-field"><span>交付日期</span><input id="projectDeliveryDate" name="deliveryDate" type="date" /></label>
             <div class="project-rich-field project-rich-wide"><label for="projectProductionPlanNotes">生产计划备注</label><div class="rich-editor"><div class="rich-toolbar" aria-label="生产计划备注格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input compact" id="projectProductionPlanNotes" role="textbox" aria-label="生产计划备注" aria-multiline="true" contenteditable="true" data-placeholder="填写生产目标、交付要求或协作说明…"></div></div></div>
           </div>
           </div>
           <button class="project-add-plan-button" id="addProjectPlanGroup" type="button">＋ 添加一组生产计划（最多 5 组）</button>
         </section>
 
+        </div>
         <footer class="project-create-actions"><button class="project-cancel-button" id="cancelProjectCreate" type="button">取消</button><button class="project-submit-button" type="submit">创建项目</button></footer>
       </form>
-    </section>
+    </dialog>
 
     <div class="asset-library-tabs" id="assetLibraryTabs" role="tablist" aria-label="资产库切换" hidden>
       <button id="assetsLibraryTab" type="button" role="tab" data-asset-page="assets" aria-controls="assetsPage" aria-selected="true" tabindex="0">素材库</button>
@@ -690,7 +668,6 @@
           <label><span>计划名称 <em>*</em><small id="newBatchNameCount">0 / 50</small></span><input id="newBatchName" type="text" maxlength="50" autocomplete="off" placeholder="请输入计划名称" required /></label>
           <label><span>计划运行次数 <em>*</em></span><input id="projectBatchQuantity" type="number" min="1" step="1" value="50" required /></label>
           <label><span>工作流 <em>*</em></span><select id="projectBatchWorkflow" required><option value="">请选择已发布工作流</option></select></label>
-          <label><span>交付日期</span><input id="projectBatchDelivery" type="date" /></label>
           <div class="project-rich-field batch-field-wide"><label for="projectBatchNotes">备注</label><div class="rich-editor"><div class="rich-toolbar" aria-label="生产计划备注格式"><button type="button" data-rich-command="bold" aria-label="加粗"><b>B</b></button><button type="button" data-rich-command="italic" aria-label="斜体"><i>I</i></button><button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">☷</button><button type="button" data-rich-command="clear" aria-label="清空格式">Tx</button></div><div class="rich-input compact" id="projectBatchNotes" role="textbox" aria-label="备注" aria-multiline="true" contenteditable="true" data-placeholder="补充生产要求、验收标准或协作说明…"></div></div></div>
         </div>
       </div>
@@ -727,11 +704,11 @@
   </footer>
   <div class="toast" id="toast" role="status"></div>
   <script src="./account-phone.js?v=20261026-account-security"></script>
-  <script src="./script.js?v=20261112-home-hover"></script>
+  <script src="./script.js?v=20261113-project-init-fix"></script>
   <script src="./profile-phone.js?v=20261026-account-security"></script>
   <script src="./account-ui.js?v=20261028-auth-design"></script>
   <script src="./profile-password.js?v=20261028-auth-design"></script>
-  <script src="./production-model.js?v=20261105-target-returns"></script>
+  <script src="./production-model.js?v=20261112-dimension-description"></script>
   <script src="./composition-flow.js?v=20261028-name-limit-50"></script>
   <script src="./finished-library-demo.js?v=20261027-team-examples"></script>
   <script src="./reference-library.js?v=2"></script>
@@ -744,11 +721,11 @@
   <script src="./run-pagination.js?v=20261013"></script>
   <script src="./assignee-search.js?v=20261013"></script>
   <script src="./avatar-team-entry.js?v=20261028-auth-design"></script>
-  <script src="./material-library.js?v=20261112-library-scale"></script>
+  <script src="./material-library.js?v=20261118-count-segments"></script>
   <script src="./task-workflow-resources.js?v=20261022-result-resources"></script>
   <script src="./task-audio-picker.js?v=20261112-reference-source"></script>
   <script src="./reference-song-task.js?v=20261112-failure-reason"></script>
-  <script src="./timbre-creation.js?v=20261112-advanced-collapsed"></script>
+  <script src="./timbre-creation.js?v=20261118-count-segments"></script>
   <script src="./task-participation-demo.js?v=20261112-failure-reason"></script>
   <script src="./task-material-reference.js?v=20261029-library-labels"></script>
   <script src="./work-output-task.js?v=20261106-assembly-confirm-width"></script>

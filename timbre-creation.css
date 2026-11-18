@@ -565,3 +565,26 @@
 .material-dialog.timbre-creation .timbre-creation-result:has(input[name="outputCandidate"]:checked) .timbre-wave-player {
   border-top-color: #a986ff40;
 }
+
+/* Flat parameters with an independently scrolling editor column. */
+.material-dialog.timbre-creation .timbre-creation-body { min-height: 0; flex: 1 1 auto; }
+.material-dialog.timbre-creation .timbre-creation-editor { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.material-dialog.timbre-creation .timbre-creation-advanced { margin-top: 22px; padding-top: 0; border: 0; }
+@media(max-width:700px) {
+  .material-dialog.timbre-creation .timbre-creation-editor { max-height: 55dvh; overflow-y: auto; }
+}
+
+/* Reduce the creation dialog's viewport height by 30%. */
+.material-dialog.timbre-creation {
+  height: calc((100dvh - 32px) * .7);
+  max-height: calc((100dvh - 32px) * .7);
+}
+.material-dialog.timbre-creation > form {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+}
+.material-dialog.timbre-creation .timbre-creation-body {
+  min-height: 0;
+  flex: 1 1 0;
+}

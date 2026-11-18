@@ -67,3 +67,153 @@ body.project-mode .player{transform:translateY(110%);opacity:0;pointer-events:no
 .project-pagination button:hover:not(:disabled):not([aria-current="page"]){border-color:#8964ed}
 #projectInitialPlanFields[hidden]{display:none}
 @media(max-width:700px){.project-pagination{align-items:flex-start;flex-direction:column}.project-pagination-controls{gap:10px;width:100%;justify-content:space-between}.project-page-buttons{flex-wrap:wrap}}
+
+/* Replace the team hero with a compact right-aligned creation action. */
+#projectsPage .projects-heading { min-height: 40px; padding: 0; margin: 0 0 24px; display: flex; flex-direction: row; justify-content: flex-end; align-items: center; gap: 12px; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+#projectsPage .projects-heading::after { display: none; }
+#projectsPage .project-page-accessible-title { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#projectsPage .new-project { width: auto; min-height: 40px; height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #f1f1f3; color: #29292d; font-size: 14px; line-height: 20px; font-weight: 600; box-shadow: none; }
+#projectsPage .new-project:hover { background: #fff; }
+#projectsPage .new-project:focus-visible { outline: 2px solid #a076ef; outline-offset: 3px; }
+
+#projectsPage .projects-heading { margin-bottom: 8px; }
+#projectsPage .project-tabs-shell { margin-top: 0; }
+
+/* Project catalog matching the supplied compact dashboard. */
+#projectsPage .project-browser { padding: 0; border: 0; background: transparent; border-radius: 0; overflow: visible; min-height: 0; }
+#projectsPage .project-toolbar { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 20px; padding: 0; }
+#projectsPage #projectsTitle { margin: 0; font-size: 21px; line-height: 40px; font-weight: 700; white-space: nowrap; }
+#projectsPage .project-search { display: flex; align-items: center; gap: 10px; flex: 0 1 540px; width: 540px; height: 40px; padding: 0 12px; border: 1px solid #38383e; border-radius: 12px; background: #1e1e22; }
+#projectsPage .project-search svg { width: 18px; height: 18px; color: #9a9aa3; flex: none; }
+#projectsPage .project-search input { min-width: 0; width: 100%; font-size: 14px; background: transparent; border: 0; color: #eee; outline: none; }
+#projectsPage #projectSort { width: 112px; height: 36px; padding: 0 12px; border: 0; border-radius: 12px; background: #29292d; color: #eee; font-size: 14px; }
+.project-date-filter { position: relative; display: flex; align-items: center; gap: 7px; height: 40px; padding: 0 12px; border: 1px solid #38383e; border-radius: 12px; background: #1e1e22; color: #a3a3ad; font-size: 14px; cursor: pointer; }
+.project-date-filter input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.project-date-filter:has(input:valid) { border-color: #65518e; }
+.project-view-switch { display: flex; align-items: center; gap: 4px; padding: 3px 6px; margin-left: 10px; border-radius: 12px; background: #29292d; }
+.project-view-switch button { width: 25px; height: 30px; border: 0; background: transparent; color: #94949c; font-size: 20px; cursor: pointer; }
+.project-view-switch button[aria-pressed="true"] { color: #fff; }
+#projectsPage .new-project { margin-left: auto; height: 38px; min-height: 38px; background: #7534f3; color: #fff; border-radius: 12px; padding: 0 18px; font-weight: 600; }
+#projectsPage .project-grid { grid-template-columns: repeat(auto-fill,minmax(min(100%,398px),398px)); gap: 20px; padding: 0; overflow: visible; }
+#projectsPage .project-card { display: flex; flex-direction: column; min-height: 244px; padding: 22px; border: 1px solid #29292e; border-radius: 21px; background: #18181b; color: #eee; box-shadow: none; cursor: default; }
+#projectsPage .project-card:hover,#projectsPage .project-card:focus-within { border-color: #783df3; background: #1d1a26; transform: none; }
+.project-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#projectsPage .project-title-open { min-width: 0; padding: 0; border: 0; background: transparent; color: #eee; font-size: 18px; line-height: 26px; font-weight: 650; text-align: left; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
+.project-state-pill { flex: none; padding: 2px 10px; border-radius: 20px; background: #29292e; color: #eee; font-size: 11px; font-weight: 600; }
+#projectsPage .project-card p { font-size: 12px; line-height: 20px; color: #b1b0bb; }
+.project-card-code { margin: 4px 0 8px; }
+.project-card-people { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 10px; }
+.project-card-note { margin: 0; min-height: 32px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-card-updated { margin: auto 0 10px; padding-top: 8px; }
+.project-card-footer { display: flex; align-items: center; gap: 18px; border-top: 1px solid #2b2b30; padding-top: 12px; }
+.project-card-footer button { padding: 3px 0; border: 0; background: transparent; color: #b1b0bb; font-size: 12px; cursor: pointer; }
+.project-card-footer .project-card-details { margin-left: auto; padding-right: 8px; color: #975aff; }
+#projectsPage .project-pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 20px; color: #a4a3ac; font-size: 14px; }
+.project-pagination-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.project-pagination-controls button { border: 0; background: transparent; color: #b5b4be; font: inherit; cursor: pointer; }
+.project-pagination-controls button:disabled { opacity: .4; cursor: default; }
+#projectPageNumber,#projectPageJump,#projectPageSize,#projectPageGo { height: 32px; border: 1px solid #3a3a43; border-radius: 12px; padding: 4px 10px; background: #1e1e24; color: #eee; font-size: 14px; }
+#projectPageNumber { min-width: 32px; text-align: center; }
+#projectPageJump { width: 64px; }
+.project-pagination-controls label { display: flex; align-items: center; gap: 8px; }
+#projectsPage .project-grid.is-list { grid-template-columns: 1fr; }
+#projectsPage .project-grid.is-list .project-card { min-height: 180px; }
+#projectsPage button:focus-visible { outline: 2px solid #a57cff; outline-offset: 3px; }
+@media(max-width:700px) { #projectsPage .project-search { flex: 1 1 240px; } #projectsPage .project-grid { grid-template-columns: 1fr; } #projectsPage .project-pagination { align-items: flex-start; flex-direction: column; } }
+
+/* Actual tabular list mode shares the card view's data and actions. */
+#projectsPage .project-grid.is-list { display: block; width: 100%; overflow-x: auto; border: 1px solid #2d2d34; border-radius: 12px; }
+.project-data-table { width: 100%; min-width: 1060px; border-collapse: collapse; background: #18181b; color: #b8b7c1; font-size: 13px; text-align: left; }
+.project-data-table th { padding: 16px; background: #212126; color: #dedde5; font-weight: 600; white-space: nowrap; }
+.project-data-table td { padding: 16px; border-top: 1px solid #2d2d34; vertical-align: middle; line-height: 21px; }
+.project-data-table tbody tr:hover,.project-data-table tbody tr:focus-within { background: #211c2d; }
+.project-data-table button { border: 0; background: transparent; font: inherit; cursor: pointer; }
+.project-data-table .project-table-title { max-width: 240px; padding: 0; color: #eee; font-weight: 600; text-align: left; }
+.project-table-note { display: block; max-width: 220px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.project-table-actions { display: flex; align-items: center; gap: 16px; white-space: nowrap; }
+.project-table-actions button { padding: 2px 0; color: #b8b7c1; }
+.project-table-actions .project-card-details { color: #a375ff; }
+
+/* Compact project table, without customer information. */
+#projectsPage .project-grid.is-list { border-radius: 20px; border-color: #2e2e33; }
+#projectsPage .project-data-table { table-layout: fixed; min-width: 1250px; font-size: 13px; background: #18181b; color: #ededf0; }
+#projectsPage .project-data-table th { height: 40px; padding: 9px 12px; background: #202024; color: #a2a1ab; font-size: 14px; font-weight: 600; }
+#projectsPage .project-data-table td { height: 43px; padding: 10px 12px; border-top: 1px solid #303035; line-height: 22px; }
+#projectsPage .project-data-table th:nth-child(1) { width: 12%; }
+#projectsPage .project-data-table th:nth-child(2) { width: 13%; }
+#projectsPage .project-data-table th:nth-child(3),#projectsPage .project-data-table th:nth-child(4),#projectsPage .project-data-table th:nth-child(5),#projectsPage .project-data-table th:nth-child(6) { width: 8%; }
+#projectsPage .project-data-table th:nth-child(7) { width: 10%; }
+#projectsPage .project-data-table th:nth-child(8) { width: 8%; }
+#projectsPage .project-data-table th:nth-child(9) { width: 12%; }
+#projectsPage .project-data-table th:last-child { width: 185px; }
+#projectsPage .project-table-code,#projectsPage .project-table-title,#projectsPage .project-table-note { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#projectsPage .project-table-title { font-weight: 500; }
+#projectsPage .project-table-actions { gap: 12px; }
+#projectsPage .project-table-actions button { color: #9656ff; font-size: 12px; }
+#projectsPage .project-table-actions button:hover { color: #bd94ff; }
+
+/* Full-page table layout, with no inherited card-browser spacing. */
+#projectsPage .project-browser { margin-top: 0; padding: 0; border: 0; background: transparent; }
+#projectsPage .project-toolbar { justify-content: flex-start; flex-wrap: nowrap; gap: 10px; min-height: 40px; margin: 0 0 20px; }
+#projectsPage #projectsTitle { font-size: 21px; line-height: 30px; font-weight: 700; flex: none; }
+#projectsPage .project-search { flex: 0 1 540px; min-width: 200px; }
+#projectsPage .project-date-filter { flex: none; gap: 7px; height: 40px; border-color: #38383e; }
+#projectsPage .project-date-filter svg { width: 17px; height: 17px; }
+#projectsPage .project-date-filter:has(input:focus-visible) { outline: 2px solid #9d73fa; outline-offset: 2px; }
+#projectsPage .project-view-switch { gap: 6px; margin-left: 10px; height: 36px; padding: 0 8px; }
+#projectsPage .project-view-switch button { display: grid; place-items: center; width: 22px; height: 30px; padding: 0; }
+#projectsPage .project-view-switch svg { width: 18px; height: 18px; }
+#projectsPage #projectSort { flex: none; height: 34px; }
+#projectsPage .new-project { flex: none; margin-left: auto; white-space: nowrap; }
+#projectsPage .project-grid.is-list { border-radius: 20px; }
+#projectsPage .project-data-table th { height: 40px; padding: 8px 12px; }
+#projectsPage .project-data-table td { height: 43px; padding: 10px 12px; }
+#projectsPage .project-pagination { display: flex; margin: 20px 0 0; padding: 0; border: 0; min-height: 32px; font-size: 14px; }
+#projectsPage .project-pagination-controls { margin-left: auto; gap: 12px; }
+#projectsPage .project-pagination-controls > button[data-project-page] { min-width: 24px; height: 32px; padding: 0 4px; border: 0; background: transparent; border-radius: 6px; font-size: 14px; color: #aaa9b3; }
+#projectsPage #projectPageNumber { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 12px; }
+#projectsPage #projectPageSize { width: 70px; height: 32px; background: #101014; border-radius: 12px; font-size: 14px; }
+#projectsPage #projectPageJump { width: 64px; height: 32px; padding: 0 12px; appearance: textfield; }
+#projectPageJump::-webkit-inner-spin-button,#projectPageJump::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+#projectsPage #projectPageGo { height: 30px; min-height: 30px; padding: 0 10px; border-radius: 11px; font-size: 12px; }
+@media(max-width:1100px) { #projectsPage .project-toolbar { flex-wrap: wrap; } #projectsPage .project-search { flex: 1 1 260px; } }
+@media(max-width:700px) { #projectsPage .project-pagination { align-items: flex-start; gap: 14px; } #projectsPage .project-pagination-controls { margin-left: 0; gap: 8px; } }
+
+/* Fluid project cards fill the available row instead of fixed-width tracks. */
+#projectsPage .project-grid:not(.is-list) {
+  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+#projectsPage .project-grid:not(.is-list) .project-card {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  box-sizing: border-box;
+}
+#projectsPage .project-view-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 11px;
+  background: #29292d;
+}
+#projectsPage .project-view-switch button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #a8a8b0;
+  cursor: pointer;
+}
+#projectsPage .project-view-switch button[aria-pressed="true"] { color: #fff; }
+#projectsPage .project-view-switch button:hover { color: #fff; background: #ffffff08; }
+#projectsPage .project-view-switch svg { width: 18px; height: 18px; }

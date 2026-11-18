@@ -89,8 +89,7 @@
               <label><input type="radio" name="count" value="4">4</label>
             </fieldset>
           </div>
-          <details class="timbre-creation-advanced">
-            <summary>更多配置</summary>
+          <div class="timbre-creation-advanced">
             <label>反向提示词
               <textarea name="negativePrompt" placeholder="描述希望避免的声音或风格" rows="2"></textarea>
             </label>
@@ -99,15 +98,19 @@
               <input type="range" name="styleStrength" id="timbreCreationStrength" aria-valuetext="50%" min="0" max="1" step="0.01" value="0.5">
               <output for="timbreCreationStrength" data-creation-strength>50%</output>
             </div>
+            <label class="timbre-range-label" for="timbreCreationAudioInfluence">音频影响度</label>
+            <div class="timbre-range-track" style="--range-progress:45%">
+              <input type="range" name="audioInfluence" id="timbreCreationAudioInfluence" aria-valuetext="45%" min="0" max="1" step="0.01" value="0.45">
+              <output for="timbreCreationAudioInfluence" data-creation-audioInfluence>45%</output>
+            </div>
             <label class="timbre-range-label" for="timbreCreationRandomness">随机度</label>
-            <div class="timbre-range-track" style="--range-progress:50%">
-              <input type="range" name="randomness" id="timbreCreationRandomness" aria-valuetext="50%" min="0" max="1" step="0.01" value="0.5">
-              <output for="timbreCreationRandomness" data-creation-randomness>50%</output>
+            <div class="timbre-range-track" style="--range-progress:20%">
+              <input type="range" name="randomness" id="timbreCreationRandomness" aria-valuetext="20%" min="0" max="1" step="0.01" value="0.2">
+              <output for="timbreCreationRandomness" data-creation-randomness>20%</output>
             </div>
             <fieldset class="timbre-creation-count timbre-creation-gender">
               <legend>人声性别</legend>
-              <label><input type="radio" name="voiceGender" value="unspecified" checked>不指定</label>
-              <label><input type="radio" name="voiceGender" value="male">男</label>
+              <label><input type="radio" name="voiceGender" value="male" checked>男</label>
               <label><input type="radio" name="voiceGender" value="female">女</label>
             </fieldset>
             <label>生成纯音乐
@@ -115,7 +118,7 @@
             </label>
             <label class="timbre-creation-check">跳过版权检查<input type="checkbox" role="switch" name="skipCopyrightCheck"></label>
             <label class="timbre-creation-check">Max 模式<input type="checkbox" role="switch" name="maxMode" checked></label>
-          </details>
+          </div>
         </fieldset>
         </div>
         <section class="timbre-creation-results" aria-labelledby="timbreCreationResultsTitle">
@@ -300,6 +303,7 @@
         count: Number(fields.count.value),
         negativePrompt: fields.negativePrompt.value.trim(),
         styleStrength: Number(fields.styleStrength.value),
+        audioInfluence: Number(fields.audioInfluence.value),
         randomness: Number(fields.randomness.value),
         voiceGender: fields.voiceGender.value,
         instrumental: fields.instrumental.value,
@@ -407,6 +411,7 @@
     function settingsChanged(event) {
       if (readOnly || operation || !event.target.matches('input, textarea, select')) return;
       updatePercentage(form.elements.styleStrength, '[data-creation-strength]');
+      updatePercentage(form.elements.audioInfluence, '[data-creation-audioInfluence]');
       updatePercentage(form.elements.randomness, '[data-creation-randomness]');
       error.textContent = '';
       if (generatedConfig || draftStatus === 'song-failed') invalidateResults('配置已修改，请重新生成歌曲。');
@@ -511,8 +516,8 @@
     if (initialDraft) {
       const fields = form.elements;
       const config = initialDraft.config || {};
-      for (const key of ['lyrics', 'prompt', 'model', 'count', 'negativePrompt', 'styleStrength', 'randomness', 'voiceGender']) {
-        if (config[key] != null) fields[key].value = String(config[key]);
+      for (const key of ['lyrics', 'prompt', 'model', 'count', 'negativePrompt', 'styleStrength', 'audioInfluence', 'randomness', 'voiceGender']) {
+        if (config[key] != null) fields[key].value = key === 'voiceGender' && !['male', 'female'].includes(config[key]) ? 'male' : String(config[key]);
       }
       fields.skipCopyrightCheck.checked = Boolean(config.skipCopyrightCheck);
       fields.maxMode.checked = config.maxMode == null ? true : Boolean(config.maxMode);
@@ -520,6 +525,7 @@
       fields.personaStyle.value = initialDraft.style || '';
       if (config.reference) showReference(config.reference);
       updatePercentage(fields.styleStrength, '[data-creation-strength]');
+      updatePercentage(fields.audioInfluence, '[data-creation-audioInfluence]');
       updatePercentage(fields.randomness, '[data-creation-randomness]');
 
       candidates = initialDraft.candidates || [];
@@ -536,7 +542,6 @@
         dialog.querySelector('#timbreCreationTitle').textContent='音色详情';
         closeButtons[0].setAttribute('aria-label','关闭音色详情');
         closeButtons[1].textContent='关闭';
-        dialog.querySelector('.timbre-creation-advanced').open=true;
       }
       dialog.querySelectorAll('[placeholder]').forEach(field => { field.placeholder = '未填写'; });
       if (!reference) referenceTitle.textContent = '未选择参考音频。';

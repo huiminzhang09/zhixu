@@ -193,3 +193,38 @@ body.project-create-mode .player { transform: translateY(110%); opacity: 0; poin
 @media (prefers-reduced-motion: reduce) {
   .project-create-page,.order-dialog { animation: none; }
 }
+
+/* Project creation uses the same compact controls as the timbre studio. */
+body.project-dialog-open { overflow: hidden; }
+dialog.project-create-dialog { position: fixed; inset: 0; width: min(1080px,calc(100vw - 40px)); max-width: none; height: min(760px,calc(100dvh - 48px)); max-height: calc(100dvh - 48px); margin: auto; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text); overflow: hidden; animation: none; }
+dialog.project-create-dialog:not([open]) { display: none; }
+dialog.project-create-dialog[open] { display: flex; flex-direction: column; }
+dialog.project-create-dialog::backdrop { background: #0008; backdrop-filter: blur(4px); }
+.project-create-dialog .project-create-header { position: relative; flex: none; min-height: 0; padding: 20px 24px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; }
+.project-create-dialog .project-create-heading { padding-right: 40px; }
+.project-create-dialog .project-create-heading .eyebrow,.project-create-dialog .project-create-status { display: none; }
+.project-create-dialog .project-create-heading h1 { margin: 0 0 6px; font-size: 20px; line-height: 28px; font-weight: 650; }
+.project-create-dialog .project-create-heading p { font-size: 12px; line-height: 18px; }
+.project-create-dialog .project-create-back { position: absolute; right: 20px; top: 20px; width: 36px; height: 36px; border-radius: 8px; font-size: 24px; }
+.project-create-dialog .project-create-form { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 0; margin: 0; overflow: hidden; }
+.project-create-dialog .project-dialog-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 20px 24px 24px; }
+.project-create-dialog .project-form-card { padding: 0; margin: 0 0 24px; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+.project-create-dialog .project-form-card:last-child { margin-bottom: 0; }
+.project-create-dialog .project-form-card-heading { padding: 0 0 14px; margin-bottom: 18px; }
+.project-create-dialog .project-form-card-heading small,.project-create-dialog .project-form-card-heading > span i { display: none; }
+.project-create-dialog .project-form-card-heading h2 { font-size: 15px; line-height: 22px; }
+.project-create-dialog .project-form-card-heading p { font-size: 12px; line-height: 18px; }
+.project-create-dialog .project-form-grid { gap: 20px 24px; }
+.project-create-dialog .project-field > span,.project-create-dialog .project-rich-field > label { font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+.project-create-dialog .project-field input,.project-create-dialog .project-field select,.project-create-dialog .project-field textarea { min-height: 38px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 13px; line-height: 20px; box-shadow: none; }
+.project-create-dialog .project-field :is(input,select,textarea):focus { outline: 2px solid #a076ef; outline-offset: 1px; }
+.project-create-dialog .rich-editor { border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+.project-create-dialog .rich-input { min-height: 76px; font-size: 13px; padding: 10px 12px; }
+.project-create-dialog .project-order-upload { border-radius: 8px; border-color: var(--line); background: var(--surface-2); }
+.project-create-dialog .project-plan-group { padding: 16px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 16px; background: transparent; }
+.project-create-dialog .project-create-actions { flex: none; min-height: 64px; margin: 0; padding: 14px 24px; border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; background: transparent; }
+.project-create-dialog .project-create-actions button { min-height: 36px; padding: 8px 16px; border-radius: 7px; font-size: 13px; }
+.project-create-dialog .project-submit-button { background: #eee; color: #17181d; border: 0; box-shadow: none; }
+.project-create-dialog .project-cancel-button { background: var(--surface-2); color: var(--text); }
+.project-create-dialog [hidden] { display: none !important; }
+@media(max-width:700px) { dialog.project-create-dialog { width: calc(100vw - 24px); height: calc(100dvh - 32px); } .project-create-dialog .project-form-grid { grid-template-columns: minmax(0,1fr); } .project-create-dialog .project-dialog-scroll { padding: 16px; } }

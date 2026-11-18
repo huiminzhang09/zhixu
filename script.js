@@ -129,7 +129,6 @@ function projectAssignableMembers(project){const target=Math.max(1,projectMember
 const projectGrid=document.querySelector('#projectGrid'),projectEmpty=document.querySelector('#projectEmpty');
 const projectFilterTabs=Array.from(document.querySelectorAll('[data-project-filter]'));
 const projectFilterLabels={all:'全部项目',owned:'我负责的',joined:'我参与的'};
-const projectCustomerManagement=document.querySelector('#projectCustomerManagement');
 const projectDetailTabs=Array.from(document.querySelectorAll('[data-project-detail-tab]'));
 const projectDetailPanels=Array.from(document.querySelectorAll('[data-project-detail-panel]'));
 const projectPlanList=document.querySelector('#projectPlanList');
@@ -164,7 +163,7 @@ const projectLoadStatus=document.createElement('div');
 projectLoadStatus.className='project-load-status';
 projectLoadStatus.setAttribute('role','status');
 projectLoadStatus.setAttribute('aria-live','polite');
-document.querySelector('#projectsPage .project-pagination')?.remove();
+let projectPage=1;
 projectGrid.after(projectLoadStatus);
 let currentProjectWorksPlan='all';
 let selectedProjectWorkIds=new Set();
@@ -258,7 +257,11 @@ function renderProjectReferenceInfo(project){
 function renderProjectDetail(){const project=projectData.find(item=>item.id===selectedProjectId);if(!project)return;document.querySelector('#projectDetailTitle').textContent=project.title;document.querySelector('#projectDetailDescription').textContent=project.desc;renderProjectReferenceInfo(project);document.querySelector('#projectDetailRisk')?.remove();renderProjectPlans(project);renderProjectWorks(project);renderProjectEfficiency(project)}
 function setProjectDetailTab(tabName,focus=false){projectDetailTabs.forEach(tab=>{const active=tab.dataset.projectDetailTab===tabName;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;if(active&&focus)tab.focus({preventScroll:true})});projectDetailPanels.forEach(panel=>{const active=panel.dataset.projectDetailPanel===tabName;panel.classList.toggle('active',active);panel.hidden=!active})}
 function openProjectDetail(projectId){if(!projectData.some(project=>project.id===projectId)){showToast('未找到该项目信息','error');return}selectedProjectId=projectId;currentProjectWorksPlan='all';selectedProjectWorkIds.clear();renderProjectDetail();setProjectDetailTab('plan');switchPage('project-detail',document.querySelector('.nav-item[data-page="projects"]'))}
-function projectCard(project){const bars=[42,72,24,84,55,34,68,46,78,31,61,48];return `<article class="project-card" data-project-open="${escapeHtml(project.id)}" aria-label="项目 ${escapeHtml(project.title)}"><div class="project-cover" style="background:${project.color}"><div class="wave">${bars.map(h=>`<i style="--h:${h}%"></i>`).join('')}</div></div><div class="project-card-body"><div class="project-card-title"><h3><button type="button" class="project-title-open" title="${escapeHtml(project.title)}">${escapeHtml(project.title)}</button></h3><button class="project-more" type="button" aria-label="${escapeHtml(project.title)}的操作" aria-haspopup="menu" aria-expanded="false" aria-controls="project-menu-${escapeHtml(project.id)}">•••</button></div><p title="${escapeHtml(project.desc)}">${escapeHtml(project.desc)}</p></div><div class="project-card-menu" id="project-menu-${escapeHtml(project.id)}" role="menu" aria-label="项目操作" hidden><button type="button" role="menuitem" data-project-action="add-plan">新增生产计划</button><button type="button" role="menuitem" data-project-action="edit">编辑</button></div></article>`}
+function projectCard(project){
+ const status=project.status||((project.progress||0)>=100?'已完成':(project.progress||0)>0?'进行中':'待进行');
+ const notes=richTextPlainText(project.notes||project.desc||'')||'--';
+ return `<article class="project-card" data-project-open="${escapeHtml(project.id)}"><div class="project-card-top"><button type="button" class="project-title-open">${escapeHtml(project.title)}</button><span class="project-state-pill">${escapeHtml(status)}</span></div><p class="project-card-code">${escapeHtml(project.id)}</p><p class="project-card-people"><span>客户：${escapeHtml(project.customer||'未关联客户')}</span><span>创建人：${escapeHtml(project.creator||project.owner||'--')}</span></p><p class="project-card-note" title="${escapeHtml(notes)}">${escapeHtml(notes)}</p><p class="project-card-updated">♧ 最近更新：${escapeHtml(project.updatedAt?new Date(project.updatedAt).toLocaleDateString('zh-CN'):project.date||'--')}</p><footer class="project-card-footer"><button type="button" data-project-action="edit">♢ 编辑</button><button type="button" data-project-action="add-plan">＋ 新增生产计划</button><button type="button" class="project-card-details">详情</button></footer></article>`;
+}
 function closeProjectCardMenus(restoreFocus=false){projectGrid.querySelectorAll('.project-card.menu-open').forEach(card=>{card.classList.remove('menu-open');card.querySelector('.project-card-menu').hidden=true;const trigger=card.querySelector('.project-more');trigger.setAttribute('aria-expanded','false');if(restoreFocus)trigger.focus({preventScroll:true})})}
 function updateProjectLoadStatus(){
   const total=projectMatchingItems.length;
@@ -268,29 +271,54 @@ function updateProjectLoadStatus(){
 function projectLoadIsNearViewport(){
   return !projectLoadStatus.hidden&&projectLoadStatus.getClientRects().length>0&&projectLoadStatus.getBoundingClientRect().top<=window.innerHeight+180;
 }
-function requestMoreProjects(){
-  if(projectLoadFrame!==null||projectVisibleCount>=projectMatchingItems.length||!projectLoadIsNearViewport())return;
-  projectLoadStatus.textContent='正在加载更多项目…';
-  projectLoadFrame=requestAnimationFrame(()=>{
-    projectLoadFrame=null;
-    if(!projectLoadIsNearViewport()){updateProjectLoadStatus();return}
-    const nextCount=Math.min(projectVisibleCount+PROJECT_LOAD_BATCH_SIZE,projectMatchingItems.length);
-    projectGrid.insertAdjacentHTML('beforeend',projectMatchingItems.slice(projectVisibleCount,nextCount).map(projectCard).join(''));
-    projectVisibleCount=nextCount;
-    updateProjectLoadStatus();
-    requestMoreProjects();
-  });
-}
-function resetProjectLoading(){projectVisibleCount=PROJECT_LOAD_BATCH_SIZE;renderProjects()}
+function requestMoreProjects(){}
+function resetProjectLoading(){projectPage=1;renderProjects()}
 if('IntersectionObserver' in window){
   const projectLoadObserver=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting))requestMoreProjects()},{rootMargin:'180px 0px'});
   projectLoadObserver.observe(projectLoadStatus);
 }
 window.addEventListener('scroll',requestMoreProjects,{passive:true,capture:true});
 window.addEventListener('resize',requestMoreProjects,{passive:true});
-function renderProjects(){const keyword=document.querySelector('#projectSearch').value.trim().toLowerCase();let items=projectData.filter(project=>currentProjectFilter==='all'||project.scope===currentProjectFilter);items=items.filter(project=>(project.title+project.desc+project.type).toLowerCase().includes(keyword));const sort=document.querySelector('#projectSort').value;if(sort==='name')items.sort((a,b)=>a.title.localeCompare(b.title,'zh-CN'));if(sort==='progress')items.sort((a,b)=>b.progress-a.progress);if(projectLoadFrame!==null){cancelAnimationFrame(projectLoadFrame);projectLoadFrame=null}projectMatchingItems=items;projectVisibleCount=Math.min(Math.max(PROJECT_LOAD_BATCH_SIZE,projectVisibleCount),items.length);projectGrid.innerHTML=items.slice(0,projectVisibleCount).map(projectCard).join('');updateProjectLoadStatus();projectGrid.style.display=items.length?'grid':'none';projectEmpty.style.display=items.length?'none':'block';document.querySelector('#projectFilterTitle').textContent=projectFilterLabels[currentProjectFilter];document.querySelector('#projectResultCount').textContent=`${items.length} 个项目`;document.querySelector('#projectEmpty p').textContent=keyword?'换一个关键词试试吧':'当前分类暂无项目';requestMoreProjects()}
+function projectTable(items){
+ const columns=['项目编号','项目名称','生产类型','项目性质','生产周期','生产进度','创建时间','创建人','备注','操作'];
+ return `<table class="project-data-table" aria-label="项目列表"><thead><tr>${columns.map(title=>`<th scope="col">${title}</th>`).join('')}</tr></thead><tbody>${items.map(project=>{
+ const order=businessOrders.find(item=>item.id===project.orderId);
+ const status=project.status||((project.progress||0)>=100?'已完成':(project.progress||0)>0?'进行中':'待进行');
+ const notes=richTextPlainText(project.notes||project.desc||'')||'--';
+ const rawDate=project.createdAt||order?.created, date=rawDate?new Date(rawDate):null;
+ const created=date&&!Number.isNaN(date.getTime())?localDateValue(date):'--';
+ const cell=value=>escapeHtml(String(value||'--'));
+ return `<tr data-project-open="${escapeHtml(project.id)}"><td><span class="project-table-code" title="${escapeHtml(project.id)}">${escapeHtml(project.id)}</span></td><td><button type="button" class="project-table-title" title="${escapeHtml(project.title)}">${escapeHtml(project.title)}</button></td><td>${cell(project.productionType||order?.productionType)}</td><td>${cell(project.nature||order?.nature)}</td><td>${cell(project.cycle||order?.cycle)}</td><td><span class="project-state-pill">${escapeHtml(status)}</span></td><td>${escapeHtml(created)}</td><td>${cell(project.creator||project.owner||order?.owner)}</td><td><span class="project-table-note" title="${escapeHtml(notes)}">${escapeHtml(notes)}</span></td><td><div class="project-table-actions"><button type="button" data-project-action="edit">编辑</button><button type="button" data-project-action="add-plan">新增生产计划</button><button type="button" class="project-card-details">详情</button></div></td></tr>`;
+ }).join('')}</tbody></table>`;
+}
+function renderProjects(){
+ const keyword=document.querySelector('#projectSearch').value.trim().toLowerCase(),date=document.querySelector('#projectCreatedFilter').value;
+ let items=projectData.filter(project=>(currentProjectFilter==='all'||project.scope===currentProjectFilter)&&`${project.id} ${project.title}`.toLowerCase().includes(keyword));
+ if(date)items=items.filter(project=>project.createdAt&&localDateValue(new Date(project.createdAt))===date);
+ const sort=document.querySelector('#projectSort').value;
+ if(sort==='name')items.sort((a,b)=>a.title.localeCompare(b.title,'zh-CN'));
+ else if(sort==='progress')items.sort((a,b)=>b.progress-a.progress);
+ else items.sort((a,b)=>(Date.parse(b.updatedAt||b.createdAt)||0)-(Date.parse(a.updatedAt||a.createdAt)||0));
+ projectMatchingItems=items;
+ const size=Number(document.querySelector('#projectPageSize').value),pages=Math.max(1,Math.ceil(items.length/size));
+ projectPage=Math.max(1,Math.min(projectPage,pages));
+ const pageItems=items.slice((projectPage-1)*size,projectPage*size),tableView=projectGrid.classList.contains('is-list');
+ projectGrid.innerHTML=tableView?projectTable(pageItems):pageItems.map(projectCard).join('');
+ projectLoadStatus.hidden=true;
+ projectGrid.style.display=items.length?(tableView?'block':'grid'):'none';projectEmpty.style.display=items.length?'none':'block';
+ document.querySelector('#projectFilterTitle').textContent=projectFilterLabels[currentProjectFilter];
+ document.querySelector('#projectResultCount').textContent=`共 ${items.length} 条数据`;
+ document.querySelector('#projectPageNumber').textContent=projectPage;
+ document.querySelector('#projectPageJump').max=pages;
+ document.querySelectorAll('[data-project-page]').forEach(button=>button.disabled=['first','prev'].includes(button.dataset.projectPage)?projectPage===1:projectPage===pages);
+}
+document.querySelector('#projectCreatedFilter').addEventListener('change',resetProjectLoading);
+document.querySelector('#projectPageSize').addEventListener('change',resetProjectLoading);
+document.querySelectorAll('[data-project-page]').forEach(button=>button.onclick=()=>{const pages=Math.max(1,Math.ceil(projectMatchingItems.length/Number(document.querySelector('#projectPageSize').value)));projectPage=({first:1,prev:projectPage-1,next:projectPage+1,last:pages})[button.dataset.projectPage];renderProjects();});
+document.querySelector('#projectPageGo').onclick=()=>{projectPage=Math.trunc(Number(document.querySelector('#projectPageJump').value))||1;renderProjects();};
+document.querySelectorAll('[data-project-view]').forEach(button=>button.onclick=()=>{projectGrid.classList.toggle('is-list',button.dataset.projectView==='list');document.querySelectorAll('[data-project-view]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));renderProjects();});
+
 function setProjectFilter(filter){if(!projectFilterLabels[filter])return;projectVisibleCount=PROJECT_LOAD_BATCH_SIZE;currentProjectFilter=filter;projectFilterTabs.forEach(tab=>{const active=tab.dataset.projectFilter===filter;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active))});renderProjects()}
-renderProjects();
 
 const taskCenterStorageKey='orchestra-production-tasks-v7';
 const taskStatusTabs=Array.from(document.querySelectorAll('[data-task-status]'));
@@ -1222,7 +1250,6 @@ const newBatchName=document.querySelector('#newBatchName');
 const newBatchNameCount=document.querySelector('#newBatchNameCount');
 const projectBatchQuantity=document.querySelector('#projectBatchQuantity');
 const projectBatchWorkflow=document.querySelector('#projectBatchWorkflow');
-const projectBatchDelivery=document.querySelector('#projectBatchDelivery');
 const projectBatchNotes=document.querySelector('#projectBatchNotes');
 function localDateValue(date){const year=date.getFullYear(),month=String(date.getMonth()+1).padStart(2,'0'),day=String(date.getDate()).padStart(2,'0');return `${year}-${month}-${day}`}
 function beijingDateKey(value=new Date()){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(value)),part=type=>parts.find(item=>item.type===type)?.value||'';return `${part('year')}${part('month')}${part('day')}`}
@@ -1253,16 +1280,28 @@ function createPlanWorks(plan,reservedSerials){
  if(!serials||serials.length!==quantity)throw Error('运行编号生成失败');
  return serials.map((serial,index)=>({id:serial,serial,name:`${plan.name} · 运行 ${index+1}`,planId:plan.id,planName:plan.name,status:'制作中',stage:'等待人员分配',lyrics:'暂无',audio:'暂无',owner:'未分配',createdAt:new Date().toISOString(),updated:new Date().toISOString()}));
 }
-function openProjectBatchDialog(){const start=new Date(),delivery=new Date(start);delivery.setDate(delivery.getDate()+7);projectBatchForm.reset();projectBatchNotes.innerHTML='';newBatchNameCount.textContent='0 / 50';populateBatchWorkflows();projectBatchDelivery.value=localDateValue(delivery);projectBatchDialog.hidden=false;document.body.classList.add('order-dialog-open');requestAnimationFrame(()=>newBatchName.focus({preventScroll:true}))}
+function openProjectBatchDialog(){projectBatchForm.reset();projectBatchNotes.innerHTML='';newBatchNameCount.textContent='0 / 50';populateBatchWorkflows();projectBatchDialog.hidden=false;document.body.classList.add('order-dialog-open');requestAnimationFrame(()=>newBatchName.focus({preventScroll:true}))}
 function closeProjectBatchDialog(restoreFocus=true){projectBatchDialog.hidden=true;document.body.classList.remove('order-dialog-open');if(restoreFocus)requestAnimationFrame(()=>document.querySelector('#addProjectBatch').focus({preventScroll:true}))}
 newBatchName.addEventListener('input',()=>{if(Array.from(newBatchName.value).length>50)newBatchName.value=Array.from(newBatchName.value).slice(0,50).join('');newBatchNameCount.textContent=`${Array.from(newBatchName.value).length} / 50`});
-projectBatchForm.onsubmit=event=>{event.preventDefault();const project=projectData.find(item=>item.id===selectedProjectId);if(!project){showToast('未找到当前项目','error');return}const name=newBatchName.value.trim();if(!name)return requireOrderControl(newBatchName,'请输入计划名称');if(project.batches.some(batch=>batch.name===name)){showToast('当前项目中已存在同名计划','error');newBatchName.focus({preventScroll:true});return}if(!projectBatchQuantity.value.trim())return requireOrderControl(projectBatchQuantity,'请输入计划运行次数。');if(!Number.isSafeInteger(Number(projectBatchQuantity.value))||Number(projectBatchQuantity.value)<1)return requireOrderControl(projectBatchQuantity,'计划运行次数须为大于0的整数。');if(!projectBatchWorkflow.value)return requireOrderControl(projectBatchWorkflow,'请选择已发布工作流');const workflow=workflowData.find(item=>item.id===projectBatchWorkflow.value);if(!workflow)return requireOrderControl(projectBatchWorkflow,'请选择有效的已发布工作流');const numbers=reserveDailyProductionNumbers({plan:1,flow:Number(projectBatchQuantity.value)});if(!numbers)return;project.batches.unshift({id:numbers.plan[0],name,quantity:Number(projectBatchQuantity.value),completed:0,delivered:0,terminated:0,inProgress:0,owner:'未分配',workflowId:workflow.id,workflowName:workflow.name,workflowVersion:workflow.version,start:localDateValue(new Date()),delivery:projectBatchDelivery.value||'待排期',priority:'普通',status:'待生产',progress:0,notes:projectBatchNotes.innerHTML.trim()});const newWorks=createPlanWorks(project.batches[0],numbers.flow,numbers.work);project.runs=[...newWorks,...(project.runs||[])];startProductionPlanTasks(project,newWorks);project.date='刚刚';renderProjectDetail();renderProjects();closeProjectBatchDialog();showToast(`生产计划「${name}」已新增`)};
+projectBatchForm.onsubmit=event=>{event.preventDefault();const project=projectData.find(item=>item.id===selectedProjectId);if(!project){showToast('未找到当前项目','error');return}const name=newBatchName.value.trim();if(!name)return requireOrderControl(newBatchName,'请输入计划名称');if(project.batches.some(batch=>batch.name===name)){showToast('当前项目中已存在同名计划','error');newBatchName.focus({preventScroll:true});return}if(!projectBatchQuantity.value.trim())return requireOrderControl(projectBatchQuantity,'请输入计划运行次数。');if(!Number.isSafeInteger(Number(projectBatchQuantity.value))||Number(projectBatchQuantity.value)<1)return requireOrderControl(projectBatchQuantity,'计划运行次数须为大于0的整数。');if(!projectBatchWorkflow.value)return requireOrderControl(projectBatchWorkflow,'请选择已发布工作流');const workflow=workflowData.find(item=>item.id===projectBatchWorkflow.value);if(!workflow)return requireOrderControl(projectBatchWorkflow,'请选择有效的已发布工作流');const numbers=reserveDailyProductionNumbers({plan:1,flow:Number(projectBatchQuantity.value)});if(!numbers)return;project.batches.unshift({id:numbers.plan[0],name,quantity:Number(projectBatchQuantity.value),completed:0,delivered:0,terminated:0,inProgress:0,owner:'未分配',workflowId:workflow.id,workflowName:workflow.name,workflowVersion:workflow.version,start:localDateValue(new Date()),delivery:'待排期',priority:'普通',status:'待生产',progress:0,notes:projectBatchNotes.innerHTML.trim()});const newWorks=createPlanWorks(project.batches[0],numbers.flow,numbers.work);project.runs=[...newWorks,...(project.runs||[])];startProductionPlanTasks(project,newWorks);project.date='刚刚';renderProjectDetail();renderProjects();closeProjectBatchDialog();showToast(`生产计划「${name}」已新增`)};
 document.querySelector('#addProjectBatch').onclick=openProjectBatchDialog;
 document.querySelector('#closeProjectBatch').onclick=()=>closeProjectBatchDialog();
 document.querySelector('#cancelProjectBatch').onclick=()=>closeProjectBatchDialog();
 projectBatchDialog.addEventListener('click',event=>{if(event.target===projectBatchDialog)closeProjectBatchDialog()});
 projectBatchDialog.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeProjectBatchDialog();return}if(event.key!=='Tab')return;const focusable=Array.from(projectBatchDialog.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[contenteditable="true"]')).filter(element=>element.offsetParent!==null);if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}});
 const projectCreateForm=document.querySelector('#projectCreateForm');
+const projectCreateDialog=document.querySelector('#projectCreatePage');
+document.body.append(projectCreateDialog);
+let projectDialogTrigger=null;
+projectCreateDialog.addEventListener('close',()=>{document.body.classList.remove('project-dialog-open');if(projectDialogTrigger?.isConnected)projectDialogTrigger.focus({preventScroll:true});});
+function showProjectCreateDialog(){
+  if(projectCreateDialog.open)return;
+  projectDialogTrigger=document.activeElement;
+  projectCreateDialog.showModal();
+  document.body.classList.add('project-dialog-open');
+  projectCreateDialog.querySelector('.project-dialog-scroll').scrollTop=0;
+}
+
 const projectWorkflowSelect=document.querySelector('#projectWorkflow');
 const projectBatchName=document.querySelector('#projectBatchName');
 const batchNameCount=document.querySelector('#batchNameCount');
@@ -1311,7 +1350,7 @@ function collectProjectPlanDrafts(){
     const workflow=workflowData.find(item=>item.id===workflowSelect.value&&item.publishClass==='published');
     if(!workflow)return invalid(workflowSelect,'请选择已发布工作流');
     const notes=group.querySelector('.rich-input');
-    drafts.push({name:name.value.trim(),quantity:Number(quantity.value),workflow,delivery:group.querySelector('[name="deliveryDate"]').value,notes:sanitizeRichText(notes.innerHTML.trim()),summary:notes.textContent.trim()});
+    drafts.push({name:name.value.trim(),quantity:Number(quantity.value),workflow,delivery:'',notes:sanitizeRichText(notes.innerHTML.trim()),summary:notes.textContent.trim()});
   }
   return drafts;
 }
@@ -1326,7 +1365,6 @@ function buildInitialProjectPlans(drafts,owner,numbers){
   });
   return {batches,runs:works};
 }
-const projectCustomer=document.querySelector('#projectCustomer');
 const projectNameInput=document.querySelector('#projectName');
 const projectOrderReference=document.querySelector('#projectOrderReference');
 const projectOrderFileList=document.querySelector('#projectOrderFileList');
@@ -1376,14 +1414,13 @@ function setProjectEditMode(projectId=null){
   projectCreateForm.querySelector('.project-submit-button').textContent=editing?'保存修改':'创建项目';
 }
 function resetProjectCreateForm(){setProjectEditMode();Array.from(projectPlanGroups.children).slice(1).forEach(group=>group.remove());projectCreateForm.reset();populateCustomerSelects();populatePublishedWorkflows();projectOrderFileList.textContent='';projectCreateForm.querySelectorAll('.rich-input').forEach(editor=>editor.innerHTML='');projectCreateForm.querySelectorAll('.project-field.is-invalid').forEach(field=>field.classList.remove('is-invalid'));batchNameCount.textContent='0 / 50';updateProjectPlanGroups()}
-function openProjectCreatePage(){resetProjectCreateForm();switchPage('project-create',document.querySelector('.nav-item[data-page="projects"]'));requestAnimationFrame(()=>projectCustomer.focus({preventScroll:true}))}
+function openProjectCreatePage(){resetProjectCreateForm();switchPage('project-create',document.querySelector('.nav-item[data-page="projects"]'));requestAnimationFrame(()=>projectNameInput.focus({preventScroll:true}))}
 function openProjectEditPage(projectId){
   const project=projectData.find(item=>item.id===projectId);if(!project)return;
   const order=businessOrders.find(item=>item.id===project.orderId);
   resetProjectCreateForm();setProjectEditMode(project.id);
   projectNameInput.value=project.title;
   const customer=businessCustomers.find(item=>item.code===(project.customerCode||order?.customerCode));
-  if(customer){if(!Array.from(projectCustomer.options).some(option=>option.value===customer.code)){const option=new Option(customer.name,customer.code);projectCustomer.append(option)}projectCustomer.value=customer.code}
   const owner=document.querySelector('#projectOwner'),ownerName=project.owner||order?.owner||project.batches?.[0]?.owner;
   if(ownerName)owner.value=ensureCustomerOption(owner,ownerName).value;
   document.querySelector('#projectOrderNotes').innerHTML=sanitizeRichText(project.notes??order?.notes??'');
@@ -1395,12 +1432,12 @@ function openProjectEditPage(projectId){
 function saveProjectEdit(){
   const project=projectData.find(item=>item.id===editingProjectId);if(!project){showToast('项目不存在','error');return}
   const order=businessOrders.find(item=>item.id===project.orderId),oldCustomer=project.customerCode||order?.customerCode;
-  const selectedCustomer=customerFromSelect(projectCustomer),customer=selectedCustomer.name,customerCode=selectedCustomer.code,owner=document.querySelector('#projectOwner').selectedOptions[0].textContent;
+  const selectedCustomer=businessCustomers.find(item=>item.code===oldCustomer),customer=project.customer||order?.customer||'未关联客户',customerCode=oldCustomer||'',owner=document.querySelector('#projectOwner').selectedOptions[0].textContent;
   const references=projectOrderReference.files.length?Array.from(projectOrderReference.files).map(file=>({name:file.name,size:file.size,type:file.type})):(project.references??order?.references??[]);
-  Object.assign(project,{title:projectNameInput.value.trim(),customer,customerCode,owner,notes:sanitizeRichText(document.querySelector('#projectOrderNotes').innerHTML),references,date:new Date().toLocaleString('zh-CN',{hour12:false})});
+  Object.assign(project,{updatedAt:new Date().toISOString(),title:projectNameInput.value.trim(),customer,customerCode,owner,notes:sanitizeRichText(document.querySelector('#projectOrderNotes').innerHTML),references,date:new Date().toLocaleString('zh-CN',{hour12:false})});
   if(/^客户：.*负责人：/.test(project.desc))project.desc=`客户：${customer}    负责人：${owner}`;
   if(order)Object.assign(order,{name:project.title,customer,customerCode,owner,notes:project.notes,references:references.map(file=>typeof file==='string'?file:file.name)});
-  if(oldCustomer&&oldCustomer!==customerCode){const previous=businessCustomers.find(item=>item.code===oldCustomer),next=selectedCustomer;if(previous){previous.projects=Math.max(0,previous.projects-1);if(order)previous.orders=Math.max(0,previous.orders-1)}next.projects+=1;if(order)next.orders+=1}
+  if(oldCustomer!==customerCode){const previous=businessCustomers.find(item=>item.code===oldCustomer),next=selectedCustomer;if(previous){previous.projects=Math.max(0,previous.projects-1);if(order)previous.orders=Math.max(0,previous.orders-1)}if(next){next.projects+=1;if(order)next.orders+=1}}
   productionTasks.filter(task=>task.projectId===project.id).forEach(task=>task.projectName=project.title);
   persistProductionTasks();renderBusiness();renderProjects();setProjectEditMode();
   switchPage('projects',document.querySelector('.nav-item[data-page="projects"]'));showToast('项目已更新');
@@ -1423,7 +1460,7 @@ projectCreateForm.addEventListener('change',event=>event.target.closest('.projec
 document.addEventListener('mousedown',event=>{const button=event.target.closest('.rich-toolbar button');if(!button)return;event.preventDefault();const editor=button.closest('.rich-editor').querySelector('.rich-input');editor.focus();if(button.dataset.richCommand==='clear')editor.innerHTML='';else document.execCommand(button.dataset.richCommand,false,null);editor.dispatchEvent(new Event('input',{bubbles:true}))});
 newCustomerNotes.addEventListener('input',updateCustomerNotesCount);
 newCustomerName.addEventListener('input',()=>{newCustomerName.value=Array.from(newCustomerName.value).slice(0,50).join('');clearTimeout(customerNameCheckTimer);customerNameCheckTimer=setTimeout(()=>{const name=normalizeCustomerName(newCustomerName.value),duplicate=businessCustomers.some(item=>normalizeCustomerName(item.name)===name&&item.code!==editingCustomerCode);newCustomerName.toggleAttribute('aria-invalid',Boolean(name&&duplicate));if(name&&duplicate)showToast('客户名称已存在，请更换后再试。','error')},300)});
-document.querySelector('#addProjectCustomerButton').onclick=()=>openCustomerDialog('project',document.querySelector('#addProjectCustomerButton'));
+
 document.querySelector('#closeNewOrder').onclick=()=>closeOrderDialog();
 document.querySelector('#cancelNewOrder').onclick=()=>closeOrderDialog();
 document.querySelector('#addCustomerButton').onclick=()=>openCustomerDialog('order',document.querySelector('#addCustomerButton'));
@@ -1444,7 +1481,7 @@ bindReferenceUpload(document.querySelector('#orderReferenceDrop'),newOrderRefere
 bindReferenceUpload(document.querySelector('#projectOrderReferenceDrop'),projectOrderReference,projectOrderFileList);
 function ensureCustomerOption(select,name){let option=Array.from(select.options).find(item=>item.textContent===name);if(!option){option=document.createElement('option');option.value=`customer-${Date.now()}-${select.id}`;option.textContent=name;select.append(option)}return option}
 function customerFromSelect(select){return businessCustomers.find(item=>item.code===select.value)}
-function populateCustomerSelects(preferredCode=''){[newOrderCustomer,projectCustomer].forEach(select=>{const previous=preferredCode||select.value;select.innerHTML='<option value="">请选择客户</option>';businessCustomers.filter(item=>item.enabled!==false).forEach(item=>{const option=document.createElement('option');option.value=item.code;option.textContent=item.name;select.append(option)});if(Array.from(select.options).some(option=>option.value===previous))select.value=previous})}
+function populateCustomerSelects(preferredCode=''){[newOrderCustomer].forEach(select=>{const previous=preferredCode||select.value;select.innerHTML='<option value="">请选择客户</option>';businessCustomers.filter(item=>item.enabled!==false).forEach(item=>{const option=document.createElement('option');option.value=item.code;option.textContent=item.name;select.append(option)});if(Array.from(select.options).some(option=>option.value===previous))select.value=previous})}
 function validateCustomerText(control,max,requiredMessage,overflowMessage){const value=normalizeCustomerName(control.value);control.value=value;if(!value)return requireOrderControl(control,requiredMessage);if(Array.from(value).length>max){control.focus({preventScroll:true});showToast(overflowMessage,'error');return false}return true}
 populateCustomerSelects();
 newCustomerForm.onsubmit=event=>{
@@ -1479,7 +1516,6 @@ newCustomerForm.onsubmit=event=>{
   businessCustomers.unshift({...payload,orders:0,projects:0,code,enabled:true,createdAt:new Date().toISOString()});
   populateCustomerSelects(code);
   if(customerDialogSource==='order')newOrderCustomer.value=code;
-  if(customerDialogSource==='project'){projectCustomer.value=code;projectCustomer.closest('.project-field').classList.remove('is-invalid')}
   renderBusiness();
   const fromBusiness=customerDialogSource==='business';
   closeCustomerDialog();
@@ -1492,9 +1528,6 @@ projectCreateForm.onsubmit=event=>{
   event.preventDefault();
   const owner=document.querySelector('#projectOwner');
   const projectName=projectNameInput.value.trim();
-  if(!projectCustomer.value)return invalidateProjectField(projectCustomer,'请选择客户名称');
-  const selectedCustomer=customerFromSelect(projectCustomer),existingProject=projectData.find(item=>item.id===editingProjectId);
-  if(!selectedCustomer||(selectedCustomer.enabled===false&&existingProject?.customerCode!==selectedCustomer.code))return invalidateProjectField(projectCustomer,'请选择启用的客户');
   if(!projectName)return invalidateProjectField(projectNameInput,'请输入项目名称');
   if(projectData.some(item=>item.id!==editingProjectId&&item.title===projectName))return invalidateProjectField(projectNameInput,'该项目名称已存在');
   if(!owner.value)return invalidateProjectField(owner,'请选择负责人');
@@ -1505,7 +1538,7 @@ projectCreateForm.onsubmit=event=>{
   const numbers=reserveDailyProductionNumbers({project:1,plan:drafts.length,flow:totalQuantity});
   if(!numbers)return;
   const orderId=`ORD-202609-${String(businessOrders.length+29).padStart(3,'0')}`;
-  const customerName=projectCustomer.options[projectCustomer.selectedIndex].text;
+  const customerName='未关联客户';
   const ownerName=owner.options[owner.selectedIndex].text;
   const deliveryDate=drafts.map(plan=>plan.delivery).filter(Boolean).sort().pop()||'';
   const orderNotes=document.querySelector('#projectOrderNotes').innerHTML.trim();
@@ -1513,14 +1546,12 @@ projectCreateForm.onsubmit=event=>{
   const initialPlans=buildInitialProjectPlans(drafts,ownerName,numbers);
   const references=Array.from(projectOrderReference.files||[]).map(file=>({name:file.name,size:file.size,type:file.type}));
   businessOrders.unshift({id:orderId,name:projectName,customer:customerName,owner:ownerName,nature:'—',productionType:'—',cycle:'—',projects:1,status:'进行中',created:'2026-09-04',notes:orderNotes,references:Array.from(projectOrderReference.files||[]).map(file=>file.name)});
-  businessOrders[0].customerCode=selectedCustomer.code;
-  const matchedCustomer=selectedCustomer;
-  if(matchedCustomer){matchedCustomer.orders+=1;matchedCustomer.projects+=1;matchedCustomer.last='刚刚'}
+  businessOrders[0].customerCode='';
   const description=drafts.length===1?(drafts[0].summary||`${drafts[0].name} · ${totalQuantity} 份`):`${drafts.length} 组生产计划 · ${totalQuantity} 份`;
-  projectData.unshift({id:numbers.project[0],title:projectName,desc:description,type:'生产项目',progress:0,date:'刚刚',color:'linear-gradient(135deg,#5c3bd1,#b64f88)',members:['H'],scope:'owned',risk:false,...initialPlans,orderId,quantity:totalQuantity,workflowId:drafts[0].workflow.id,deliveryDate,notes:orderNotes,productionPlanNotes});
+  projectData.unshift({id:numbers.project[0],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),title:projectName,desc:description,type:'生产项目',progress:0,date:'刚刚',color:'linear-gradient(135deg,#5c3bd1,#b64f88)',members:['H'],scope:'owned',risk:false,...initialPlans,orderId,quantity:totalQuantity,workflowId:drafts[0].workflow.id,deliveryDate,notes:orderNotes,productionPlanNotes});
   projectData[0].references=references;
   projectData[0].customer=customerName;
-  projectData[0].customerCode=selectedCustomer.code;
+  projectData[0].customerCode='';
   projectData[0].owner=ownerName;
   startProductionPlanTasks(projectData[0],projectData[0].runs);
   renderBusiness();
@@ -1536,7 +1567,7 @@ document.querySelector('#mobileMenu').onclick=()=>document.querySelector('#sideb
 let canvasReturnPage='projects';
 function getCanvasReturnPage(){return canvasReturnPage}
 function setProfileIsolation(active){document.querySelectorAll('body > .sidebar,body > .topbar,body > .player,.page-view:not(#profilePage)').forEach(element=>{if(active)element.setAttribute('inert','');else element.removeAttribute('inert')})}
-function switchPage(page,item){if(window.noOrganizationMode&&page!=='home'){page='home';item=null}const pages={assets:'#assetsPage',timbre:'#timbrePage',finished:'#finishedPage',home:'#homePage',tasks:'#taskPage',projects:'#projectsPage','project-detail':'#projectDetailPage',business:'#businessPage','project-create':'#projectCreatePage',workflows:'#workflowsPage',canvas:'#canvasPage',profile:'#profilePage'};const currentPage=document.querySelector('.page-view.active')?.id;if(currentPage==='taskPage'&&page!=='tasks')stopTaskSongPreview();if(page==='canvas'&&currentPage!=='profilePage'){canvasReturnPage=currentPage==='workflowsPage'?'workflows':currentPage==='homePage'?'home':'projects';document.querySelector('#canvasBreadcrumb').textContent=canvasReturnPage==='workflows'?'创作集合 / 节点编排':canvasReturnPage==='home'?'首页 / Music Show / 创作流程':'项目管理 / 节点编排'}document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));const projectChild=['business','project-create','project-detail'].includes(page);const navPage=syncAssetLibraryTabs(page)?'assets':page;const navItem=item||document.querySelector(`.nav-item[data-page="${navPage}"]`)||(projectChild?document.querySelector('.nav-item[data-page="projects"]'):null);navItem?.classList.add('active');document.querySelectorAll('.page-view').forEach(x=>x.classList.remove('active'));document.querySelector(pages[page]||pages.home).classList.add('active');document.body.classList.toggle('task-mode',page==='tasks');document.body.classList.toggle('project-mode',page==='projects');document.body.classList.toggle('project-detail-mode',page==='project-detail');document.body.classList.toggle('business-mode',page==='business');document.body.classList.toggle('project-create-mode',page==='project-create');document.body.classList.toggle('workflow-mode',page==='workflows');document.body.classList.toggle('canvas-mode',page==='canvas');document.body.classList.toggle('profile-mode',page==='profile');setProfileIsolation(page==='profile');document.querySelector('#avatarButton').classList.toggle('active',page==='profile');document.querySelector('#sidebar').classList.remove('open');if(page==='tasks')renderTaskCenter();if(page==='workflows')renderWorkflows();window.scrollTo(0,0);if(page==='projects')requestMoreProjects()}
+function switchPage(page,item){if(page==='project-create'){showProjectCreateDialog();return;}if(projectCreateDialog.open)projectCreateDialog.close();if(window.noOrganizationMode&&page!=='home'){page='home';item=null}const pages={assets:'#assetsPage',timbre:'#timbrePage',finished:'#finishedPage',home:'#homePage',tasks:'#taskPage',projects:'#projectsPage','project-detail':'#projectDetailPage',business:'#businessPage','project-create':'#projectCreatePage',workflows:'#workflowsPage',canvas:'#canvasPage',profile:'#profilePage'};const currentPage=document.querySelector('.page-view.active')?.id;if(currentPage==='taskPage'&&page!=='tasks')stopTaskSongPreview();if(page==='canvas'&&currentPage!=='profilePage'){canvasReturnPage=currentPage==='workflowsPage'?'workflows':currentPage==='homePage'?'home':'projects';document.querySelector('#canvasBreadcrumb').textContent=canvasReturnPage==='workflows'?'创作集合 / 节点编排':canvasReturnPage==='home'?'首页 / Music Show / 创作流程':'项目管理 / 节点编排'}document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));const projectChild=['business','project-create','project-detail'].includes(page);const navPage=syncAssetLibraryTabs(page)?'assets':page;const navItem=item||document.querySelector(`.nav-item[data-page="${navPage}"]`)||(projectChild?document.querySelector('.nav-item[data-page="projects"]'):null);navItem?.classList.add('active');document.querySelectorAll('.page-view').forEach(x=>x.classList.remove('active'));document.querySelector(pages[page]||pages.home).classList.add('active');document.body.classList.toggle('task-mode',page==='tasks');document.body.classList.toggle('project-mode',page==='projects');document.body.classList.toggle('project-detail-mode',page==='project-detail');document.body.classList.toggle('business-mode',page==='business');document.body.classList.toggle('project-create-mode',page==='project-create');document.body.classList.toggle('workflow-mode',page==='workflows');document.body.classList.toggle('canvas-mode',page==='canvas');document.body.classList.toggle('profile-mode',page==='profile');setProfileIsolation(page==='profile');document.querySelector('#avatarButton').classList.toggle('active',page==='profile');document.querySelector('#sidebar').classList.remove('open');if(page==='tasks')renderTaskCenter();if(page==='workflows')renderWorkflows();window.scrollTo(0,0);if(page==='projects')requestMoreProjects()}
 function openPrimaryCanvas(item){window.orchestraWorkflowCanvas?.open({id:'primary',name:'未命名音乐工作流'});switchPage('canvas',item)}
 nav.addEventListener('click',event=>{
   const item=event.target.closest('.nav-item[data-page]');
@@ -1598,7 +1629,6 @@ projectWorkAssignmentDialog.addEventListener('keydown',event=>{if(event.key==='E
 projectPlanList.addEventListener('click',event=>{const button=event.target.closest('[data-plan-works]');if(!button)return;currentProjectWorksPlan=button.dataset.planWorks;selectedProjectWorkIds.clear();const project=projectData.find(item=>item.id===selectedProjectId);if(project)renderProjectWorks(project);setProjectDetailTab('runs',true)});
 document.querySelector('.project-detail-tabs').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)||!event.target.closest('[data-project-detail-tab]'))return;event.preventDefault();const current=Math.max(0,projectDetailTabs.indexOf(document.activeElement));let next=current;if(event.key==='ArrowRight')next=(current+1)%projectDetailTabs.length;if(event.key==='ArrowLeft')next=(current-1+projectDetailTabs.length)%projectDetailTabs.length;if(event.key==='Home')next=0;if(event.key==='End')next=projectDetailTabs.length-1;setProjectDetailTab(projectDetailTabs[next].dataset.projectDetailTab,true)});
 document.querySelector('#backProjectDetails').onclick=()=>switchPage('projects',document.querySelector('.nav-item[data-page="projects"]'));
-projectCustomerManagement.onclick=()=>switchPage('business',document.querySelector('.nav-item[data-page="projects"]'));
 document.querySelector('#businessBackButton').onclick=()=>switchPage('projects');
 document.querySelector('#newProject').onclick=openProjectCreatePage;
 document.querySelector('#startProject').onclick=()=>openPrimaryCanvas();
@@ -1621,7 +1651,7 @@ let profileReturnPage='home';
 let profileReturnScrollY=0;
 function setAccountSwitcher(open,restoreFocus=true){const focusedInside=!open&&accountSwitcher.contains(document.activeElement);accountSwitcher.hidden=!open;accountSwitchButton.setAttribute('aria-expanded',String(open));avatarMenu.classList.toggle('switcher-active',open);if(open)requestAnimationFrame(()=>(workspaceOptions.find(item=>item.classList.contains('active'))||workspaceOptions[0])?.focus());else if(focusedInside&&restoreFocus)requestAnimationFrame(()=>{if(accountSwitcher.hidden&&!avatarMenu.hidden)accountSwitchButton.focus({preventScroll:true})})}
 function setAvatarMenu(open){const focusedInside=!open&&avatarMenuWrap.contains(document.activeElement)&&document.activeElement!==avatarButton;if(!open)setAccountSwitcher(false,false);avatarMenu.hidden=!open;avatarButton.setAttribute('aria-expanded',String(open));document.body.classList.toggle('avatar-menu-open',open);if(open)requestAnimationFrame(()=>accountSwitchButton.focus());else if(focusedInside)requestAnimationFrame(()=>{if(avatarMenu.hidden&&!document.body.classList.contains('profile-mode'))avatarButton.focus({preventScroll:true})})}
-function selectWorkspace(option,announce=true){const wasActive=option.classList.contains('active');workspaceOptions.forEach(item=>{const active=item===option;item.classList.toggle('active',active);item.setAttribute('aria-pressed',String(active))});const name=option.querySelector('b')?.textContent||'所选团队';document.querySelector('#avatarAccountContext').textContent=option.dataset.workspaceContext;document.querySelector('#avatarPlanName').textContent=option.dataset.workspacePlan;document.querySelector('#avatarWorkspaceStatus').textContent=option.dataset.workspaceStatus;document.querySelector('#avatarWorkspaceCredits').textContent=option.dataset.workspaceCredits;document.querySelector('#avatarWorkspaceSongs').textContent=option.dataset.workspaceSongs;document.querySelector('#projectTeamName').textContent=name;document.querySelector('#projectTeamIntro').textContent=option.dataset.teamIntro;document.querySelector('#projectTeamMeta').textContent=`${option.dataset.teamMembers} 位成员 · ${option.dataset.teamProjects} 个项目`;localStorage.setItem('orchestra-workspace',option.dataset.workspaceId);if(announce){setAccountSwitcher(false);showToast(wasActive?`当前已是 ${name}`:`已切换至 ${name}`)}}
+function selectWorkspace(option,announce=true){const wasActive=option.classList.contains('active');workspaceOptions.forEach(item=>{const active=item===option;item.classList.toggle('active',active);item.setAttribute('aria-pressed',String(active))});const name=option.querySelector('b')?.textContent||'所选团队';document.querySelector('#avatarAccountContext').textContent=option.dataset.workspaceContext;document.querySelector('#avatarPlanName').textContent=option.dataset.workspacePlan;document.querySelector('#avatarWorkspaceStatus').textContent=option.dataset.workspaceStatus;document.querySelector('#avatarWorkspaceCredits').textContent=option.dataset.workspaceCredits;document.querySelector('#avatarWorkspaceSongs').textContent=option.dataset.workspaceSongs;localStorage.setItem('orchestra-workspace',option.dataset.workspaceId);if(announce){setAccountSwitcher(false);showToast(wasActive?`当前已是 ${name}`:`已切换至 ${name}`)}}
 const savedWorkspace=workspaceOptions.find(item=>item.dataset.workspaceId===localStorage.getItem('orchestra-workspace'))||workspaceOptions[0];
 if(savedWorkspace)selectWorkspace(savedWorkspace,false);
 function setProfileSection(section){
@@ -1843,3 +1873,6 @@ grid.addEventListener('click',e=>{
 });
 document.querySelector('#miniCover').style.backgroundImage=`url('${url(photos[0])}')`;
 let toastTimer;function showToast(msg,type='info'){const t=document.querySelector('#toast');t.textContent=msg;t.classList.toggle('error',type==='error');t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.classList.remove('show');t.classList.remove('error')},2200)}
+
+// Render the initial project table after its backing data has initialized.
+renderProjects();

@@ -991,6 +991,7 @@
         ${field('提示词', config.prompt, true)}
         ${field('反向提示词', config.negativePrompt === '' ? '未填写' : config.negativePrompt, true)}
         ${field('风格强度', percentageValue(config.styleStrength))}
+        ${field('音频影响度', percentageValue(config.audioInfluence))}
         ${field('随机度', percentageValue(config.randomness))}
         ${field('人声性别', voiceGenderLabels[config.voiceGender])}
         ${field('生成纯音乐', instrumentalLabels[config.instrumental] ?? booleanValue(config.instrumental))}
