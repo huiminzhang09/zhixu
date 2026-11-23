@@ -1,5 +1,46 @@
 /* Reference-song task example, with local audio for interactive previews. */
 (() => {
+  taskDetailPanel.addEventListener('change', event => {
+    if (event.target.matches('[data-song-duration-mode]')) {
+      const root = event.target.closest('.song-duration-controls');
+      const custom = event.target.value === 'custom';
+      event.target.hidden = custom;
+      root.querySelector('[data-duration-custom]').hidden = !custom;
+    }
+  }, true);
+  const durationText = seconds => `${Math.floor(Number(seconds)/60)}:${String(Number(seconds)%60).padStart(2,'0')}`;
+  taskDetailPanel.addEventListener('input', event => {
+    if (!event.target.matches('[data-song-duration-seconds]')) return;
+    event.target.closest('[data-duration-custom]').querySelector('output').value = durationText(event.target.value);
+    event.target.setAttribute('aria-valuetext', durationText(event.target.value));
+  });
+  taskDetailPanel.addEventListener('click', event => {
+    const reset=event.target.closest('[data-duration-reset]');
+    if(reset){
+      if(reset.disabled)return;
+      const slider=reset.closest('[data-duration-custom]').querySelector('[data-song-duration-seconds]');
+      slider.value='180';
+      slider.dispatchEvent(new Event('input',{bubbles:true}));
+      slider.dispatchEvent(new Event('change',{bubbles:true}));
+      return;
+    }
+    const button=event.target.closest('[data-duration-auto]');
+    if(!button || button.disabled)return;
+    const mode=button.closest('.song-duration-controls').querySelector('[data-song-duration-mode]');
+    mode.value='auto';mode.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  function syncInstrumental(event) {
+    if (!event.target.matches('[data-task-field="lyrics"], [data-task-field="instrumental"]')) return;
+    const task=productionTasks.find(item=>item.id===selectedTaskId);
+    if(task?.nodeType!=='aiSong')return;
+    const select=taskDetailPanel.querySelector('[data-task-field="instrumental"]');
+    if(!select)return;
+    const empty=!taskDetailPanel.querySelector('[data-task-field="lyrics"]')?.value.trim();
+    select.querySelector('option[value="no"]').disabled=empty;
+    if(empty&&select.value==='no')select.value='unspecified';
+  }
+  taskDetailPanel.addEventListener('input',syncInstrumental,true);
+  taskDetailPanel.addEventListener('change',syncInstrumental,true);
   const reference = { title: '晨间来信 · 参考歌曲.wav', url: './assets/reference-song-demo.wav', durationSeconds: 32, bytes: 1024044, format: 'WAV', demo: true };
   const uploadedReferences = new Map(), pendingUploads = new Map();
   const isPlaylist = task => task.nodeType === 'playlistSong';
@@ -55,8 +96,10 @@
     </div>`;
   }
   function generationSettings(task, locked) {
-    const values = task.formValues || {}, disabled = locked ? 'disabled' : '';
-    const select = (field, label, options, fallback) => `<label class="song-studio-setting"><span>${label}</span><select data-task-field="${field}" ${disabled}>${options.map(([value, text]) => `<option value="${value}" ${String(values[field] ?? fallback) === value ? 'selected' : ''}>${text}</option>`).join('')}</select></label>`;
+    const values = {...(task.formValues || {})}, disabled = locked ? 'disabled' : '';
+    const noLyrics = task.nodeType === 'aiSong' && !String(values.lyrics || '').trim();
+    if (noLyrics && values.instrumental === 'no') values.instrumental = 'unspecified';
+    const select = (field, label, options, fallback) => `<label class="song-studio-setting"><span>${label}</span><select data-task-field="${field}" ${disabled}>${options.map(([value, text]) => `<option value="${value}" ${field === 'instrumental' && value === 'no' && noLyrics ? 'disabled' : ''} ${String(values[field] ?? fallback) === value ? 'selected' : ''}>${text}</option>`).join('')}</select></label>`;
     const slider = (field, label, hint) => {
       const raw = Number(values[field] ?? .5), value = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw)) : .5;
       return `<label class="song-studio-setting"><span>${label} ${info(hint)}</span><span class="song-studio-slider"><input type="range" min="0" max="1" step="0.1" value="${value}" data-task-field="${field}" data-song-setting-range aria-label="${label}" ${disabled}><output>${value.toFixed(1)}</output></span></label>`;
@@ -66,7 +109,9 @@
       ${window.orchestraMaterialLibrary?.timbreSelectionMarkup(task, locked) || ''}
       <div class="song-studio-setting"><span id="songGenerationCountLabel">生成数量</span><div class="song-studio-count" role="group" aria-labelledby="songGenerationCountLabel">${[2, 4].map(count => `<label><input type="radio" name="songGenerationCount" data-task-field="count" value="${count}" ${(Number(values.count) === 4 ? 4 : 2) === count ? 'checked' : ''} ${disabled}><span>${count}</span></label>`).join('')}</div></div>
       ${slider('styleStrength', '风格强度', '数值越高，生成歌曲越贴近参考歌曲的风格。')}
+      ${['refSong','playlistSong','sampleSong'].includes(task.nodeType) ? `<label class="song-studio-setting"><span>音频影响度 ${info('数值越高，越倾向于保留参考音频的特征。')}</span><span class="song-studio-slider"><input type="range" min="0" max="1" step="0.01" value="${Math.max(0,Math.min(1,Number(values.audio_influence ?? .45)))}" data-task-field="audio_influence" data-song-setting-range aria-label="音频影响度" ${disabled}><output>${Math.round(Number(values.audio_influence ?? .45)*100)}%</output></span></label>` : ''}
       ${slider('randomness', '随机度', '数值越高，生成结果的变化越丰富。')}
+      <div class="song-studio-setting"><span>生成时长 ${info('设置期望生成的歌曲时长。选择自动时由模型决定，实际生成时长可能有所偏差。')}</span><div class="song-duration-controls"><select data-song-duration-mode aria-label="生成时长模式" ${values.duration != null ? 'hidden' : ''} ${disabled}><option value="auto" ${values.duration == null ? 'selected' : ''}>自动（Auto）</option><option value="custom" ${values.duration != null ? 'selected' : ''}>自定义（Custom）</option></select><div data-duration-custom ${values.duration == null ? 'hidden' : ''}><button type="button" data-duration-reset aria-label="重置生成时长为3:00" title="重置为3:00" ${disabled}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2.7 8.4M3 4v6h6"/></svg></button><span class="song-studio-slider"><input type="range" min="10" max="360" step="1" value="${values.duration ?? 180}" data-song-duration-seconds aria-label="自定义生成时长" aria-valuetext="${durationText(values.duration ?? 180)}" ${disabled}><output>${durationText(values.duration ?? 180)}</output></span><button type="button" data-duration-auto ${disabled}>切回自动</button></div></div></div>
       ${select('voiceGender', '人声性别', [['unspecified', '不指定'], ['female', '女声'], ['male', '男声']], 'unspecified')}
       ${select('instrumental', '生成纯音乐', [['unspecified', '不指定'], ['yes', '是'], ['no', '否']], 'unspecified')}
       <label class="song-studio-setting"><span>跳过版权检查</span><span class="song-studio-switch"><input type="checkbox" role="switch" aria-label="跳过版权检查" data-task-field="skipCopyrightCheck" ${String(values.skipCopyrightCheck) === 'true' ? 'checked' : ''} ${disabled}><i aria-hidden="true"></i></span></label>
@@ -313,7 +358,7 @@
   });
   taskDetailPanel.addEventListener('input', event => {
     if (event.target.matches('[data-song-setting-range]')) {
-      event.target.parentElement.querySelector('output').value = Number(event.target.value).toFixed(1);
+      event.target.parentElement.querySelector('output').value = event.target.dataset.taskField === 'audio_influence' ? Math.round(Number(event.target.value)*100)+'%' : Number(event.target.value).toFixed(1);
       return;
     }
     if (!event.target.matches('[data-reference-seek]')) return;

@@ -890,6 +890,10 @@ function saveTaskPageValues(task){
   if(!task)return;
   const values={...(task.formValues||{})};
   taskDetailPanel.querySelectorAll('[data-task-field]').forEach(control=>{if(control.type==='radio'&&!control.checked)return;values[control.dataset.taskField]=control.type==='checkbox'?String(control.checked):control.value});
+  const durationMode=taskDetailPanel.querySelector('[data-song-duration-mode]');
+  if(durationMode)values.duration=durationMode.value==='auto'?null:Math.max(10,Math.min(360,Number(taskDetailPanel.querySelector('[data-song-duration-seconds]').value)||180));
+  if(['refSong','playlistSong','sampleSong'].includes(task.nodeType))values.audio_influence=Math.max(0,Math.min(1,Number(values.audio_influence ?? .45)));
+  if(task.nodeType==='aiSong'&&!String(values.lyrics||'').trim()&&values.instrumental==='no')values.instrumental='unspecified';
   task.formValues=values;
   const lyricsEditor=taskDetailPanel.querySelector('[data-selected-lyrics-editor]');
   if(lyricsEditor)task.selectedCandidateText=lyricsEditor.value;
@@ -1234,7 +1238,11 @@ function workflowRow(item){
 }
 function renderWorkflows(){
   const keyword=document.querySelector('#workflowSearch').value.trim().toLowerCase();
-  const items=workflowData.filter(item=>item.name.toLowerCase().includes(keyword)),grid=workflowView==='grid';
+  const scope=document.querySelector('#workflowScope').value,sort=document.querySelector('#workflowSort').value;
+  const items=workflowData.filter(item=>item.name.toLowerCase().includes(keyword)&&(scope==='all'||(scope==='mine'&&item.editable===true)||(scope==='published'&&item.publishClass==='published')));
+  const stamp=item=>{const value=sort.startsWith('created')?(item.createdAt||item.draftTime||item.publishTime):(item.updatedAt||item.draftTime||item.publishTime);const n=typeof value==='number'?value:Date.parse(value);return Number.isFinite(n)?n:0};
+  items.sort((a,b)=>(sort.endsWith('asc')?1:-1)*(stamp(a)-stamp(b)));
+  const grid=workflowView==='grid';
   workflowTable.classList.toggle('is-grid',grid);workflowTable.setAttribute('role',grid?'region':'table');
   workflowList.setAttribute('role',grid?'list':'rowgroup');workflowList.innerHTML=items.map(workflowRow).join('');
   document.querySelector('#workflowCount').textContent=`${items.length} 个工作流`;
@@ -1633,6 +1641,8 @@ document.querySelector('#businessBackButton').onclick=()=>switchPage('projects')
 document.querySelector('#newProject').onclick=openProjectCreatePage;
 document.querySelector('#startProject').onclick=()=>openPrimaryCanvas();
 document.querySelector('#workflowSearch').addEventListener('input',renderWorkflows);
+document.querySelector('#workflowScope').addEventListener('change',renderWorkflows);
+document.querySelector('#workflowSort').addEventListener('change',renderWorkflows);
 document.querySelectorAll('[data-workflow-view]').forEach(button=>button.addEventListener('click',()=>setWorkflowView(button.dataset.workflowView)));
 document.querySelector('#newWorkflow').onclick=()=>{const item={id:`workflow-${Date.now()}`,createdAt:Date.now(),updatedAt:Date.now(),name:'未命名工作流',description:'从空白画布开始构建新的音乐制作流程',creator:'qiyin',draft:'已保存',draftTime:'刚刚',publish:'未发布',publishTime:'尚未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true};workflowData.unshift(item);renderWorkflows();enterWorkflowCanvas(item.id,{returnPage:'workflows'})};
 workflowList.addEventListener('click',event=>{const openButton=event.target.closest('[data-workflow-open]');if(openButton)return enterWorkflowCanvas(openButton.dataset.workflowOpen);const editButton=event.target.closest('[data-workflow-edit]');if(editButton){if(editButton.disabled)return;return enterWorkflowCanvas(editButton.dataset.workflowEdit)}const copyButton=event.target.closest('[data-workflow-copy]');if(!copyButton)return;const source=workflowData.find(item=>item.id===copyButton.dataset.workflowCopy);if(!source)return;const copy={...source,id:`${source.id}-copy-${Date.now()}`,createdAt:Date.now(),updatedAt:Date.now(),name:`${source.name} 副本`,draftTime:'刚刚',publish:'未发布',publishTime:'尚未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true};workflowData.unshift(copy);window.orchestraWorkflowCanvas?.copy(source.id,copy.id,copy.name);renderWorkflows();showToast(`已复制「${source.name}」`)});

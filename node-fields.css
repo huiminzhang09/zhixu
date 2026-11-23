@@ -1,0 +1,61 @@
+.node-fields-page{padding:28px 32px;min-height:calc(100vh - 70px);color:var(--text)}.nf-header,.nf-main-head{display:flex;align-items:center;justify-content:space-between;gap:18px}.nf-header{margin-bottom:22px}.nf-header h1{margin:6px 0;font-size:24px}.nf-header p,.nf-main-head p{margin:0;color:var(--muted)}.nf-header .eyebrow{color:#a77aff;font-size:11px;letter-spacing:.12em}.nf-header button,.nf-main-head button,.node-fields-page dialog button{padding:9px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--text);cursor:pointer}.nf-header .primary-button,.nf-main-head .primary-button,.node-fields-page dialog [data-nf-save]{background:#713bfa;border-color:#713bfa;color:#fff}.nf-layout{display:grid;grid-template-columns:245px minmax(0,1fr);gap:16px;min-height:68vh}.nf-panel{min-width:0;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}.nf-search{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)}.nf-search input{width:100%;border:0;outline:0;background:transparent;color:var(--text)}.nf-node{display:flex;width:100%;flex-direction:column;gap:4px;padding:11px;border:0;border-radius:8px;background:transparent;color:var(--text);text-align:left;cursor:pointer}.nf-node.active,.nf-node:hover{background:var(--surface-2)}.nf-node small{color:var(--muted)}.nf-main-head{padding:2px 2px 15px}.nf-main-head h2{margin:0 0 6px;font-size:18px}.nf-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}.nf-table-wrap table{width:100%;border-collapse:collapse;font-size:13px}.nf-table-wrap th,.nf-table-wrap td{padding:10px;border-bottom:1px solid var(--line);text-align:left;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nf-table-wrap th{background:var(--surface-2);color:var(--muted);font-weight:600}.nf-table-wrap code{color:#b794ff}.nf-action{padding:3px 6px;border:0;background:transparent;color:#a77aff;cursor:pointer}.nf-action.danger{color:#ef7373}.nf-empty{text-align:center!important;color:var(--muted);padding:42px!important}.node-fields-page dialog{width:min(720px,calc(100vw - 30px));max-height:85vh;padding:22px}.node-fields-page dialog::backdrop{background:#0008}.node-fields-page dialog h2{margin:0 0 16px}.nf-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-height:60vh;overflow:auto}.nf-form-grid label{display:grid;gap:5px;color:var(--muted);font-size:12px}.nf-form-grid input{padding:9px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);color:var(--text)}.node-fields-page dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}@media(max-width:760px){.node-fields-page{padding:18px}.nf-layout{grid-template-columns:1fr}.nf-layout aside{max-height:230px;overflow:auto}.nf-form-grid{grid-template-columns:1fr}}
+/* Tighter spacing for the node field workspace. */
+.node-fields-page{padding:18px 22px;min-height:calc(100vh - 52px)}
+.nf-header{margin-bottom:14px}
+.nf-layout{grid-template-columns:220px minmax(0,1fr);gap:12px;min-height:0;align-items:start}
+.nf-panel{padding:12px;border-radius:12px}
+.nf-main-head{padding:0 0 10px}
+.nf-main-head h2{font-size:16px}
+.nf-node{padding:8px 9px;gap:2px}
+.nf-table-wrap th,.nf-table-wrap td{padding:7px 8px;line-height:1.35}
+.nf-form-grid{gap:9px}
+@media(max-width:760px){.node-fields-page{padding:14px}.nf-layout{gap:10px}.nf-layout aside{max-height:190px}}
+/* Further reduce unused whitespace on the node field page. */
+.node-fields-page{padding:12px 16px;min-height:0}
+.node-fields-page .nf-header{margin:0 0 10px;min-height:0}
+.node-fields-page .nf-header h1{font-size:21px;margin:3px 0}
+.node-fields-page .nf-header p{font-size:12px}
+.node-fields-page .nf-layout{grid-template-columns:190px minmax(0,1fr);gap:8px;min-height:0;align-items:start}
+.node-fields-page .nf-panel{padding:9px;border-radius:10px}
+.node-fields-page .nf-search{padding:6px 8px;margin-bottom:7px}
+.node-fields-page .nf-node{padding:6px 8px;line-height:1.3}
+.node-fields-page .nf-node small{font-size:11px}
+.node-fields-page .nf-main-head{padding:0 0 7px;min-height:0}
+.node-fields-page .nf-main-head p{font-size:12px}
+.node-fields-page .nf-table-wrap th,.node-fields-page .nf-table-wrap td{padding:5px 7px;line-height:1.25}
+.node-fields-page .nf-layout aside{max-height:calc(100vh - 150px);overflow:auto}
+@media(max-width:760px){.node-fields-page{padding:10px}.node-fields-page .nf-layout{gap:7px}.node-fields-page .nf-layout aside{max-height:155px}}
+/* Align node field content to the compact page spacing in the reference. */
+.node-fields-page{padding:20px 28px;min-height:0}
+.node-fields-page .nf-header{margin:0 0 20px;min-height:0}
+.node-fields-page .nf-layout{grid-template-columns:190px minmax(0,1fr);gap:16px;min-height:0;align-items:start}
+.node-fields-page .nf-panel{padding:10px}
+.node-fields-page .nf-main-head{padding:0 0 8px}
+.node-fields-page .nf-table-wrap th,.node-fields-page .nf-table-wrap td{padding:6px 8px}
+.node-fields-page .nf-node{padding:6px 8px}
+/* Reference layout: keep the page header and parameter workspace 20px apart. */
+#nodeFieldsPage{display:none;padding:16px 24px!important;min-height:0!important;}
+#nodeFieldsPage.active{display:block!important;}
+#nodeFieldsPage>.nf-header{margin:0 0 20px!important;padding:0!important;}
+#nodeFieldsPage>.nf-layout{display:grid!important;grid-template-columns:190px minmax(0,1fr)!important;column-gap:16px!important;row-gap:10px!important;width:100%!important;min-height:0!important;margin:0!important;}
+#nodeFieldsPage>.nf-layout>aside,#nodeFieldsPage>.nf-layout>main{width:auto!important;max-width:none!important;min-width:0!important;margin:0!important;}
+/* Remove the oversized left inset marked in the layout reference. */
+#nodeFieldsPage{margin-left:0!important;}
+#nodeFieldsPage>.nf-header,#nodeFieldsPage>.nf-layout{margin-left:0!important;}
+#nodeFieldsPage{position:relative;left:-96px;width:calc(100% + 96px);}
+@media(max-width:760px){#nodeFieldsPage{left:0;width:100%;}}
+#nodeFieldsPage{width:auto!important;margin-left:20px!important;}
+@media(max-width:760px){#nodeFieldsPage{margin-left:20px!important;width:auto!important;}}
+#nodeFieldsPage{box-sizing:border-box;width:auto!important;margin-right:0!important;padding-right:16px!important;}
+#nodeFieldsPage>.nf-layout{width:100%!important;grid-template-columns:190px minmax(0,1fr)!important;}
+#nodeFieldsPage>.nf-layout>main{width:100%!important;min-width:0!important;box-sizing:border-box;}
+#nodeFieldsPage .nf-table-wrap{width:100%;}
+#nodeFieldsPage .nf-table-wrap table{width:100%;table-layout:fixed;}
+
+body.node-fields-mode > .player{display:none!important}
+body.node-fields-mode #assetLibraryTabs{display:none!important}
+#nodeFieldsPage>.nf-layout>main{margin-right:20px!important;width:calc(100% - 20px)!important;}
+@media(max-width:760px){#nodeFieldsPage>.nf-layout>main{margin-right:0!important;width:100%!important;}}
+
+body.node-fields-readonly #nodeFieldsPage [data-nf-add-node],body.node-fields-readonly #nodeFieldsPage [data-nf-add-field],body.node-fields-readonly #nodeFieldsPage [data-nf-edit],body.node-fields-readonly #nodeFieldsPage [data-nf-delete]{display:none!important}
+body.node-fields-readonly #nodeFieldsPage th:last-child,body.node-fields-readonly #nodeFieldsPage td:last-child{display:none!important}

@@ -90,3 +90,21 @@ html[data-theme="dark"] .workflows-page { --collection-panel: #1d1d20; --collect
 body.workflow-mode .player { display: none; }
 @media(max-width:880px) { body.workflow-mode main { padding: 96px 20px 30px; } .workflow-list-shell { padding: 18px; border-radius: 20px; } .workflow-toolbar { gap: 16px; } }
 @media(max-width:600px) { body.workflow-mode main { padding: 88px 14px 24px; } .workflow-toolbar { flex-wrap: wrap; margin-bottom: 24px; } .workflow-search { width: 100%; flex-basis: 100%; } .workflow-toolbar-actions { justify-content: space-between; width: 100%; } .workflow-list-shell { padding: 14px; } }
+
+.workflow-filters{display:flex;align-items:center;gap:10px;flex:none}.workflow-filters select{height:36px;min-width:150px;padding:0 30px 0 12px;border:0;border-radius:12px;background:#29292d;color:#eee;font-size:14px;outline:0;cursor:pointer}.workflow-filters select:focus-visible{outline:2px solid #9872df;outline-offset:2px}.workflow-filters select option{background:#29292d;color:#eee}.workflow-search{border-radius:11px}
+@media(max-width:900px){.workflow-toolbar{gap:12px}.workflow-search{flex:1 1 300px}.workflow-filters{flex:1}.workflow-filters select{min-width:0;flex:1}}
+@media(max-width:600px){.workflow-filters{width:100%}.workflow-filters select{width:50%}}
+
+/* Search, scope and sort share one aligned filter row. */
+.workflow-toolbar{gap:16px}
+.workflow-filter-group{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0}
+.workflow-search{height:40px;width:min(540px,48vw);flex:1 1 360px;max-width:540px;min-width:200px;padding:0 11px;border:1px solid #38383e;border-radius:12px;background:#101014;color:var(--text)}
+.workflow-search svg{width:17px;height:17px}
+.workflow-search input{font-size:14px}
+.workflow-filters{display:flex;align-items:center;gap:9px;flex:none}
+.workflow-filters select{height:36px;min-width:148px;padding:0 28px 0 12px;border:0;border-radius:12px;background:#29292d;color:#eee;font-size:14px;outline:0;cursor:pointer}
+.workflow-filters select:last-child{min-width:176px}
+.workflow-filters select:focus-visible{outline:2px solid #9872df;outline-offset:2px}
+.workflow-filters select option{background:#29292d;color:#eee}
+@media(max-width:1050px){.workflow-filter-group{flex-wrap:wrap}.workflow-search{flex-basis:100%;max-width:none;width:100%}}
+@media(max-width:600px){.workflow-toolbar{align-items:stretch}.workflow-filter-group{width:100%;flex-basis:100%}.workflow-search{min-width:0}.workflow-filters{width:100%}.workflow-filters select{min-width:0!important;flex:1}.workflow-toolbar-actions{width:100%;justify-content:flex-end}}

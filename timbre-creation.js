@@ -108,6 +108,7 @@
               <input type="range" name="randomness" id="timbreCreationRandomness" aria-valuetext="20%" min="0" max="1" step="0.01" value="0.2">
               <output for="timbreCreationRandomness" data-creation-randomness>20%</output>
             </div>
+            <div class="song-studio-setting timbre-duration-setting"><span title="设置期望生成的歌曲时长。选择自动时由模型决定，实际生成时长可能有所偏差。">生成时长 ⓘ</span><div class="song-duration-controls"><select name="durationMode" aria-label="生成时长模式"><option value="auto">自动（Auto）</option><option value="custom">自定义（Custom）</option></select><div data-duration-custom hidden><button type="button" data-duration-reset title="重置为3:00" aria-label="重置生成时长为3:00"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2.7 8.4M3 4v6h6"/></svg></button><span class="song-studio-slider"><input type="range" name="durationSeconds" min="10" max="360" step="1" value="180" aria-label="自定义生成时长" aria-valuetext="3:00"><output data-timbre-duration-value>3:00</output></span><button type="button" data-duration-auto>切回自动</button></div></div></div>
             <fieldset class="timbre-creation-count timbre-creation-gender">
               <legend>人声性别</legend>
               <label><input type="radio" name="voiceGender" value="male" checked>男</label>
@@ -305,6 +306,7 @@
         styleStrength: Number(fields.styleStrength.value),
         audioInfluence: Number(fields.audioInfluence.value),
         randomness: Number(fields.randomness.value),
+        duration: fields.durationMode.value === 'auto' ? null : Number(fields.durationSeconds.value),
         voiceGender: fields.voiceGender.value,
         instrumental: fields.instrumental.value,
         maxMode: fields.maxMode.checked,
@@ -408,8 +410,28 @@
       control.closest('.timbre-range-track')?.style.setProperty('--range-progress', value);
     }
 
+    function updateDuration() {
+      const fields=form.elements, custom=fields.durationMode.value==='custom';
+      fields.durationMode.hidden=custom;
+      dialog.querySelector('[data-duration-custom]').hidden=!custom;
+      const seconds=Number(fields.durationSeconds.value), text=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+      dialog.querySelector('[data-timbre-duration-value]').value=text;
+      fields.durationSeconds.setAttribute('aria-valuetext',text);
+    }
+    settings.addEventListener('change',event=>{
+      if(event.target.name==='durationMode'){updateDuration();settingsChanged(event)}
+    });
+    settings.addEventListener('click',event=>{
+      const reset=event.target.closest('[data-duration-reset]'), auto=event.target.closest('[data-duration-auto]');
+      if(readOnly||operation||(!reset&&!auto))return;
+      if(reset)form.elements.durationSeconds.value='180';
+      if(auto)form.elements.durationMode.value='auto';
+      updateDuration();
+      form.elements.durationSeconds.dispatchEvent(new Event('input',{bubbles:true}));
+    });
     function settingsChanged(event) {
       if (readOnly || operation || !event.target.matches('input, textarea, select')) return;
+      updateDuration();
       updatePercentage(form.elements.styleStrength, '[data-creation-strength]');
       updatePercentage(form.elements.audioInfluence, '[data-creation-audioInfluence]');
       updatePercentage(form.elements.randomness, '[data-creation-randomness]');
@@ -519,6 +541,9 @@
       for (const key of ['lyrics', 'prompt', 'model', 'count', 'negativePrompt', 'styleStrength', 'audioInfluence', 'randomness', 'voiceGender']) {
         if (config[key] != null) fields[key].value = key === 'voiceGender' && !['male', 'female'].includes(config[key]) ? 'male' : String(config[key]);
       }
+      fields.durationMode.value = config.duration == null ? 'auto' : 'custom';
+      fields.durationSeconds.value = config.duration == null ? '180' : String(Math.max(10,Math.min(360,Number(config.duration)||180)));
+      updateDuration();
       fields.skipCopyrightCheck.checked = Boolean(config.skipCopyrightCheck);
       fields.maxMode.checked = config.maxMode == null ? true : Boolean(config.maxMode);
       fields.personaName.value = initialDraft.name || '';

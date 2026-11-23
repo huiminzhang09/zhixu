@@ -13,8 +13,9 @@
   <link rel="stylesheet" href="./business.css?v=13" />
   <link rel="stylesheet" href="./project-create.css?v=20261113-project-dialog" />
   <link rel="stylesheet" href="./project-detail.css?v=20261021-full-width" />
-  <link rel="stylesheet" href="./task-center.css?v=20261112-failure-reason" />
-  <link rel="stylesheet" href="./workflows.css?v=20261102-finished-cleanup" />
+  <link rel="stylesheet" href="./task-center.css?v=20261119-duration-reset" />
+  <link rel="stylesheet" href="./workflows.css?v=20261123-restore-filters" />
+<link rel="stylesheet" href="./node-fields.css?v=20261120-readonly-fix" />
   <link rel="stylesheet" href="./playlist-import.css?v=1" />
   <link rel="stylesheet" href="./profile-center.css?v=20261026-account-security" />
   <link rel="stylesheet" href="./node-editor.css?v=20261112-menu-left-zero" />
@@ -30,7 +31,7 @@
   <link rel="stylesheet" href="./reference-song-task.css?v=20261109-timbre-library-entry">
   <link rel="stylesheet" href="./task-audio-picker.css?v=20261022-personal-team">
   <link rel="stylesheet" href="./material-library.css?v=20261112-finished-spacing">
-  <link rel="stylesheet" href="./timbre-creation.css?v=20261118-restore-before-1413">
+  <link rel="stylesheet" href="./timbre-creation.css?v=20261119-timbre-duration">
   <link rel="stylesheet" href="./finished-library.css?v=20261112-grid-cascade-fix">
   <link rel="stylesheet" href="./task-material-reference.css?v=20261022-result-help">
   <link rel="stylesheet" href="./work-output-task.css?v=20261106-assembly-confirm-width">
@@ -338,7 +339,7 @@
     <section class="page-view workflows-page" id="workflowsPage" aria-labelledby="workflowsTitle">
       <h1 class="workflow-sr-only" id="workflowsTitle">创作合集</h1>
       <div class="workflow-toolbar">
-        <label class="workflow-search"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="7.8"/><path d="m16.5 16.5 4.5 4.5"/></svg><input id="workflowSearch" type="search" placeholder="搜索工作流名称" aria-label="搜索工作流名称" aria-controls="workflowList" autocomplete="off" /></label>
+<div class="workflow-filter-group">        <label class="workflow-search"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="7.8"/><path d="m16.5 16.5 4.5 4.5"/></svg><input id="workflowSearch" type="search" placeholder="搜索工作流名称" aria-label="搜索工作流名称" aria-controls="workflowList" autocomplete="off" /></label><div class="workflow-filters"><select id="workflowScope" aria-label="工作流范围"><option value="all">全部工作流</option><option value="mine">我创建的</option><option value="published">团队已发布</option></select><select id="workflowSort" aria-label="排序方式"><option value="updated-desc">更新时间：最新优先</option><option value="updated-asc">更新时间：最早优先</option><option value="created-desc">创建时间：最新优先</option><option value="created-asc">创建时间：最早优先</option></select></div></div>
         <div class="workflow-toolbar-actions">
           <button class="new-workflow" id="newWorkflow" type="button"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 2c-.8 7.4-2.6 9.2-10 10 7.4.8 9.2 2.6 10 10 .8-7.4 2.6-9.2 10-10-7.4-.8-9.2-2.6-10-10Z" fill="currentColor" stroke="none"/></svg><span>新建工作流</span></button>
           <div class="workflow-view-switch" role="group" aria-label="工作流展示方式">
@@ -704,7 +705,7 @@
   </footer>
   <div class="toast" id="toast" role="status"></div>
   <script src="./account-phone.js?v=20261026-account-security"></script>
-  <script src="./script.js?v=20261113-project-init-fix"></script>
+  <script src="./script.js?v=20261123-restore-filters"></script>
   <script src="./profile-phone.js?v=20261026-account-security"></script>
   <script src="./account-ui.js?v=20261028-auth-design"></script>
   <script src="./profile-password.js?v=20261028-auth-design"></script>
@@ -721,15 +722,17 @@
   <script src="./run-pagination.js?v=20261013"></script>
   <script src="./assignee-search.js?v=20261013"></script>
   <script src="./avatar-team-entry.js?v=20261028-auth-design"></script>
-  <script src="./material-library.js?v=20261118-count-segments"></script>
+  <script src="./material-library.js?v=20261119-timbre-duration"></script>
   <script src="./task-workflow-resources.js?v=20261022-result-resources"></script>
   <script src="./task-audio-picker.js?v=20261112-reference-source"></script>
-  <script src="./reference-song-task.js?v=20261112-failure-reason"></script>
-  <script src="./timbre-creation.js?v=20261118-count-segments"></script>
+  <script src="./reference-song-task.js?v=20261119-duration-reset"></script>
+  <script src="./timbre-creation.js?v=20261119-timbre-duration"></script>
   <script src="./task-participation-demo.js?v=20261112-failure-reason"></script>
   <script src="./task-material-reference.js?v=20261029-library-labels"></script>
   <script src="./work-output-task.js?v=20261106-assembly-confirm-width"></script>
   <script src="./task-output-run.js?v=20261103-output-run-dock"></script>
 <script src="./home-templates.js"></script>
+<script src="./node-fields-data.js?v=20261120-csv-update"></script>
+<script src="./node-fields.js?v=20261120-readonly-fix"></script>
 </body>
 </html>

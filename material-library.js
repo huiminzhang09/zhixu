@@ -993,6 +993,7 @@
         ${field('风格强度', percentageValue(config.styleStrength))}
         ${field('音频影响度', percentageValue(config.audioInfluence))}
         ${field('随机度', percentageValue(config.randomness))}
+        ${field('生成时长', config.duration == null ? '自动（Auto）' : Math.floor(config.duration/60)+':'+String(config.duration%60).padStart(2,'0'))}
         ${field('人声性别', voiceGenderLabels[config.voiceGender])}
         ${field('生成纯音乐', instrumentalLabels[config.instrumental] ?? booleanValue(config.instrumental))}
         ${field('跳过版权检查', booleanValue(config.skipCopyrightCheck))}
