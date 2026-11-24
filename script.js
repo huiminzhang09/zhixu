@@ -565,7 +565,7 @@ function hiddenCompletedDemoReview(task){return task.status==='completed'&&task.
 function taskMatchesStatus(task){if(currentTaskStatus==='active')return task.status==='in_progress';if(currentTaskStatus==='finished')return ['completed','terminated'].includes(task.status);return true}
 function filteredProductionTasks(){
   const keyword=taskSearch.value.trim().toLowerCase();
-  return productionTasks.filter(task=>!hiddenCompletedDemoReview(task)&&taskMatchesStatus(task)&&`${task.workName} ${task.projectName} ${task.planName} ${task.nodeTitle}`.toLowerCase().includes(keyword)).sort((a,b)=>compareTasksForSort(a,b,taskSortByTab[currentTaskStatus]));
+  return productionTasks.filter(task=>!hiddenCompletedDemoReview(task)&&taskMatchesStatus(task)&&`${task.workName} ${task.projectName} ${task.planName} ${taskNodeDisplayName(task)}`.toLowerCase().includes(keyword)).sort((a,b)=>compareTasksForSort(a,b,taskSortByTab[currentTaskStatus]));
 }
 function taskListIcon(name){
   const icons={
@@ -587,7 +587,7 @@ function productionTaskRow(task){
   const icon=task.nodeType==='coverImage'?'image':['aiLyrics','playlistSong'].includes(task.nodeType)?task.nodeType:task.nodeCategory;
   const returned=taskReturnRecords(task),returnCount=returned.length?Math.max(returned.length,(Number(task.executionCount)||1)-1):0;
   const workflowLabel=[task.workflowName,task.workflowVersion].filter(Boolean).join(' · ');
-  return `<div class="task-item${active?' active':''}${task.featured?' featured':''}${returnCount?' has-return-history':''}" role="group" tabindex="0" data-task-id="${escapeHtml(task.id)}" aria-label="打开任务：${escapeHtml(task.workName)}" aria-current="${active?'true':'false'}"><span class="task-item-head"><i class="task-node-icon ${escapeHtml(task.nodeCategory)}" aria-hidden="true">${taskListIcon(icon)}</i><span class="task-item-title"><b><span class="task-inline-name" data-task-inline-name="${escapeHtml(task.id)}" title="${escapeHtml(task.workName)}"${task.status==='in_progress'?' contenteditable="plaintext-only" role="textbox" aria-label="任务名称（直接编辑，Enter 保存，Esc 取消）" aria-multiline="false" tabindex="0" spellcheck="false"':''}>${escapeHtml(task.workName)}</span></b><small title="${escapeHtml(task.nodeTitle)}">${escapeHtml(task.nodeTitle==='基于参考生成歌词'?'参考生成歌词':task.nodeTitle)}</small></span><span class="task-item-statuses"><span class="task-status ${status.className}">${status.label}</span></span></span><span class="task-item-body"><span class="task-item-context" title="${escapeHtml(task.projectName)}">${taskListIcon('folder')}<span>${escapeHtml(task.projectName)}</span></span><span class="task-item-context" title="${escapeHtml(workflowLabel)}">${taskListIcon('workflow')}<span>${escapeHtml(workflowLabel)}</span></span></span>${taskCardMarks(task,returnCount)}</div>`;
+  return `<div class="task-item${active?' active':''}${task.featured?' featured':''}${returnCount?' has-return-history':''}" role="group" tabindex="0" data-task-id="${escapeHtml(task.id)}" aria-label="打开任务：${escapeHtml(task.workName)}" aria-current="${active?'true':'false'}"><span class="task-item-head"><i class="task-node-icon ${escapeHtml(task.nodeCategory)}" aria-hidden="true">${taskListIcon(icon)}</i><span class="task-item-title"><b><span class="task-inline-name" data-task-inline-name="${escapeHtml(task.id)}" title="${escapeHtml(task.workName)}"${task.status==='in_progress'?' contenteditable="plaintext-only" role="textbox" aria-label="任务名称（直接编辑，Enter 保存，Esc 取消）" aria-multiline="false" tabindex="0" spellcheck="false"':''}>${escapeHtml(task.workName)}</span></b><small title="${escapeHtml(taskNodeDisplayName(task))}">${escapeHtml(taskNodeDisplayName(task))}</small></span><span class="task-item-statuses"><span class="task-status ${status.className}">${status.label}</span></span></span><span class="task-item-body"><span class="task-item-context" title="${escapeHtml(task.projectName)}">${taskListIcon('folder')}<span>${escapeHtml(task.projectName)}</span></span><span class="task-item-context" title="${escapeHtml(workflowLabel)}">${taskListIcon('workflow')}<span>${escapeHtml(workflowLabel)}</span></span></span>${taskCardMarks(task,returnCount)}</div>`;
 }
 function taskContextByTask(task){
   const project=projectData.find(item=>item.id===task.projectId),work=project?.runs?.find(item=>String(item.id)===String(task.workId));
@@ -610,7 +610,7 @@ function taskNodePageSpec(task){
   };
   const spec=specs[task.nodeType]||{required:'按节点配置',optional:'无',output:'节点产物',next:'工作流中的下一节点'};
   if(task.workflowId!=='reference-production')return spec;
-  if(task.nodeType==='lyricsReview')return {...spec,next:'基于参考曲生成歌曲'};
+  if(task.nodeType==='lyricsReview')return {...spec,next:'参考音频生成歌曲'};
   if(task.nodeType==='refSong')return {...spec,next:'歌曲审核'};
   if(task.nodeType==='songReview')return {...spec,next:'流程完成'};
   return spec;
@@ -619,6 +619,8 @@ function taskNodeSpecPanel(task){
   const spec=taskNodePageSpec(task);
   return `<div class="task-node-spec task-node-spec-three" aria-label="节点输入输出规则"><div><small>依赖输入</small><b>${escapeHtml(spec.required)}</b></div><div><small>可选输入</small><b>${escapeHtml(spec.optional)}</b></div><div><small>输出内容</small><b>${escapeHtml(spec.output)}</b></div></div>`;
 }
+const TASK_NODE_DISPLAY_NAMES={aiLyrics:'提示词生成歌词',refLyrics:'参考音频生成歌词',aiSong:'提示词生成歌曲',refSong:'参考音频生成歌曲',playlistSong:'多首参考音频生成歌曲',sampleSong:'采样生成歌曲'};
+function taskNodeDisplayName(task){return TASK_NODE_DISPLAY_NAMES[task?.nodeType]||task?.nodeTitle||'任务节点'}
 function taskFormValue(task,key,fallback=''){return escapeHtml(task.formValues?.[key]??fallback)}
 function taskSelectedOption(task,key,value){return task.formValues?.[key]===value?'selected':''}
 function applyTaskCreationConfiguration(task,configurationId){
@@ -673,7 +675,7 @@ function renderReferenceLyricsWorkspace(task){
 }
 
 function renderReferenceSongWorkspace(task){
-  if((task.referenceSongDemo||task.nodeType==='aiSong')&&window.orchestraReferenceSongTask)return window.orchestraReferenceSongTask.render(task);
+  if((task.referenceSongDemo||['aiSong','refSong'].includes(task.nodeType))&&window.orchestraReferenceSongTask)return window.orchestraReferenceSongTask.render(task);
   const locked=task.status!=='in_progress',disabled=locked?'disabled':'',generated=task.generationStage==='generated'||Boolean(task.candidates?.length),status=taskStatusMeta[task.status];
   const lyricsTask=productionTasks.find(item=>item.projectId===task.projectId&&String(item.workId)===String(task.workId)&&item.nodeType==='refLyrics');
   const approvedLyrics=lyricsTask?.selectedOutput?.content||lyricsTask?.selectedCandidateText||'已自动带入上一节点审核通过的歌词。';
@@ -683,7 +685,7 @@ return `<div class="ref-task-workbench ref-song-workbench"><header class="ref-wo
 }
 function taskNodeEditor(task){
   const locked=task.status!=='in_progress',disabled=locked?'disabled':'',completed=task.status==='completed',category=taskCategoryMeta[task.nodeCategory]||taskCategoryMeta.song;
-  const header=`<header><div><h3>${escapeHtml(task.nodeTitle)}页面</h3><p>${locked?'任务已结束，页面内容仅供查看。':'请在当前页面完成节点操作，运行或提交成功后进入下一节点。'}</p></div><span>${escapeHtml(category.label)}</span></header>`;
+  const header=`<header><div><h3>${escapeHtml(taskNodeDisplayName(task))}页面</h3><p>${locked?'任务已结束，页面内容仅供查看。':'请在当前页面完成节点操作，运行或提交成功后进入下一节点。'}</p></div><span>${escapeHtml(category.label)}</span></header>`;
   const spec=taskNodeSpecPanel(task);
   const timbreField=['aiSong','refSong','playlistSong'].includes(task.nodeType)?(window.orchestraMaterialLibrary?.timbreSelectionMarkup(task,locked)||''):'';
   if(task.nodeType==='writeLyrics')return `<section class="task-node-form ref-lyrics-task-form">${header}${spec}<div class="task-form-grid"><label class="task-form-field"><span>歌名 <em>*</em></span><input data-task-required data-task-field="title" maxlength="100" ${disabled} value="${taskFormValue(task,'title',completed?task.workName:'')}" placeholder="填写歌名" /></label><div class="task-output-card"><b>歌名输出</b><small>可作为歌曲标题传递给后续节点。</small></div><label class="task-form-field wide"><span>歌词 <em>*</em></span><textarea data-task-required data-task-field="lyrics" ${disabled} placeholder="填写歌词正文…">${taskFormValue(task,'lyrics',completed?'窗外的风吹过旧街，城市在灯火里醒来。':'')}</textarea></label><div class="task-output-card task-form-field wide"><b>歌词输出</b><small>提交后先进入歌词审核，审核通过后才继续创作。</small></div></div></section>`;
@@ -733,8 +735,8 @@ function renderProductionTaskDetail(task){
   const context=taskContextByTask(task),status=taskStatusMeta[task.status],category=taskCategoryMeta[task.nodeCategory]||taskCategoryMeta.song;
   const siblingTasks=productionTasks.filter(item=>item.projectId===task.projectId&&String(item.workId)===String(task.workId)),taskByNode=new Map(siblingTasks.map(item=>[item.nodeId,item]));
   const nodes=context?.snapshot.nodes||[{id:task.nodeId,title:task.nodeTitle}];
-  const steps=nodes.map((node,index)=>{const generated=taskByNode.get(node.id),activeView=task.status==='in_progress',state=activeView?(index<task.nodeIndex?'done':index===task.nodeIndex?'current':'locked'):(generated?.status==='in_progress'?'current':generated?'done':'locked'),icon=state==='current'?'▷':state==='done'?'✓':'⌁';return `<div class="task-flow-step ${state}" title="${state==='locked'?'尚未到达该节点，任务未生成':state==='current'?'当前处理页面':'该页面已处理'}"><i>${icon}</i><span>${escapeHtml(node.title)}</span></div>`}).join('');
-taskDetailPanel.innerHTML=`<header class="task-detail-header"><span class="task-detail-kicker">NODE TASK · ${escapeHtml(task.workflowVersion)}</span><div class="task-detail-title"><i class="task-node-icon ${escapeHtml(task.nodeCategory)}" aria-hidden="true">${category.symbol}</i><div><h2>${escapeHtml(task.nodeTitle)}</h2><p><span data-task-display-name>${escapeHtml(task.workName)}</span> · ${escapeHtml(task.nodeSubtitle||category.label)}</p></div><span class="task-status ${status.className}">${status.label}</span></div><div class="task-detail-context"><span>${escapeHtml(task.projectName)}</span><span>${escapeHtml(task.planName)}</span><span>${escapeHtml(task.workflowName)} ${escapeHtml(task.workflowVersion)}</span>${task.featured?'<span class="task-featured-context">完整四节点任务</span>':''}</div></header><div class="task-detail-body"><div class="task-flow-caption"><b>任务页面进度</b><small>仅展示已到达的页面节点</small></div><div class="task-flow-path" style="--task-node-count:${nodes.length}">${steps}</div><div class="task-node-rule"><i>i</i><span>同一运行同时只允许一个进行中任务；完成当前页面操作后才生成下一节点任务，歌词和歌曲产物必须分别经过审核。</span></div>${taskNodeEditor(task)}${task.status==='terminated'?'<div class="task-termination-note">该任务已终止，并归入“已完成”任务视图；后续节点任务未生成。</div>':''}${task.status==='in_progress'?`<div class="task-detail-actions"><button class="task-return-button" type="button" data-task-action="return">打回</button><button class="task-complete-button" type="button" data-task-action="complete" ${taskNodeCanComplete(task)?'':'disabled'}>${taskNodeActionLabel(task)}</button></div>`:''}</div>`;
+  const steps=nodes.map((node,index)=>{const generated=taskByNode.get(node.id),activeView=task.status==='in_progress',state=activeView?(index<task.nodeIndex?'done':index===task.nodeIndex?'current':'locked'):(generated?.status==='in_progress'?'current':generated?'done':'locked'),icon=state==='current'?'▷':state==='done'?'✓':'⌁';return `<div class="task-flow-step ${state}" title="${state==='locked'?'尚未到达该节点，任务未生成':state==='current'?'当前处理页面':'该页面已处理'}"><i>${icon}</i><span>${escapeHtml(TASK_NODE_DISPLAY_NAMES[node.type]||node.title)}</span></div>`}).join('');
+taskDetailPanel.innerHTML=`<header class="task-detail-header"><span class="task-detail-kicker">NODE TASK · ${escapeHtml(task.workflowVersion)}</span><div class="task-detail-title"><i class="task-node-icon ${escapeHtml(task.nodeCategory)}" aria-hidden="true">${category.symbol}</i><div><h2>${escapeHtml(taskNodeDisplayName(task))}</h2><p><span data-task-display-name>${escapeHtml(task.workName)}</span> · ${escapeHtml(task.nodeSubtitle||category.label)}</p></div><span class="task-status ${status.className}">${status.label}</span></div><div class="task-detail-context"><span>${escapeHtml(task.projectName)}</span><span>${escapeHtml(task.planName)}</span><span>${escapeHtml(task.workflowName)} ${escapeHtml(task.workflowVersion)}</span>${task.featured?'<span class="task-featured-context">完整四节点任务</span>':''}</div></header><div class="task-detail-body"><div class="task-flow-caption"><b>任务页面进度</b><small>仅展示已到达的页面节点</small></div><div class="task-flow-path" style="--task-node-count:${nodes.length}">${steps}</div><div class="task-node-rule"><i>i</i><span>同一运行同时只允许一个进行中任务；完成当前页面操作后才生成下一节点任务，歌词和歌曲产物必须分别经过审核。</span></div>${taskNodeEditor(task)}${task.status==='terminated'?'<div class="task-termination-note">该任务已终止，并归入“已完成”任务视图；后续节点任务未生成。</div>':''}${task.status==='in_progress'?`<div class="task-detail-actions"><button class="task-return-button" type="button" data-task-action="return">打回</button><button class="task-complete-button" type="button" data-task-action="complete" ${taskNodeCanComplete(task)?'':'disabled'}>${taskNodeActionLabel(task)}</button></div>`:''}</div>`;
 }
 function taskReturnRecords(task){
   const records=Array.isArray(task?.returnHistory)?task.returnHistory.filter(record=>record&&typeof record==='object'):[];
@@ -892,7 +894,7 @@ function saveTaskPageValues(task){
   taskDetailPanel.querySelectorAll('[data-task-field]').forEach(control=>{if(control.type==='radio'&&!control.checked)return;values[control.dataset.taskField]=control.type==='checkbox'?String(control.checked):control.value});
   const durationMode=taskDetailPanel.querySelector('[data-song-duration-mode]');
   if(durationMode)values.duration=durationMode.value==='auto'?null:Math.max(10,Math.min(360,Number(taskDetailPanel.querySelector('[data-song-duration-seconds]').value)||180));
-  if(['refSong','playlistSong','sampleSong'].includes(task.nodeType))values.audio_influence=Math.max(0,Math.min(1,Number(values.audio_influence ?? .45)));
+  if(['refSong','playlistSong','sampleSong'].includes(task.nodeType)){const audioInfluence=values.audioWeight!=null?Number(values.audioWeight)/100:Number(values.audio_influence??.45);values.audio_influence=Math.max(0,Math.min(1,audioInfluence));}
   if(task.nodeType==='aiSong'&&!String(values.lyrics||'').trim()&&values.instrumental==='no')values.instrumental='unspecified';
   task.formValues=values;
   const lyricsEditor=taskDetailPanel.querySelector('[data-selected-lyrics-editor]');
@@ -922,12 +924,12 @@ function taskGeneratedCandidates(kind){
 }
 function generateTaskCandidates(task,kind){
   if(!task||task.status!=='in_progress')return;
-  if(task.referenceSongDemo&&window.orchestraReferenceSongTask&&!window.orchestraReferenceSongTask.validateReference(task))return;
+  if((task.referenceSongDemo||task.nodeType==='refSong')&&window.orchestraReferenceSongTask&&!window.orchestraReferenceSongTask.validateReference(task))return;
   stopTaskSongPreview();
   saveTaskPageValues(task);
   if(kind==='song'&&window.orchestraMaterialLibrary&&!window.orchestraMaterialLibrary.validateTimbreSelection(task))return;
   if(!validateTaskControls('[data-generation-required]'))return;
-  const referenceSong=kind==='song'&&(task.referenceSongDemo||task.nodeType==='aiSong')&&window.orchestraReferenceSongTask;
+  const referenceSong=kind==='song'&&(task.referenceSongDemo||['aiSong','refSong'].includes(task.nodeType))&&window.orchestraReferenceSongTask;
   const count=referenceSong?(Number(task.formValues?.count)===4?4:2):Math.max(1,Math.min(3,Number(task.formValues?.count)||3));
   const candidates=referenceSong?window.orchestraReferenceSongTask.candidates(true,count):taskGeneratedCandidates(kind);
   const before={...task};
@@ -961,7 +963,7 @@ function toggleTaskBackup(task,candidateId){setTaskCandidateSelection(task,candi
 function advanceProductionTask(task,outcome){
   if(!task||task.status!=='in_progress'){showToast('该任务已结束，无法重复处理','error');return}
   if(task.nodeType==='workOutput'&&outcome==='complete'){window.orchestraWorkOutputTask?.requestSubmit(task);return}
-  if(outcome==='complete'&&task.referenceSongDemo&&window.orchestraReferenceSongTask&&!window.orchestraReferenceSongTask.validateReference(task))return;
+  if(outcome==='complete'&&(task.referenceSongDemo||task.nodeType==='refSong')&&window.orchestraReferenceSongTask&&!window.orchestraReferenceSongTask.validateReference(task))return;
   saveTaskPageValues(task);
   if(outcome==='complete'&&!validateActiveTaskPage())return;
   if(outcome==='complete'&&['aiLyrics','refLyrics'].includes(task.nodeType)){

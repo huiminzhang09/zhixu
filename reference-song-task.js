@@ -73,7 +73,7 @@
     { id: 'reference-song-c', title: '晨间来信 · 版本三', summary: '复用钢琴片段 · 演示音频', url: './assets/reference-song-result-a.wav', durationSeconds: 24 },
     { id: 'reference-song-d', title: '晨间来信 · 版本四', summary: '复用旋律片段 · 演示音频', url: './assets/reference-song-result-b.wav', durationSeconds: 28 }
   ].slice(0, Number(count) === 4 ? 4 : 2).map(candidate => fresh ? { ...candidate, generationId: crypto.randomUUID() } : candidate);
-  const info = text => `<span class="song-studio-info" tabindex="0" role="img" aria-label="${escapeHtml(text)}" data-tip="${escapeHtml(text)}">ⓘ</span>`;
+  const info = text => `<span class="song-studio-info" tabindex="0" role="img" aria-label="${escapeHtml(text)}" data-tip="${escapeHtml(text)}">i</span>`;
   const icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 17V5l11-2v12M9 8l11-2"/><ellipse cx="5.5" cy="17.5" rx="3.5" ry="2.5"/><ellipse cx="16.5" cy="15.5" rx="3.5" ry="2.5"/></svg>';
   function transferIcon(download = false) {
     return `<svg class="song-studio-transfer-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="${download ? 'M8 4v8m-3-3 3 3 3-3' : 'M8 12V4m-3 3 3-3 3 3'}"/></svg>`;
@@ -100,22 +100,29 @@
     const noLyrics = task.nodeType === 'aiSong' && !String(values.lyrics || '').trim();
     if (noLyrics && values.instrumental === 'no') values.instrumental = 'unspecified';
     const select = (field, label, options, fallback) => `<label class="song-studio-setting"><span>${label}</span><select data-task-field="${field}" ${disabled}>${options.map(([value, text]) => `<option value="${value}" ${field === 'instrumental' && value === 'no' && noLyrics ? 'disabled' : ''} ${String(values[field] ?? fallback) === value ? 'selected' : ''}>${text}</option>`).join('')}</select></label>`;
-    const slider = (field, label, hint) => {
-      const raw = Number(values[field] ?? .5), value = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw)) : .5;
-      return `<label class="song-studio-setting"><span>${label} ${info(hint)}</span><span class="song-studio-slider"><input type="range" min="0" max="1" step="0.1" value="${value}" data-task-field="${field}" data-song-setting-range aria-label="${label}" ${disabled}><output>${value.toFixed(1)}</output></span></label>`;
+    const range = (field, label, hint, initial = 50) => {
+      const value = Math.max(0, Math.min(100, Math.round(Number(values[field] ?? initial))));
+      return `<label class="song-studio-setting"><span>${label} ${info(hint)}</span><span class="song-studio-slider"><input type="range" min="0" max="100" step="1" value="${value}" data-task-field="${field}" data-song-setting-range aria-label="${label}" ${disabled}><output>${value}%</output></span></label>`;
     };
+    const toggle = (field, label, hint, defaultValue = false) => `<label class="song-studio-setting"><span>${label}${hint ? ` ${info(hint)}` : ''}</span><span class="song-studio-switch"><input type="checkbox" role="switch" aria-label="${label}" data-task-field="${field}" ${String(values[field] ?? defaultValue) === 'true' ? 'checked' : ''} ${disabled}><i aria-hidden="true"></i></span></label>`;
+    const durationValue = values.duration == null || values.duration === '' ? null : Math.max(10, Math.min(360, Number(values.duration)));
+    const duration = `<div class="song-studio-setting"><span>生成时长 ${info('设置期望生成的歌曲时长。选择自动时由模型决定，实际生成时长可能有所偏差。')}</span><div class="song-duration-controls"><select data-song-duration-mode aria-label="生成时长模式" ${durationValue != null ? 'hidden' : ''} ${disabled}><option value="auto" ${durationValue == null ? 'selected' : ''}>自动（Auto）</option><option value="custom" ${durationValue != null ? 'selected' : ''}>自定义（Custom）</option></select><div data-duration-custom ${durationValue == null ? 'hidden' : ''}><button type="button" data-duration-reset aria-label="重置生成时长为3:00" title="重置为3:00" ${disabled}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2.7 8.4M3 4v6h6"/></svg></button><span class="song-studio-slider"><input type="range" min="10" max="360" step="1" value="${durationValue ?? 180}" data-song-duration-seconds aria-label="自定义生成时长" aria-valuetext="${durationText(durationValue ?? 180)}" ${disabled}><output>${durationText(durationValue ?? 180)}</output></span><button type="button" data-duration-auto ${disabled}>切回自动</button></div></div></div>`;
+    const count = `<div class="song-studio-setting"><span id="songGenerationCountLabel">生成数量 ${info('设置本次生成的歌曲数量。')}</span><div class="song-studio-count" role="group" aria-labelledby="songGenerationCountLabel">${[2, 4].map(count => `<label><input type="radio" name="songGenerationCount-${escapeHtml(task.id)}" data-task-field="count" value="${count}" ${(Number(values.count ?? values.numGeneration) === 4 ? 4 : 2) === count ? 'checked' : ''} ${disabled}><span>${count}</span></label>`).join('')}</div></div>`;
+    const genderValue = values.vocalGender ?? (values.voiceGender === 'female' ? '女' : '男');
+    const gender = `<div class="song-studio-setting song-studio-gender-setting"><span>人声性别 ${info('指定歌曲人声的性别；不指定时由模型决定。')}</span><div class="song-studio-gender" role="group" aria-label="人声性别">${['男','女'].map(value => `<label><input type="radio" name="songVocalGender-${escapeHtml(task.id)}" data-task-field="vocalGender" value="${value}" ${genderValue === value || (value === '男' && genderValue === 'male') || (value === '女' && genderValue === 'female') ? 'checked' : ''} ${disabled}><span>${value}</span></label>`).join('')}</div></div>`;
     return `<div class="song-studio-settings" aria-label="歌曲生成设置">
       ${select('model', '模型版本', [['hawk-v6', 'Hawk（V6）']], 'hawk-v6')}
       ${window.orchestraMaterialLibrary?.timbreSelectionMarkup(task, locked) || ''}
-      <div class="song-studio-setting"><span id="songGenerationCountLabel">生成数量</span><div class="song-studio-count" role="group" aria-labelledby="songGenerationCountLabel">${[2, 4].map(count => `<label><input type="radio" name="songGenerationCount" data-task-field="count" value="${count}" ${(Number(values.count) === 4 ? 4 : 2) === count ? 'checked' : ''} ${disabled}><span>${count}</span></label>`).join('')}</div></div>
-      ${slider('styleStrength', '风格强度', '数值越高，生成歌曲越贴近参考歌曲的风格。')}
-      ${['refSong','playlistSong','sampleSong'].includes(task.nodeType) ? `<label class="song-studio-setting"><span>音频影响度 ${info('数值越高，越倾向于保留参考音频的特征。')}</span><span class="song-studio-slider"><input type="range" min="0" max="1" step="0.01" value="${Math.max(0,Math.min(1,Number(values.audio_influence ?? .45)))}" data-task-field="audio_influence" data-song-setting-range aria-label="音频影响度" ${disabled}><output>${Math.round(Number(values.audio_influence ?? .45)*100)}%</output></span></label>` : ''}
-      ${slider('randomness', '随机度', '数值越高，生成结果的变化越丰富。')}
-      <div class="song-studio-setting"><span>生成时长 ${info('设置期望生成的歌曲时长。选择自动时由模型决定，实际生成时长可能有所偏差。')}</span><div class="song-duration-controls"><select data-song-duration-mode aria-label="生成时长模式" ${values.duration != null ? 'hidden' : ''} ${disabled}><option value="auto" ${values.duration == null ? 'selected' : ''}>自动（Auto）</option><option value="custom" ${values.duration != null ? 'selected' : ''}>自定义（Custom）</option></select><div data-duration-custom ${values.duration == null ? 'hidden' : ''}><button type="button" data-duration-reset aria-label="重置生成时长为3:00" title="重置为3:00" ${disabled}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2.7 8.4M3 4v6h6"/></svg></button><span class="song-studio-slider"><input type="range" min="10" max="360" step="1" value="${values.duration ?? 180}" data-song-duration-seconds aria-label="自定义生成时长" aria-valuetext="${durationText(values.duration ?? 180)}" ${disabled}><output>${durationText(values.duration ?? 180)}</output></span><button type="button" data-duration-auto ${disabled}>切回自动</button></div></div></div>
-      ${select('voiceGender', '人声性别', [['unspecified', '不指定'], ['female', '女声'], ['male', '男声']], 'unspecified')}
-      ${select('instrumental', '生成纯音乐', [['unspecified', '不指定'], ['yes', '是'], ['no', '否']], 'unspecified')}
-      <label class="song-studio-setting"><span>跳过版权检查</span><span class="song-studio-switch"><input type="checkbox" role="switch" aria-label="跳过版权检查" data-task-field="skipCopyrightCheck" ${String(values.skipCopyrightCheck) === 'true' ? 'checked' : ''} ${disabled}><i aria-hidden="true"></i></span></label>
-      <label class="song-studio-setting"><span>Max 模式</span><span class="song-studio-switch"><input type="checkbox" role="switch" aria-label="Max 模式" data-task-field="maxMode" ${String(values.maxMode ?? true) === 'true' ? 'checked' : ''} ${disabled}><i aria-hidden="true"></i></span></label>
+      ${count}
+      ${duration}
+      ${range('styleWeight', '风格影响度', '调节生成结果与风格提示词的贴合程度。', 85)}
+      ${range('audioWeight', '音频影响度', '数值越高，越倾向于保留参考音频的特征。', Math.round(Number(values.audio_influence ?? .45) * 100))}
+      ${range('weirdnessConstraint', '创意度', '调节生成结果的常规程度与意外感；数值越高，结果越不可预测。', 50)}
+      <label class="song-studio-setting"><span>多样性 ${info('调节生成结果的变化程度；数值越高，多次生成的风格变化越丰富。')}</span><span class="song-studio-variety"><input type="range" min="0" max="4" step="1" value="${Math.max(0, Math.min(4, Math.round(Number(values.variety ?? 2))))}" data-task-field="variety" data-song-variety aria-label="多样性" ${disabled}><output>${['关闭','标准','较高','更高','最高'][Math.max(0, Math.min(4, Math.round(Number(values.variety ?? 2))))]}</output></span></label>
+      ${toggle('makeInstrumental', '生成纯音乐', '开启后生成不含人声的纯音乐。')}
+      ${gender}
+      ${toggle('bypassCopyrightCheck', '跳过版权检查', '开启后跳过生成前的版权检查。', values.skipCopyrightCheck ?? false)}
+      ${toggle('maxMode', 'Max 模式', '开启后使用 Max 模式生成，适合需要更高生成质量或更贴近参考效果的场景。', true)}
     </div>`;
   }
   const downloadIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 6v8m-3-3 3 3 3-3M7 15v3h10v-3"/></svg>';
@@ -186,7 +193,7 @@
     const status = taskStatusMeta[task.status], results = task.candidates || [];
     const outputs = renderResults(task);
     return `<div class="reference-song-studio ref-song-workbench">
-      <header class="song-studio-header ref-workbench-header"><div class="ref-workbench-meta"><i class="song-studio-node-icon" aria-hidden="true">${icon}</i><h2>${task.nodeType==='aiSong'?escapeHtml(task.nodeTitle||'AI生成歌曲'):isPlaylist(task)?'基于歌单生成歌曲':'基于参考生成歌曲'}</h2><span class="song-studio-state ${status.className}"><i aria-hidden="true">${task.status === 'completed' ? '✓' : task.status === 'in_progress' ? '◷' : '−'}</i>${status.label}</span></div><span class="task-status song-studio-status ${status.className}">• ${status.label}</span></header>
+      <header class="song-studio-header ref-workbench-header"><div class="ref-workbench-meta"><i class="song-studio-node-icon" aria-hidden="true">${icon}</i><h2>${task.nodeType==='aiSong'?'提示词生成歌曲':isPlaylist(task)?'多首参考音频生成歌曲':'参考音频生成歌曲'}</h2><span class="song-studio-state ${status.className}"><i aria-hidden="true">${task.status === 'completed' ? '✓' : task.status === 'in_progress' ? '◷' : '−'}</i>${status.label}</span></div><span class="task-status song-studio-status ${status.className}">• ${status.label}</span></header>
       <div class="song-studio-columns">
         <section class="song-studio-panel song-studio-input" aria-labelledby="referenceSongInputTitle"><header><h3 id="referenceSongInputTitle">输入</h3></header><div class="song-studio-scroll">
           ${task.nodeType==='aiSong'?'':referenceMarkup(task, locked, uploading)}
@@ -225,7 +232,7 @@
     });
   }
   function setReferenceAudios(task, tracks) {
-    if (!task || task.status !== 'in_progress' || !task.referenceSongDemo) return false;
+    if (!task || task.status !== 'in_progress' || !(task.referenceSongDemo || task.nodeType === 'refSong')) return false;
     if (tracks.length < 1 || tracks.length > referenceLimit(task)) throw new Error(`参考音频数量需为 1～${referenceLimit(task)} 个`);
     const before = { ...task }, previous = uploadedReferences.get(task.id) || [];
     const metadata = tracks.map(({ url, ...track }) => track);
@@ -257,7 +264,7 @@
   }
   async function chooseReferenceAudio(task, replaceIndex = -1) {
     const picker = window.orchestraTaskAudioPicker;
-    if (!task?.referenceSongDemo || task.status !== 'in_progress' || pendingUploads.has(task.id)) return;
+    if (!(task?.referenceSongDemo || task?.nodeType === 'refSong') || task.status !== 'in_progress' || pendingUploads.has(task.id)) return;
     if (!picker) { showToast('音频选择暂时不可用，请刷新后重试', 'error'); return; }
     const oldTracks = referencesForTask(task), replacing = replaceIndex >= 0;
     if (replacing && !oldTracks[replaceIndex]) return;

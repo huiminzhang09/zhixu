@@ -140,3 +140,39 @@ html[data-theme="light"] .canvas-stage { background-image: radial-gradient(circl
 #canvasMenu button.is-current, #canvasMenu button:hover { background: #363638; color: #fff; }
 #canvasMenu button:focus-visible { outline: 2px solid #9e8bed; outline-offset: -2px; }
 .canvas-menu-divider { height: 1px; margin: 7px 0; background: #333337; }
+/* Circular hover help icon for canvas field descriptions. */
+.node-field-info{position:relative;display:inline-grid;place-items:center;flex:0 0 14px;width:14px;height:14px;box-sizing:border-box;border:1px solid currentColor;border-radius:50%;font-size:9px;font-weight:700;line-height:1;color:var(--muted);cursor:help;vertical-align:middle}
+.node-field-info:hover,.node-field-info:focus-visible{color:var(--text);border-color:var(--text);outline:none}
+.node-field-info[data-tooltip]::after{content:attr(data-tooltip);position:absolute;left:50%;bottom:calc(100% + 8px);z-index:1000;display:none;width:max-content;max-width:280px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--text);font-size:12px;font-weight:400;line-height:1.5;white-space:normal;box-shadow:0 6px 20px #0005;transform:translateX(-50%)}
+.node-field-info[data-tooltip]:hover::after,.node-field-info[data-tooltip]:focus-visible::after{display:block}
+
+/* Consistent compact dark switch controls for canvas node booleans. */
+.flow-node .node-toggle-switch{appearance:none;-webkit-appearance:none;position:relative;display:inline-block;flex:0 0 38px;width:38px;height:22px;min-height:22px;margin:0;padding:2px;border:1px solid #55545c;border-radius:999px;background:#38383e;box-shadow:inset 0 1px 2px #0004;vertical-align:middle;cursor:pointer;transition:background .16s,border-color .16s}
+.flow-node .node-toggle-switch::before{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#f4f2f7;box-shadow:0 1px 3px #0005;transition:transform .16s}
+.flow-node .node-toggle-switch:checked{border-color:#7848e8;background:#7442e8}
+.flow-node .node-toggle-switch:checked::before{transform:translateX(16px)}
+.flow-node .node-toggle-switch:focus-visible{outline:2px solid #a076ef;outline-offset:3px}
+.flow-node .node-field.inline-field:has(.node-toggle-switch){min-height:34px}
+.flow-node .node-field.inline-field:has(.node-toggle-switch)>span{margin:0}
+/* All canvas switches use the established Max mode visual exactly. */
+.flow-node .node-toggle-switch,.flow-node .node-max-switch{appearance:none;-webkit-appearance:none;position:relative;display:block;flex:0 0 34px;width:34px;height:20px;min-height:0;margin:0;padding:3px;border:0;border-radius:12px;background:#45454b;box-shadow:none;cursor:pointer;transition:background .15s}
+.flow-node .node-toggle-switch::before,.node-max-switch::before{content:"";position:absolute;top:3px;left:3px;display:block;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:none;transition:transform .15s}
+.flow-node .node-toggle-switch:checked,.flow-node .node-max-switch:checked{border:0;background:#8559e8}
+.flow-node .node-toggle-switch:checked::before,.node-max-switch:checked::before{transform:translateX(14px)}
+/* Match the supplied canvas switch examples: purple-on, charcoal-off. */
+.flow-node .node-toggle-switch,.flow-node .node-max-switch{appearance:none;-webkit-appearance:none;position:relative;display:block;flex:0 0 44px;width:44px;height:28px;min-height:28px;margin:0;padding:3px;border:0;border-radius:999px;background:#3a3a40;box-shadow:none;cursor:pointer;transition:background .16s ease}
+.flow-node .node-toggle-switch::before,.flow-node .node-max-switch::before{content:"";position:absolute;top:3px;left:3px;display:block;width:22px;height:22px;border-radius:50%;background:#c9c9cf;box-shadow:0 1px 2px #0004;transition:transform .16s ease,background .16s ease}
+.flow-node .node-toggle-switch:checked,.flow-node .node-max-switch:checked{background:#7137f4}
+.flow-node .node-toggle-switch:checked::before,.flow-node .node-max-switch:checked::before{transform:translateX(16px);background:#fff}
+.flow-node .node-toggle-switch:focus-visible,.flow-node .node-max-switch:focus-visible{outline:2px solid #a076ef;outline-offset:3px}
+
+.node-variety-control{display:flex;align-items:center;width:160px;height:34px;box-sizing:border-box;overflow:hidden;border:1px solid color-mix(in srgb,var(--canvas-text) 10%,transparent);border-radius:9px;background:var(--canvas-field)}.node-variety-control input[type="range"]{flex:1;min-width:0;width:100%;height:4px;margin:0 11px;accent-color:#eee;cursor:pointer}.node-variety-control output{display:grid;place-items:center;align-self:stretch;min-width:52px;padding:0 8px;border-left:1px solid color-mix(in srgb,var(--canvas-text) 12%,transparent);color:var(--canvas-text);font-size:11px;white-space:nowrap}
+.node-variety-control{width:142px;height:24px;border-radius:6px;padding:5px 8px;box-sizing:border-box}
+.node-variety-control input[type="range"]{margin:0 6px}
+.node-variety-control output{min-width:48px;padding:0 5px}
+/* Align variety and numeric range controls to one shared compact footprint. */
+.flow-node .node-range,.flow-node .node-variety-control{display:flex;align-items:center;flex:0 0 142px;width:142px;height:24px;min-height:24px;box-sizing:border-box;overflow:hidden;padding:5px 8px;border:0;border-radius:6px;background:var(--canvas-field)}
+.flow-node .node-range input[type="range"],.flow-node .node-variety-control input[type="range"]{flex:1;min-width:0;width:100%;height:4px;margin:0 6px;padding:0;accent-color:#dedee1;cursor:pointer}
+.flow-node .node-range output,.flow-node .node-variety-control output{display:grid;place-items:center;align-self:stretch;flex:0 0 48px;min-width:48px;margin:0;padding:0 5px;border-left:1px solid color-mix(in srgb,var(--canvas-text) 12%,transparent);color:var(--text);font-size:11px;text-align:center;white-space:nowrap}
+
+.node-gender-field{align-items:center}.node-gender-choice{display:flex;flex:0 0 142px;width:142px;height:32px;gap:0;padding:2px;border:0;border-radius:7px;background:#35363a;overflow:hidden}.node-gender-choice button{flex:1;width:auto;height:28px;padding:0;border:0;border-radius:5px;background:transparent;color:#aaaeb5;font-size:13px;font-weight:600}.node-gender-choice button.active{background:#f2f2f3;color:#28292c}.node-gender-choice button:hover:not(.active){color:#fff}
