@@ -9,16 +9,16 @@
   <link rel="preconnect" href="https://images.unsplash.com" />
   <link rel="stylesheet" href="./styles.css?v=5" />
   <link rel="stylesheet" href="./sidebar-states.css?v=20261110-asset-library-tabs" />
-  <link rel="stylesheet" href="./projects.css?v=20261113-fluid-project-grid" />
+  <link rel="stylesheet" href="./projects.css?v=20261126-project-sort-icon" />
   <link rel="stylesheet" href="./business.css?v=13" />
   <link rel="stylesheet" href="./project-create.css?v=20261113-project-dialog" />
   <link rel="stylesheet" href="./project-detail.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./task-center.css?v=20261119-duration-reset" />
-  <link rel="stylesheet" href="./workflows.css?v=20261123-restore-filters" />
-<link rel="stylesheet" href="./node-fields.css?v=20261120-readonly-fix" />
+  <link rel="stylesheet" href="./workflows.css?v=20261126-workflow-disable-confirm" />
   <link rel="stylesheet" href="./playlist-import.css?v=1" />
   <link rel="stylesheet" href="./profile-center.css?v=20261026-account-security" />
   <link rel="stylesheet" href="./node-editor.css?v=20261124-gender-width" />
+  <link rel="stylesheet" href="./node-field-list.css?v=20261126-list-only" />
   <link rel="stylesheet" href="./production-model.css?v=20261021-full-width" />
   <link rel="stylesheet" href="./team-navigation.css?v=8" />
   <link rel="stylesheet" href="./team-invites.css?v=20261028-auth-design">
@@ -152,7 +152,7 @@
           <h1 id="projectsTitle"><span id="projectFilterTitle">全部项目</span></h1>
           <label class="project-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="projectSearch" placeholder="按项目编号或名称搜索" aria-label="按项目编号或名称搜索"></label>
           <label class="project-date-filter" title="按创建日期筛选"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/></svg><span>创建时间</span><input id="projectCreatedFilter" type="date" aria-label="创建日期筛选"></label>
-          <select id="projectSort" aria-label="项目排序"><option value="recent">最近更新</option><option value="name">项目名称</option><option value="progress">完成进度</option></select>
+          <div class="project-sort-control" role="group" aria-label="项目排序"><button type="button" id="projectSortDirection" class="project-sort-direction" data-direction="Desc" aria-label="当前倒序，点击切换为正序" title="当前倒序，点击切换为正序" aria-controls="projectGrid"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v18m-4-4 4 4 4-4M11 4h10m-10 4h7m-7 4h4"/></svg></button><select id="projectSortField" aria-label="项目排序字段"><option value="recent">最近更新</option><option value="name">项目名称</option><option value="progress">完成进度</option></select></div>
           <div class="project-view-switch" role="group" aria-label="项目展示方式"><button type="button" data-project-view="list" aria-label="列表视图" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h1M4 12h1M4 18h1"/></svg></button><button type="button" data-project-view="grid" aria-label="卡片视图" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></button></div>
           <button class="new-project" id="newProject" type="button">＋ 新建项目</button>
         </div>
@@ -339,7 +339,7 @@
     <section class="page-view workflows-page" id="workflowsPage" aria-labelledby="workflowsTitle">
       <h1 class="workflow-sr-only" id="workflowsTitle">创作合集</h1>
       <div class="workflow-toolbar">
-<div class="workflow-filter-group">        <label class="workflow-search"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="7.8"/><path d="m16.5 16.5 4.5 4.5"/></svg><input id="workflowSearch" type="search" placeholder="搜索工作流名称" aria-label="搜索工作流名称" aria-controls="workflowList" autocomplete="off" /></label><div class="workflow-filters"><select id="workflowScope" aria-label="工作流范围"><option value="all">全部工作流</option><option value="mine">我创建的</option><option value="published">团队已发布</option></select><select id="workflowSort" aria-label="排序方式"><option value="updated-desc">更新时间：最新优先</option><option value="updated-asc">更新时间：最早优先</option><option value="created-desc">创建时间：最新优先</option><option value="created-asc">创建时间：最早优先</option></select></div></div>
+<div class="workflow-filter-group">        <label class="workflow-search"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="7.8"/><path d="m16.5 16.5 4.5 4.5"/></svg><input id="workflowSearch" type="search" placeholder="搜索工作流名称" aria-label="搜索工作流名称" aria-controls="workflowList" autocomplete="off" /></label><div class="workflow-filters"><select id="workflowScope" aria-label="工作流范围"><option value="all">全部工作流</option><option value="mine">我创建的</option><option value="published">团队已发布</option></select><select id="workflowStatus" aria-label="工作流状态"><option value="all">全部</option><option value="enabled" selected>启用</option><option value="disabled">禁用</option></select><div class="workflow-sort-control" role="group" aria-label="工作流排序"><button type="button" id="workflowSortDirection" class="workflow-sort-direction" data-direction="Desc" aria-label="当前倒序，点击切换为正序" title="当前倒序，点击切换为正序" aria-controls="workflowList"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v18m-4-4 4 4 4-4M11 4h10m-10 4h7m-7 4h4"/></svg></button><select id="workflowSortField" aria-label="排序字段"><option value="updated">更新时间</option><option value="created">创建时间</option></select></div></div></div>
         <div class="workflow-toolbar-actions">
           <button class="new-workflow" id="newWorkflow" type="button"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 2c-.8 7.4-2.6 9.2-10 10 7.4.8 9.2 2.6 10 10 .8-7.4 2.6-9.2 10-10-7.4-.8-9.2-2.6-10-10Z" fill="currentColor" stroke="none"/></svg><span>新建工作流</span></button>
           <div class="workflow-view-switch" role="group" aria-label="工作流展示方式">
@@ -358,6 +358,15 @@
         </div>
         <div class="workflow-empty" id="workflowEmpty"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="7.8"/><path d="m16.5 16.5 4.5 4.5"/></svg><h3>没有找到匹配的工作流</h3><p>换一个工作流名称试试</p></div>
       </section>
+      <dialog class="workflow-disable-dialog" id="workflowDisableDialog" aria-labelledby="workflowDisableTitle" aria-describedby="workflowDisableDescription">
+        <form method="dialog">
+          <span class="workflow-disable-icon" aria-hidden="true">!</span>
+          <h2 id="workflowDisableTitle">禁用工作流</h2>
+          <p id="workflowDisableDescription">确定要禁用「<b id="workflowDisableName"></b>」吗？</p>
+          <div class="workflow-disable-impact"><strong>影响程度：仅影响后续新建生产计划</strong><ul><li>若该工作流已有已发布版本，禁用后会从新建项目和新增生产计划的工作流选项中移除。</li><li>已创建的生产计划及其关联运行不受影响，会继续按原工作流版本正常运行。</li></ul></div>
+          <footer><button type="button" class="workflow-disable-cancel" data-workflow-disable-cancel>暂不禁用</button><button type="button" class="workflow-disable-confirm" data-workflow-disable-confirm>确认禁用</button></footer>
+        </form>
+      </dialog>
     </section>
 
     <section class="page-view profile-page" id="profilePage" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
@@ -705,7 +714,7 @@
   </footer>
   <div class="toast" id="toast" role="status"></div>
   <script src="./account-phone.js?v=20261026-account-security"></script>
-  <script src="./script.js?v=20261123-scope-restore"></script>
+  <script src="./script.js?v=20261126-workflow-disable-confirm"></script>
   <script src="./profile-phone.js?v=20261026-account-security"></script>
   <script src="./account-ui.js?v=20261028-auth-design"></script>
   <script src="./profile-password.js?v=20261028-auth-design"></script>
@@ -732,7 +741,8 @@
   <script src="./work-output-task.js?v=20261106-assembly-confirm-width"></script>
   <script src="./task-output-run.js?v=20261103-output-run-dock"></script>
 <script src="./home-templates.js"></script>
-<script src="./node-fields-data.js?v=20261124-reset-import"></script>
-<script src="./node-fields.js?v=20261124-reset-import-v2"></script>
+<script src="./vendor/jszip.min.js"></script>
+<script src="./node-field-list-data.js?v=20261126-csv-source"></script>
+<script src="./node-field-list.js?v=20261126-list-only"></script>
 </body>
 </html>

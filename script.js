@@ -291,14 +291,19 @@ function projectTable(items){
  return `<tr data-project-open="${escapeHtml(project.id)}"><td><span class="project-table-code" title="${escapeHtml(project.id)}">${escapeHtml(project.id)}</span></td><td><button type="button" class="project-table-title" title="${escapeHtml(project.title)}">${escapeHtml(project.title)}</button></td><td>${cell(project.productionType||order?.productionType)}</td><td>${cell(project.nature||order?.nature)}</td><td>${cell(project.cycle||order?.cycle)}</td><td><span class="project-state-pill">${escapeHtml(status)}</span></td><td>${escapeHtml(created)}</td><td>${cell(project.creator||project.owner||order?.owner)}</td><td><span class="project-table-note" title="${escapeHtml(notes)}">${escapeHtml(notes)}</span></td><td><div class="project-table-actions"><button type="button" data-project-action="edit">编辑</button><button type="button" data-project-action="add-plan">新增生产计划</button><button type="button" class="project-card-details">详情</button></div></td></tr>`;
  }).join('')}</tbody></table>`;
 }
+function renderProjectSortDirection(direction){
+ const button=document.querySelector('#projectSortDirection'),ascending=direction==='Asc',label=ascending?'正序':'倒序',next=ascending?'倒序':'正序';
+ button.dataset.direction=direction;button.title=`当前${label}，点击切换为${next}`;button.setAttribute('aria-label',button.title);
+ button.innerHTML=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ascending?'<path d="M6 21V3m-4 4 4-4 4 4M11 12h4m-4 4h7m-7 4h10"/>':'<path d="M6 3v18m-4-4 4 4 4-4M11 4h10m-10 4h7m-7 4h4"/>'}</svg>`;
+}
 function renderProjects(){
  const keyword=document.querySelector('#projectSearch').value.trim().toLowerCase(),date=document.querySelector('#projectCreatedFilter').value;
  let items=projectData.filter(project=>(currentProjectFilter==='all'||project.scope===currentProjectFilter)&&`${project.id} ${project.title}`.toLowerCase().includes(keyword));
  if(date)items=items.filter(project=>project.createdAt&&localDateValue(new Date(project.createdAt))===date);
- const sort=document.querySelector('#projectSort').value;
- if(sort==='name')items.sort((a,b)=>a.title.localeCompare(b.title,'zh-CN'));
- else if(sort==='progress')items.sort((a,b)=>b.progress-a.progress);
- else items.sort((a,b)=>(Date.parse(b.updatedAt||b.createdAt)||0)-(Date.parse(a.updatedAt||a.createdAt)||0));
+ const sort=document.querySelector('#projectSortField').value,direction=document.querySelector('#projectSortDirection').dataset.direction==='Asc'?1:-1;
+ if(sort==='name')items.sort((a,b)=>direction*a.title.localeCompare(b.title,'zh-CN'));
+ else if(sort==='progress')items.sort((a,b)=>direction*((Number(a.progress)||0)-(Number(b.progress)||0)));
+ else items.sort((a,b)=>direction*((Date.parse(a.updatedAt||a.createdAt)||0)-(Date.parse(b.updatedAt||b.createdAt)||0)));
  projectMatchingItems=items;
  const size=Number(document.querySelector('#projectPageSize').value),pages=Math.max(1,Math.ceil(items.length/size));
  projectPage=Math.max(1,Math.min(projectPage,pages));
@@ -1184,12 +1189,23 @@ try{
     return {...item,name:draft?.name||item.name,updatedAt:draft?.updatedAt||item.updatedAt,...(latest?{version:latest.version,publish:'已发布',publishClass:'published',publishTime:new Date(latest.publishedAt).toLocaleString('zh-CN')}:{})};
   }));
 }catch{}
+const workflowDisabledStorageKey='orchestra-workflow-disabled-state-v1';
+let disabledWorkflowIds=new Set();
+try{const saved=JSON.parse(localStorage.getItem(workflowDisabledStorageKey)||'[]');if(Array.isArray(saved))disabledWorkflowIds=new Set(saved.map(String))}catch{}
+workflowData.forEach(item=>{item.enabled=!disabledWorkflowIds.has(String(item.id))});
+function persistWorkflowEnabledState(item,enabled){
+  const wasEnabled=item.enabled!==false;item.enabled=enabled;
+  if(enabled)disabledWorkflowIds.delete(String(item.id));else disabledWorkflowIds.add(String(item.id));
+  try{localStorage.setItem(workflowDisabledStorageKey,JSON.stringify([...disabledWorkflowIds]));return true}
+  catch{item.enabled=wasEnabled;if(wasEnabled)disabledWorkflowIds.delete(String(item.id));else disabledWorkflowIds.add(String(item.id));showToast('工作流状态保存失败，请检查浏览器存储空间','error');return false}
+}
+function applyWorkflowEnabledState(item,enabled){if(!persistWorkflowEnabledState(item,enabled))return false;renderWorkflows();populateBatchWorkflows();populatePublishedWorkflows();showToast(enabled?'工作流已启用':'工作流已禁用');return true}
 function persistShowcaseWorkflowCopies(){localStorage.setItem(showcaseCopiesStorageKey,JSON.stringify(workflowData.filter(item=>item.showcaseSourceId)))}
 function copyShowcaseWorkflow(sourceId){
   if(window.noOrganizationMode){showToast('请先创建或加入团队后复制工作流');return}
   const source=workflowData.find(item=>item.id===sourceId);
   if(!source||!window.orchestraWorkflowCanvas?.copy){showToast('暂时无法复制工作流，请稍后重试','error');return}
-  const now=Date.now(),copy={...source,id:`${source.id}-copy-${now}-${Math.random().toString(36).slice(2,8)}`,name:`${source.name} 副本`,creator:document.querySelector('#profilePage [name="username"]')?.value||'我',showcaseSourceId:source.id,createdAt:now,updatedAt:now,draft:'已保存',draftTime:'刚刚',publish:'未发布',publishTime:'尚未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true};
+  const now=Date.now(),copy={...source,id:`${source.id}-copy-${now}-${Math.random().toString(36).slice(2,8)}`,name:`${source.name} 副本`,creator:document.querySelector('#profilePage [name="username"]')?.value||'我',showcaseSourceId:source.id,createdAt:now,updatedAt:now,draft:'已保存',draftTime:'刚刚',publish:'未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true,enabled:true};
   try{
     window.orchestraWorkflowCanvas.copy(source.id,copy.id,copy.name);
     workflowData.unshift(copy);
@@ -1205,6 +1221,10 @@ function copyShowcaseWorkflow(sourceId){
   showToast('已复制到创作集合，可编辑此工作流');
 }
 const workflowList=document.querySelector('#workflowList'),workflowEmpty=document.querySelector('#workflowEmpty'),workflowTable=document.querySelector('.workflow-table');
+const workflowDisableDialog=document.querySelector('#workflowDisableDialog');let pendingWorkflowDisableId='';
+workflowList.addEventListener('click',event=>{const button=event.target.closest('[data-workflow-toggle]');if(!button)return;const target=workflowData.find(item=>String(item.id)===button.dataset.workflowToggle);if(!target)return;event.preventDefault();event.stopImmediatePropagation();if(target.enabled!==false){pendingWorkflowDisableId=String(target.id);document.querySelector('#workflowDisableName').textContent=target.name;workflowDisableDialog.showModal();return}applyWorkflowEnabledState(target,true)},true);
+workflowDisableDialog.addEventListener('click',event=>{if(event.target.closest('[data-workflow-disable-cancel]')){workflowDisableDialog.close();pendingWorkflowDisableId='';return}if(event.target.closest('[data-workflow-disable-confirm]')){const target=workflowData.find(item=>String(item.id)===pendingWorkflowDisableId);if(target&&applyWorkflowEnabledState(target,false)){workflowDisableDialog.close();pendingWorkflowDisableId=''}return}if(event.target===workflowDisableDialog){workflowDisableDialog.close();pendingWorkflowDisableId=''}});
+workflowDisableDialog.addEventListener('cancel',()=>{pendingWorkflowDisableId=''});
 let workflowView='list';
 function workflowIcon(name){
   const paths={view:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',edit:'<rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="16" width="5" height="5" rx="1"/><path d="M5.5 8v8.5h6M16 3l5 5M13 11l-1 4 4-1 6-6-3-3Z"/>',copy:'<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',created:'<path d="M4 5h16v7M4 5v15h7M8 2v6M16 2v6M4 10h16"/><circle cx="17" cy="17" r="5"/><path d="M17 14v3l2 1"/>',updated:'<circle cx="12" cy="5" r="3"/><path d="M12 8v4M5 16v-4h14v4"/><rect x="2" y="16" width="6" height="5" rx="1"/><rect x="16" y="16" width="6" height="5" rx="1"/>'};
@@ -1236,14 +1256,20 @@ function workflowRow(item){
   const grid=workflowView==='grid',cell=grid?'':' role="cell"',id=escapeHtml(item.id),name=escapeHtml(item.name);
   const created=workflowDate(item.createdAt||item.draftTime||item.publishTime),updated=workflowDate(item.updatedAt||item.draftTime||item.publishTime);
   const time=(date,label,icon)=>`<div class="workflow-date"${cell}><span class="workflow-cell-label">${label}</span>${workflowIcon(icon)}<time${date.iso?` datetime="${date.iso}"`:''}>${date.label}</time></div>`;
-  return `<article class="workflow-row" role="${grid?'listitem':'row'}" data-workflow-id="${id}"><div class="workflow-name"${cell}>${workflowThumbnail(item)}<div class="workflow-name-copy"><b title="${name}">${name}</b><small title="${escapeHtml(item.description||'')}">${escapeHtml(item.description||'从空白画布开始构建新的音乐制作流程')}</small></div></div><div class="workflow-creator"${cell} title="${escapeHtml(item.creator)}"><span class="workflow-cell-label">创建人</span>${escapeHtml(item.creator)}</div>${time(created,'创建时间','created')}${time(updated,'最近更新','updated')}<div class="workflow-actions"${cell}><button type="button" data-workflow-open="${id}" aria-label="查看 ${name}">${workflowIcon('view')}查看</button><button type="button" data-workflow-edit="${id}" aria-label="编辑 ${name}"${item.editable?'':' disabled title="暂无编辑权限"'}>${workflowIcon('edit')}编辑</button><button type="button" data-workflow-copy="${id}" aria-label="复制 ${name}">${workflowIcon('copy')}复制</button></div></article>`;
+  const statusAction=item.enabled===false?'启用':'禁用',statusLabel=item.enabled===false?'启用工作流':'禁用工作流';
+  return `<article class="workflow-row" role="${grid?'listitem':'row'}" data-workflow-id="${id}"><div class="workflow-name"${cell}>${workflowThumbnail(item)}<div class="workflow-name-copy"><b title="${name}">${name}</b><small title="${escapeHtml(item.description||'')}">${escapeHtml(item.description||'从空白画布开始构建新的音乐制作流程')}</small></div></div><div class="workflow-creator"${cell} title="${escapeHtml(item.creator)}"><span class="workflow-cell-label">创建人</span>${escapeHtml(item.creator)}</div>${time(created,'创建时间','created')}${time(updated,'最近更新','updated')}<div class="workflow-actions"${cell}><button type="button" data-workflow-open="${id}" aria-label="查看 ${name}">${workflowIcon('view')}查看</button><button type="button" data-workflow-edit="${id}" aria-label="编辑 ${name}"${item.editable?'':' disabled title="暂无编辑权限"'}>${workflowIcon('edit')}编辑</button><button type="button" data-workflow-copy="${id}" aria-label="复制 ${name}">${workflowIcon('copy')}复制</button><button type="button" data-workflow-toggle="${id}" aria-label="${statusLabel}">${statusAction}</button></div></article>`;
+}
+function renderWorkflowSortDirection(direction){
+  const button=document.querySelector('#workflowSortDirection'),ascending=direction==='Asc',label=ascending?'正序':'倒序',next=ascending?'倒序':'正序';
+  button.dataset.direction=direction;button.title=`当前${label}，点击切换为${next}`;button.setAttribute('aria-label',button.title);
+  button.innerHTML=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ascending?'<path d="M6 21V3m-4 4 4-4 4 4M11 12h4m-4 4h7m-7 4h10"/>':'<path d="M6 3v18m-4-4 4 4 4-4M11 4h10m-10 4h7m-7 4h4"/>'}</svg>`;
 }
 function renderWorkflows(){
   const keyword=document.querySelector('#workflowSearch').value.trim().toLowerCase();
-  const scope=document.querySelector('#workflowScope').value,sort=document.querySelector('#workflowSort').value;
-  const items=workflowData.filter(item=>item.name.toLowerCase().includes(keyword)&&(scope==='all'||(scope==='mine'&&item.editable===true)||(scope==='published'&&item.publishClass==='published')));
-  const stamp=item=>{const value=sort.startsWith('created')?(item.createdAt||item.draftTime||item.publishTime):(item.updatedAt||item.draftTime||item.publishTime);const n=typeof value==='number'?value:Date.parse(value);return Number.isFinite(n)?n:0};
-  items.sort((a,b)=>(sort.endsWith('asc')?1:-1)*(stamp(a)-stamp(b)));
+  const scope=document.querySelector('#workflowScope').value,sortField=document.querySelector('#workflowSortField').value,status=document.querySelector('#workflowStatus').value,direction=document.querySelector('#workflowSortDirection').dataset.direction==='Asc'?'asc':'desc';
+  const items=workflowData.filter(item=>item.name.toLowerCase().includes(keyword)&&(scope==='all'||(scope==='mine'&&item.editable===true)||(scope==='published'&&item.publishClass==='published'))&&(status==='all'||(status==='enabled'&&item.enabled!==false)||(status==='disabled'&&item.enabled===false)));
+  const stamp=item=>{const value=sortField==='created'?(item.createdAt||item.draftTime||item.publishTime):(item.updatedAt||item.draftTime||item.publishTime);const n=typeof value==='number'?value:Date.parse(value);return Number.isFinite(n)?n:0};
+  items.sort((a,b)=>(direction==='asc'?1:-1)*(stamp(a)-stamp(b)));
   const grid=workflowView==='grid';
   workflowTable.classList.toggle('is-grid',grid);workflowTable.setAttribute('role',grid?'region':'table');
   workflowList.setAttribute('role',grid?'list':'rowgroup');workflowList.innerHTML=items.map(workflowRow).join('');
@@ -1263,7 +1289,8 @@ const projectBatchWorkflow=document.querySelector('#projectBatchWorkflow');
 const projectBatchNotes=document.querySelector('#projectBatchNotes');
 function localDateValue(date){const year=date.getFullYear(),month=String(date.getMonth()+1).padStart(2,'0'),day=String(date.getDate()).padStart(2,'0');return `${year}-${month}-${day}`}
 function beijingDateKey(value=new Date()){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(value)),part=type=>parts.find(item=>item.type===type)?.value||'';return `${part('year')}${part('month')}${part('day')}`}
-function populateBatchWorkflows(){projectBatchWorkflow.innerHTML='<option value="">请选择已发布工作流</option>';workflowData.filter(item=>item.publishClass==='published').forEach(item=>{const option=document.createElement('option');option.value=item.id;option.textContent=`${item.name} · ${item.version}`;projectBatchWorkflow.append(option)})}
+function populateBatchWorkflows(){projectBatchWorkflow.innerHTML='<option value="">请选择已发布工作流</option>';workflowData.filter(item=>item.publishClass==='published'&&item.enabled!==false).forEach(item=>{const option=document.createElement('option');option.value=item.id;option.textContent=`${item.name} · ${item.version}`;projectBatchWorkflow.append(option)})}
+projectBatchForm.addEventListener('submit',event=>{const selected=workflowData.find(item=>item.id===projectBatchWorkflow.value);if(!selected||selected.publishClass!=='published'||selected.enabled===false){event.preventDefault();event.stopImmediatePropagation();requireOrderControl(projectBatchWorkflow,'请选择已启用的已发布工作流')}},true);
 // The numbering day begins at 00:00 Asia/Shanghai.
 function flowNumberingDate(value=new Date()){return beijingDateKey(value)}
 function reserveDailyProductionNumbers(counts,now=new Date()){
@@ -1357,7 +1384,7 @@ function collectProjectPlanDrafts(){
     if(!length)return invalid(name,'请输入生产计划名称');
     if(length>50)return invalid(name,'生产计划名称不能超过 50 个字符');
     if(!quantity.value.trim())return invalid(quantity,'请输入计划运行次数。');if(!Number.isSafeInteger(Number(quantity.value))||Number(quantity.value)<1)return invalid(quantity,'计划运行次数须为大于0的整数。');
-    const workflow=workflowData.find(item=>item.id===workflowSelect.value&&item.publishClass==='published');
+    const workflow=workflowData.find(item=>item.id===workflowSelect.value&&item.publishClass==='published'&&item.enabled!==false);
     if(!workflow)return invalid(workflowSelect,'请选择已发布工作流');
     const notes=group.querySelector('.rich-input');
     drafts.push({name:name.value.trim(),quantity:Number(quantity.value),workflow,delivery:'',notes:sanitizeRichText(notes.innerHTML.trim()),summary:notes.textContent.trim()});
@@ -1405,7 +1432,7 @@ const newCustomerNotesCount=document.querySelector('#newCustomerNotesCount');
 const saveCustomerButton=document.querySelector('#saveCustomerButton');
 let editingCustomerCode=null,customerNameCheckTimer=0;
 function populatePublishedWorkflows(){
-  const published=workflowData.filter(item=>item.publishClass==='published');
+  const published=workflowData.filter(item=>item.publishClass==='published'&&item.enabled!==false);
   projectPlanGroups.querySelectorAll('[name="workflow"]').forEach(select=>{
     const previous=select.value;select.innerHTML='<option value="">请选择已发布工作流</option>';
     published.forEach(item=>{const option=document.createElement('option');option.value=item.id;option.textContent=`${item.name} · ${item.version}`;select.append(option)});
@@ -1592,7 +1619,8 @@ nav.addEventListener('click',event=>{
   switchPage(page,item);
 });
 document.querySelector('#projectSearch').addEventListener('input',resetProjectLoading);
-document.querySelector('#projectSort').addEventListener('change',resetProjectLoading);
+document.querySelector('#projectSortField').addEventListener('change',resetProjectLoading);
+document.querySelector('#projectSortDirection').addEventListener('click',()=>{const button=document.querySelector('#projectSortDirection');renderProjectSortDirection(button.dataset.direction==='Asc'?'Desc':'Asc');resetProjectLoading()});
 projectFilterTabs.forEach(tab=>tab.addEventListener('click',()=>setProjectFilter(tab.dataset.projectFilter)));
 projectGrid.addEventListener('click',event=>{
   const card=event.target.closest('[data-project-open]');if(!card)return;
@@ -1644,10 +1672,12 @@ document.querySelector('#newProject').onclick=openProjectCreatePage;
 document.querySelector('#startProject').onclick=()=>openPrimaryCanvas();
 document.querySelector('#workflowSearch').addEventListener('input',renderWorkflows);
 document.querySelector('#workflowScope').addEventListener('change',renderWorkflows);
-document.querySelector('#workflowSort').addEventListener('change',renderWorkflows);
+document.querySelector('#workflowStatus').addEventListener('change',renderWorkflows);
+document.querySelector('#workflowSortField').addEventListener('change',renderWorkflows);
+document.querySelector('#workflowSortDirection').addEventListener('click',()=>{const button=document.querySelector('#workflowSortDirection');renderWorkflowSortDirection(button.dataset.direction==='Asc'?'Desc':'Asc');renderWorkflows()});
 document.querySelectorAll('[data-workflow-view]').forEach(button=>button.addEventListener('click',()=>setWorkflowView(button.dataset.workflowView)));
-document.querySelector('#newWorkflow').onclick=()=>{const item={id:`workflow-${Date.now()}`,createdAt:Date.now(),updatedAt:Date.now(),name:'未命名工作流',description:'从空白画布开始构建新的音乐制作流程',creator:'qiyin',draft:'已保存',draftTime:'刚刚',publish:'未发布',publishTime:'尚未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true};workflowData.unshift(item);renderWorkflows();enterWorkflowCanvas(item.id,{returnPage:'workflows'})};
-workflowList.addEventListener('click',event=>{const openButton=event.target.closest('[data-workflow-open]');if(openButton)return enterWorkflowCanvas(openButton.dataset.workflowOpen);const editButton=event.target.closest('[data-workflow-edit]');if(editButton){if(editButton.disabled)return;return enterWorkflowCanvas(editButton.dataset.workflowEdit)}const copyButton=event.target.closest('[data-workflow-copy]');if(!copyButton)return;const source=workflowData.find(item=>item.id===copyButton.dataset.workflowCopy);if(!source)return;const copy={...source,id:`${source.id}-copy-${Date.now()}`,createdAt:Date.now(),updatedAt:Date.now(),name:`${source.name} 副本`,draftTime:'刚刚',publish:'未发布',publishTime:'尚未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true};workflowData.unshift(copy);window.orchestraWorkflowCanvas?.copy(source.id,copy.id,copy.name);renderWorkflows();showToast(`已复制「${source.name}」`)});
+document.querySelector('#newWorkflow').onclick=()=>{const item={id:`workflow-${Date.now()}`,createdAt:Date.now(),updatedAt:Date.now(),name:'未命名工作流',description:'从空白画布开始构建新的音乐制作流程',creator:'qiyin',draft:'已保存',draftTime:'刚刚',publish:'未发布',publishTime:'尚未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true,enabled:true};workflowData.unshift(item);renderWorkflows();enterWorkflowCanvas(item.id,{returnPage:'workflows'})};
+workflowList.addEventListener('click',event=>{const toggleButton=event.target.closest('[data-workflow-toggle]');if(toggleButton){const target=workflowData.find(item=>String(item.id)===toggleButton.dataset.workflowToggle);if(!target)return;const enabled=target.enabled===false;if(!persistWorkflowEnabledState(target,enabled))return;renderWorkflows();populateBatchWorkflows();populatePublishedWorkflows();showToast(enabled?'工作流已启用':'工作流已禁用');return}const openButton=event.target.closest('[data-workflow-open]');if(openButton)return enterWorkflowCanvas(openButton.dataset.workflowOpen);const editButton=event.target.closest('[data-workflow-edit]');if(editButton){if(editButton.disabled)return;return enterWorkflowCanvas(editButton.dataset.workflowEdit)}const copyButton=event.target.closest('[data-workflow-copy]');if(!copyButton)return;const source=workflowData.find(item=>item.id===copyButton.dataset.workflowCopy);if(!source)return;const copy={...source,id:`${source.id}-copy-${Date.now()}`,createdAt:Date.now(),updatedAt:Date.now(),name:`${source.name} 副本`,draftTime:'刚刚',publish:'未发布',publishClass:'review',version:'V1.0',updated:'刚刚',editable:true,enabled:true};workflowData.unshift(copy);window.orchestraWorkflowCanvas?.copy(source.id,copy.id,copy.name);renderWorkflows();showToast(`已复制「${source.name}」`)});
 const avatarButton=document.querySelector('#avatarButton');
 const avatarMenuWrap=document.querySelector('.avatar-menu-wrap');
 const avatarMenu=document.querySelector('#avatarMenu');
