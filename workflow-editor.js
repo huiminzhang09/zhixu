@@ -204,7 +204,7 @@
     const api = window.orchestraMaterialLibrary, context = canvasTimbreContext(), type = node.type;
     if (!api?.openTimbrePicker) { showToast('音色库尚未就绪，请刷新后重试', 'error'); return; }
     api.openTimbrePicker({
-      selectedId: node.data?.timbreId || '', team: canvasTimbreTeam(),
+      selectedId: node.data?.timbreId || '', team: canvasTimbreTeam(), showPreview: true,
       onSelect: item => {
         if (readOnly || context !== canvasTimbreContext() || nodeById(node.id) !== node || node.type !== type) throw Error('当前画布或节点已变更，请重新选择音色');
         if (item && !api.listUsableTimbres(canvasTimbreTeam()).some(voice => voice.id === item.id)) throw Error('所选音色已不可用，请重新选择');
@@ -218,7 +218,7 @@
     const value=node.data?.[key]??options.default??'',required=options.required?'<em>必填</em>':'';
     const info=options.help?`<i class="node-field-info" title="${html(options.help)}" aria-label="${html(options.help)}" data-tooltip="${html(options.help)}" tabindex="0">!</i>`:'';
     const attr=`data-field="${key}"`,head=`<span>${label}${required}${info}</span>`;
-    const input=options.type==='textarea'?`<textarea ${attr} placeholder="${html(options.placeholder||'')}">${html(value)}</textarea>`:options.type==='checkbox'?`<input class="node-toggle-switch node-max-switch" type="checkbox" role="switch" ${attr} aria-label="${html(label)}" ${String(value)==='true'?'checked':''}>`:options.type==='select'?`<select ${attr}>${options.values.map(item=>`<option ${String(value)===String(item)?'selected':''}>${html(item)}</option>`).join('')}</select>`:`<input ${attr} value="${html(value)}" placeholder="${html(options.placeholder||'')}" />`;
+    const input=options.type==='textarea'?`<textarea ${attr} placeholder="${html(options.placeholder||'')}">${html(value)}</textarea>`:options.type==='checkbox'?`<span class="song-studio-switch"><input class="node-toggle-switch" type="checkbox" role="switch" ${attr} aria-label="${html(label)}" ${String(value)==='true'?'checked':''}><i aria-hidden="true"></i></span>`:options.type==='select'?`<select ${attr}>${options.values.map(item=>`<option ${String(value)===String(item)?'selected':''}>${html(item)}</option>`).join('')}</select>`:`<input ${attr} value="${html(value)}" placeholder="${html(options.placeholder||'')}" />`;
     return `<label class="node-field${options.type==='select'||options.type==='checkbox'?' inline-field':''}" ${options.port?`data-input-port="${options.port}"`:''}>${head}${input}</label>`;
   };
   function choices(node,key,label,values,initial){const value=node.data?.[key]??initial,gender=key==='vocalGender';return `<div class="node-field inline-field${gender?' node-gender-field':''}"><span>${label}${gender?'':` <i class="node-field-info" title="设置本次生成的歌曲数量。" data-tooltip="设置本次生成的歌曲数量。" tabindex="0">ⓘ</i>`}</span><div class="node-choice-group${gender?' node-gender-choice':''}" role="group" aria-label="${label}">${values.map(item=>`<button type="button" data-choice-field="${key}" data-choice-value="${item}" class="${String(value)===String(item)?'active':''}" aria-pressed="${String(value)===String(item)}">${item}</button>`).join('')}</div></div>`;}
@@ -232,8 +232,20 @@
     const outputs=portsFor(node.type).outputs.filter(p=>p.edgeType==='data');
     const historical=node.previewRun?(node.runHistory||[]).find(run=>String(run.number)===String(node.previewRun)):null;
     const result=historical?.result??node.result,kind=outputs[0]?.kind,hasResult=Boolean(result),audio=['song','audio'].includes(kind);
-    const content=hasResult?(audio?`<p class="node-result-caption">${html(result)} · 演示音频</p><audio controls preload="none" src="./assets/reference-song-result-a.wav"></audio>`:kind==='image'?`<div class="node-cover-example"><span>${html(node.data?.coverText||'让灵感成为作品')}</span><small>封面示例</small></div>`:`<pre>${html(result)}</pre>`):(audio?`<div class="node-output-wave" aria-label="暂无音频输出">${Array.from({length:34},(_,i)=>`<i style="height:${12+(i*17%29)}px"></i>`).join('')}</div>`:`<span class="node-result-empty">${icon(kind==='image'?'coverImage':'refLyrics')} ${node.type==='writeLyrics'?'这次新运行尚未执行':kind==='image'?'暂无图片生成':'暂无歌词生成'}</span>`);
-    return `<section class="node-output-section"><h3>输出</h3><p class="node-output-state">${hasResult?'本次运行已完成':'这次新运行尚未执行'}</p>${outputs.map((port,i)=>`<div class="node-output-anchor" data-output-port="${port.key}">${outputs.length>1?`<label>${port.label}</label>`:''}${i===outputs.length-1?`<div class="generation-output ${hasResult?'ready':''}">${content}</div>`:''}</div>`).join('')}<div class="node-run-row"><select class="node-run-history" data-run-version aria-label="选择运行记录"><option value="">◷ ${(node.runHistory?.length||0)+1}次新运行</option>${(node.runHistory||[]).map(run=>`<option value="${run.number}" ${historical?.number===run.number?'selected':''}>第 ${run.number} 次运行</option>`).reverse().join('')}</select><button type="button" class="workflow-run" ${node.status==='running'?'disabled':''}>▶ ${node.status==='running'?'运行中':'开始运行'}</button></div></section>`;
+    const resultItems=Array.isArray(result)?result:(result&&typeof result==='object'?result.audioResults||result.results||result.outputs||null:null);
+    const audioItems=audio&&Array.isArray(resultItems)&&resultItems.length?resultItems:null;
+    const selectedOutput=Math.max(0,Math.min((audioItems?.length||1)-1,Number(node.outputPage)||0));
+    const selectedAudio=audioItems?.[selectedOutput];
+    const audioTitle=typeof selectedAudio==='string'?selectedAudio:(selectedAudio?.title||selectedAudio?.name||`生成音频 ${selectedOutput+1}`);
+    const audioUrl=typeof selectedAudio==='object'?(selectedAudio.url||selectedAudio.audioUrl||selectedAudio.src||''):'';
+    const pagination=audioItems?.length>1?(()=>{const total=audioItems.length,start=total<=4?0:Math.floor(selectedOutput/3)*3,end=total<=4?total:Math.min(start+3,total);return `<nav class="node-output-pagination" aria-label="音频结果分页">${start>0?`<button type="button" data-output-prev aria-label="上一组音频结果">‹</button>`:''}${Array.from({length:end-start},(_,i)=>{const page=start+i;return `<button type="button" data-output-page="${page}" class="${page===selectedOutput?'active':''}" aria-current="${page===selectedOutput?'page':'false'}">${page+1}</button>`}).join('')}${total>4&&end<total?'<button type="button" data-output-next aria-label="下一组音频结果">›</button>':''}</nav>`})():'';
+    const playerUrl=audioUrl||'./assets/reference-song-result-a.wav';
+    const waveform=Array.from({length:44},(_,i)=>`<i style="height:${12+(Math.abs(Math.sin(i*1.43)*Math.cos(i*.17))*58|0)}px"></i>`).join('');
+    const audioContent=(title,src)=>`<div class="node-audio-result" data-audio-result><audio src="${html(src)}" preload="metadata" hidden></audio><div class="node-audio-times"><span data-audio-elapsed>0:00</span><span data-audio-duration>--:--</span></div><div class="node-audio-waveform"><div class="node-audio-bars" aria-hidden="true">${waveform}</div><input class="node-audio-seek" type="range" min="0" max="0" step="0.1" value="0" aria-label="播放进度"></div><div class="node-audio-controls"><button type="button" data-audio-skip="-15" aria-label="后退 15 秒">↶<small>15</small></button><button type="button" class="node-audio-play" data-audio-play aria-label="播放 ${html(title)}">▶</button><button type="button" data-audio-skip="15" aria-label="前进 15 秒">↷<small>15</small></button></div></div>`;
+    const content=hasResult?(audioItems?`<div class="node-multi-audio-result"><p class="node-result-caption">${html(audioTitle)}</p>${audioContent(audioTitle,playerUrl)}</div>`:audio?`<p class="node-result-caption">${html(result)} · 演示音频</p>${audioContent(String(result),'./assets/reference-song-result-a.wav')}`:kind==='image'?`<div class="node-cover-example"><span>${html(node.data?.coverText||'让灵感成为作品')}</span><small>封面示例</small></div>`:`<pre>${html(result)}</pre>`):(audio?`<div class="node-output-wave" aria-label="暂无音频输出">${Array.from({length:34},(_,i)=>`<i style="height:${12+(i*17%29)}px"></i>`).join('')}</div>`:`<span class="node-result-empty">${icon(kind==='image'?'coverImage':'refLyrics')} ${node.type==='writeLyrics'?'这次新运行尚未执行':kind==='image'?'暂无图片生成':'暂无歌词生成'}</span>`);
+    const outputHeader=`<div class="node-output-heading"><h3>输出</h3>${audioItems?'<button type="button" class="node-output-download-all" data-output-download-all><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg>下载全部</button>':''}</div>`;
+    const outputLabel=audioItems?`<div class="node-output-label">生成歌曲 <i class="node-field-info" title="本次运行生成的歌曲结果。" data-tooltip="本次运行生成的歌曲结果。" tabindex="0">ⓘ</i></div><div class="node-output-result-toolbar">${pagination}<button type="button" class="node-set-output${Number(node.data?.outputIndex)===selectedOutput?' active':''}" data-output-set="${selectedOutput}">✓ 设为输出</button><span class="node-output-actions"><button type="button" data-output-download aria-label="下载当前音频" title="下载当前音频"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg></button><button type="button" data-output-save aria-label="保存到素材库" title="保存到素材库"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="m10 2 8 4-8 4-8-4 8-4Zm-6 7-2 1 8 4 8-4-2-1m-12 4-2 1 8 4 8-4-2-1"/></svg></button></span></div>`:'';
+    return `<section class="node-output-section">${outputHeader}${audioItems?'':`<p class="node-output-state">${hasResult?'本次运行已完成':'这次新运行尚未执行'}</p>`}${outputs.map((port,i)=>`<div class="node-output-anchor" data-output-port="${port.key}">${outputs.length>1?`<label>${port.label}</label>`:''}${i===outputs.length-1?`<div class="generation-output ${hasResult?'ready':''}">${outputLabel}${content}</div>`:''}</div>`).join('')}<div class="node-run-row"><select class="node-run-history" data-run-version aria-label="选择运行记录"><option value="">◷ ${(node.runHistory?.length||0)+1}次新运行</option>${(node.runHistory||[]).map(run=>`<option value="${run.number}" ${historical?.number===run.number?'selected':''}>第 ${run.number} 次运行</option>`).reverse().join('')}</select>${audioItems?'<span class="node-run-cost" aria-label="预计消耗 130 积分">⚡ 130</span>':''}<button type="button" class="workflow-run" ${node.status==='running'?'disabled':''}>▶ ${node.status==='running'?'运行中':'开始运行'}</button></div></section>`;
   }
   function nodeForm(node){
     if(node.type.endsWith('Menu'))return featureMenu(node);
@@ -259,7 +271,7 @@
         fields+=range(node,'styleWeight','风格影响度',85)+range(node,'audioWeight','音频影响度',45)+range(node,'weirdnessConstraint','创意度',50)+varietyRange(node);
         fields+=field(node,'makeInstrumental','生成纯音乐',{type:'checkbox',default:false,help:'开启后生成不含人声的纯音乐。'})+choices(node,'vocalGender','人声性别',['男','女'],'男');
       }
-      fields+=field(node,'bypassCopyrightCheck','跳过版权检查',{type:'checkbox',help:'开启后跳过生成前的版权检查。'})+`<label class="node-field inline-field"><span>Max 模式 <i class="node-field-info" title="开启后使用 Max 模式生成，适合需要更高生成质量或更贴近参考效果的场景。" data-tooltip="开启后使用 Max 模式生成，适合需要更高生成质量或更贴近参考效果的场景。" tabindex="0">ⓘ</i></span><input class="node-toggle-switch node-max-switch" type="checkbox" role="switch" data-field="maxMode" aria-label="Max 模式" ${String(node.data?.maxMode ?? true)==='true'?'checked':''}></label>`;
+      fields+=field(node,'bypassCopyrightCheck','跳过版权检查',{type:'checkbox',help:'开启后跳过生成前的版权检查。'})+`<label class="node-field inline-field"><span>Max 模式 <i class="node-field-info" title="开启后使用 Max 模式生成，适合需要更高生成质量或更贴近参考效果的场景。" data-tooltip="开启后使用 Max 模式生成，适合需要更高生成质量或更贴近参考效果的场景。" tabindex="0">ⓘ</i></span><span class="song-studio-switch"><input class="node-toggle-switch" type="checkbox" role="switch" data-field="maxMode" aria-label="Max 模式" ${String(node.data?.maxMode ?? true)==='true'?'checked':''}><i aria-hidden="true"></i></span></label>`;
     }
     if(['rvc','svc'].includes(node.type))fields=audioInput(node,'audio-in','参考音频',true)+field(node,'voiceModel','模型',{required:true,placeholder:'请输入音色模型名称'})+field(node,'transpose','转调',{default:'0'})+field(node,'pitchMethod','音高提取方法',{type:'select',values:['rmvpe','crepe','harvest']})+range(node,'indexRate','特征检索比例',0)+field(node,'filterRadius','中值滤波半径',{default:7})+field(node,'format','输出格式',{type:'select',values:['WAV','MP3','FLAC']});
     if(node.type==='stemSplit')fields=audioInput(node,'audio-in','参考音频',true)+field(node,'stemModel','模型',{type:'select',values:['人声和伴奏','人声、鼓、贝斯及其他']});
@@ -306,6 +318,14 @@
   function renderNodes() {
     nodeLayer.querySelectorAll('audio').forEach(audio=>audio.pause());portResizeObserver?.disconnect();
     nodeLayer.innerHTML = state.nodes.map(nodeHTML).join('');
+    nodeLayer.querySelectorAll('[data-audio-result]').forEach(player=>{
+      const audio=player.querySelector('audio'),seek=player.querySelector('.node-audio-seek'),elapsed=player.querySelector('[data-audio-elapsed]'),duration=player.querySelector('[data-audio-duration]'),button=player.querySelector('[data-audio-play]');
+      const time=value=>Number.isFinite(value)&&value>=0?`${Math.floor(value/60)}:${String(Math.floor(value%60)).padStart(2,'0')}`:'--:--';
+      const sync=()=>{if(elapsed)elapsed.textContent=time(audio.currentTime);if(duration)duration.textContent=time(audio.duration);if(seek&&Number.isFinite(audio.duration)){seek.max=String(audio.duration);seek.value=String(audio.currentTime||0)}if(button){button.textContent=audio.paused?'▶':'Ⅱ';button.setAttribute('aria-pressed',String(!audio.paused))}};
+      ['loadedmetadata','durationchange','timeupdate','play','pause','ended'].forEach(event=>audio.addEventListener(event,sync));
+      audio.addEventListener('error',()=>showToast('音频加载失败，请稍后重试','error'));
+      sync();
+    });
     nodeLayer.querySelectorAll('.flow-node').forEach(element=>portResizeObserver?.observe(element));
     document.querySelector('#canvasEmptyHint').classList.toggle('show', !state.nodes.length);
     bindDrag(); drawEdges(); applyViewMode(); requestAnimationFrame(refreshPortPositions);
@@ -416,6 +436,7 @@
     if (['aiLyrics', 'refLyrics'].includes(node.type)) node.result = `【生成歌词】\n${node.data.userPrompt}\n夜色沿着城市缓缓落下，新的故事正在生长……`;
     else if (node.type === 'uploadSong') node.result = node.data.fileName;
     else if(node.type==='coverImage')node.result=node.data?.coverText||'文字封面示例';
+    else if(['aiSong','refSong','sampleSong','playlistSong'].includes(node.type))node.result=Array.from({length:6},(_,index)=>({title:`歌曲版本 ${index+1} · 演示音频`,url:'./assets/reference-song-result-a.wav'}));
     else node.result = `${node.data?.title || defs[node.type].title} · 演示结果`;
     finishRun(node,node.result); if (!quiet) showToast(`「${defs[node.type].title}」运行成功`); return true;
   }
@@ -530,9 +551,19 @@
   function getPublishedSnapshot(workflowId,version){const stored=parse(localStorage.getItem(storageKey(BASE_VERSIONS_KEY,workflowId)),[]),storedExact=stored.find(item=>item.version===version),builtInExact=(builtInPublishedSnapshots[workflowId]||[]).find(item=>item.version===version),snapshot=storedExact?.nodes?.length?storedExact:(builtInExact||storedExact);if(!snapshot)return null;return {workflowId,version:snapshot.version,name:snapshot.name||'',publishedAt:snapshot.publishedAt||0,nodes:publishedSnapshotNodes(snapshot)}}
   window.orchestraWorkflowCanvas = { open: loadWorkflow, copy: copyWorkflow, getPublishedSnapshot };
 
-  nodeLayer.addEventListener('click', event => { if (readOnly) return;
+  nodeLayer.addEventListener('click', event => {
     const element = event.target.closest('.flow-node'); if (!element) return; const id = element.dataset.id;
     const node=nodeById(id);
+    if(event.target.closest('[data-output-page]')){node.outputPage=Number(event.target.closest('[data-output-page]').dataset.outputPage)||0;renderNodes();return;}
+    if(event.target.closest('[data-output-next]')){node.outputPage=(Math.floor((Number(node.outputPage)||0)/3)+1)*3;renderNodes();return;}
+    if(event.target.closest('[data-output-prev]')){node.outputPage=Math.max(0,Math.floor((Number(node.outputPage)||0)/3)*3-3);renderNodes();return;}
+    if(event.target.closest('[data-output-set]')){node.data||={};node.data.outputIndex=Number(event.target.closest('[data-output-set]').dataset.outputSet)||0;renderNodes();queueDraft();return;}
+    const downloadButton=event.target.closest('[data-output-download],[data-output-download-all]');
+    if(downloadButton){const historical=node.previewRun?(node.runHistory||[]).find(run=>String(run.number)===String(node.previewRun)):null,result=historical?.result??node.result,items=Array.isArray(result)?result:(result&&typeof result==='object'?result.audioResults||result.results||result.outputs||[]:[]),all=downloadButton.hasAttribute('data-output-download-all'),targets=all?items:[items[Number(node.outputPage)||0]],urls=targets.map((item,index)=>({url:typeof item==='object'?(item.url||item.audioUrl||item.src):'',name:typeof item==='object'?(item.title||item.name):`歌曲版本 ${(Number(node.outputPage)||0)+index+1}`})).filter(item=>item.url);if(!urls.length)urls.push({url:'./assets/reference-song-result-a.wav',name:'生成歌曲'});urls.forEach(({url,name},index)=>setTimeout(()=>{const anchor=document.createElement('a');anchor.href=url;anchor.download=`${name||'生成歌曲'}.wav`;anchor.click()},index*180));return;}
+    if(event.target.closest('[data-output-save]')){showToast('保存音频到素材库暂不可用');return;}
+    if(event.target.closest('[data-audio-play]')){const button=event.target.closest('[data-audio-play]'),audio=button.closest('[data-audio-result]')?.querySelector('audio');if(audio){if(audio.paused)audio.play().catch(()=>showToast('音频暂时无法播放','error'));else audio.pause();}return;}
+    const audioSkip=event.target.closest('[data-audio-skip]');if(audioSkip){const audio=audioSkip.closest('[data-audio-result]')?.querySelector('audio');if(audio&&Number.isFinite(audio.duration))audio.currentTime=Math.max(0,Math.min(audio.duration,audio.currentTime+Number(audioSkip.dataset.audioSkip)));return;}
+    if (readOnly) return;
     if(event.target.closest('[data-pick-node-timbre]')){pickCanvasTimbre(node);return;}
     if(event.target.closest('[data-collapse-node]')){pushUndo();node.collapsed=!node.collapsed;renderNodes();queueDraft();return;}
     if(event.target.closest('[data-toggle-fields]')){node.advancedCollapsed=!node.advancedCollapsed;renderNodes();queueDraft();return;}
@@ -544,6 +575,7 @@
     if (event.target.closest('.workflow-run')) return runNode(id);
     selectNode(id);
   });
+  nodeLayer.addEventListener('input',event=>{if(!event.target.matches('.node-audio-seek'))return;const audio=event.target.closest('[data-audio-result]')?.querySelector('audio');if(audio)audio.currentTime=Number(event.target.value)});
   nodeLayer.addEventListener('pointerdown', event => { if (readOnly) return;
     const port = event.target.closest('.node-port.output');
     const element = event.target.closest('.flow-node');

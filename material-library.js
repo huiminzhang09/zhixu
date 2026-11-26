@@ -1149,7 +1149,7 @@
     const keyword = normalizeSearch(name);
     return listUsableTimbres(team).filter(item => !keyword || normalizeSearch(item.name).includes(keyword));
   }
-  function openTimbrePicker({ selectedId = '', team = activeTeam(), onSelect } = {}) {
+  function openTimbrePicker({ selectedId = '', team = activeTeam(), onSelect, showPreview = true } = {}) {
     const context = { team, account: currentAccount() };
     requireTimbreAccess(context);
     let selected = String(selectedId || '');
@@ -1162,26 +1162,66 @@
     });
     dialog.classList.add('timbre-picker-dialog');
     const input = dialog.querySelector('[data-timbre-picker-search]'), list = dialog.querySelector('#timbrePickerList'), clear = dialog.querySelector('[data-timbre-picker-clear]');
-    const renderList = () => {
+    const previewUrls = new Map(), createdPreviewUrls = new Set();
+    let renderToken = 0;
+    const resolvePreviewUrl = async item => {
+      if (previewUrls.has(item.id)) return previewUrls.get(item.id);
+      let url = item.source?.url || item.url || '';
+      for (const id of new Set([item.source?.blobId, item.blobId].filter(Boolean))) {
+        const blob = await fileOperation('get', id).catch(() => null);
+        if (blob?.size) { url = URL.createObjectURL(blob); createdPreviewUrls.add(url); break; }
+      }
+      previewUrls.set(item.id, url);
+      return url;
+    };
+    const renderList = async () => {
+      const token = ++renderToken;
       try {
         requireTimbreAccess(context);
         const items = matchingPickerTimbres(team, input.value);
         dialog.querySelector('[data-timbre-picker-count]').textContent = `共 ${items.length} 个音色`;
         clear.hidden = !input.value;
-        list.innerHTML = items.length ? items.map(item => {
+        const rows = await Promise.all(items.map(async item => {
           let path = '音色库';
           try { path = ['音色库', ...timbreFolderPath(folders, item.folderId).map(folder => folder.name)].join(' / '); } catch {}
-          return `<label class="timbre-picker-option"><input type="radio" name="pickerTimbre" value="${escapeHtml(item.id)}" ${item.id === selected ? 'checked' : ''}><span class="timbre-picker-icon" aria-hidden="true">${timbreArtwork}</span><span class="timbre-picker-details"><strong title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</strong><span title="${escapeHtml(item.description || item.style || '暂无音色描述')}">${escapeHtml(item.description || item.style || '暂无音色描述')}</span><small title="${escapeHtml(path)}">${escapeHtml(path)}</small></span></label>`;
-        }).join('') : '<p class="timbre-picker-empty" role="status">未找到匹配的可用音色，请调整名称或等待音色生成成功。</p>';
+          const preview = showPreview ? await resolvePreviewUrl(item) : '';
+          return `<div class="timbre-picker-option"><input type="radio" name="pickerTimbre" value="${escapeHtml(item.id)}" ${item.id === selected ? 'checked' : ''}><span class="timbre-picker-icon" aria-hidden="true">${timbreArtwork}</span><span class="timbre-picker-details"><strong title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</strong><span class="timbre-picker-description-row"><span class="timbre-picker-description" title="${escapeHtml(item.description || item.style || '暂无音色描述')}">${escapeHtml(item.description || item.style || '暂无音色描述')}</span>${showPreview ? `<span class="timbre-picker-preview" data-preview-player>${preview ? `<audio src="${escapeHtml(preview)}" preload="metadata" hidden></audio>` : ''}<button type="button" class="timbre-picker-play" aria-label="${preview ? `播放 ${escapeHtml(item.name)}` : `${escapeHtml(item.name)} 暂无试听音频`}" aria-pressed="false" ${preview ? '' : 'disabled'}><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.7c0-.78.85-1.26 1.52-.86l9.7 5.8a1.6 1.6 0 0 1 0 2.74l-9.7 5.8A1 1 0 0 1 8 18.32V5.7Z"/></svg><svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5v11M16 6.5v11"/></svg></button>${preview ? `<span class="timbre-picker-track" hidden><span data-preview-elapsed>0:00</span><input type="range" min="0" max="0" step="0.1" value="0" aria-label="播放进度"><span data-preview-duration>--:--</span></span>` : '<small class="timbre-picker-no-audio">暂无可试听音频</small>'}</span>` : ''}</span><small title="${escapeHtml(path)}">${escapeHtml(path)}</small></span></div>`;
+        }));
+        if (token !== renderToken || !dialog.open) return;
+        list.innerHTML = rows.length ? rows.join('') : '<p class="timbre-picker-empty" role="status">未找到匹配的可用音色，请调整名称或等待音色生成成功。</p>';
       } catch (error) {
+        if (token !== renderToken || !dialog.open) return;
         list.innerHTML = '<p class="timbre-picker-empty" role="status">' + escapeHtml(error.message) + '</p>';
         dialog.querySelector('[type=submit]').disabled = true;
       }
     };
-    dialog.addEventListener('change', event => { if (event.target.matches('[name=pickerTimbre]')) selected = event.target.value; });
+    const formatPreviewTime = value => Number.isFinite(value) && value >= 0 ? `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}` : '--:--';
+    dialog.addEventListener('change', event => {
+      if (event.target.matches('[name=pickerTimbre]')) selected = event.target.value;
+      if (event.target.matches('.timbre-picker-track input[type=range]')) { const audio = event.target.closest('[data-preview-player]')?.querySelector('audio'); if (audio) audio.currentTime = Number(event.target.value); }
+    });
+    dialog.addEventListener('click', event => {
+      const button = event.target.closest('.timbre-picker-play');
+      const option = event.target.closest('.timbre-picker-option');
+      if (option && !event.target.closest('.timbre-picker-preview, input[type=radio]')) {
+        const radio = option.querySelector('[name=pickerTimbre]');
+        if (radio) { radio.checked = true; selected = radio.value; }
+      }
+      if (!button) return;
+      const player = button.closest('[data-preview-player]'), audio = player?.querySelector('audio'), track = player?.querySelector('.timbre-picker-track');
+      if (!audio) return;
+      track.hidden = false;
+      dialog.querySelectorAll('.timbre-picker-preview audio').forEach(other => { if (other !== audio) { other.pause(); const otherPlayer = other.closest('[data-preview-player]'),otherButton=otherPlayer.querySelector('.timbre-picker-play');otherButton.setAttribute('aria-label',`播放 ${otherPlayer.closest('.timbre-picker-option')?.querySelector('.timbre-picker-details strong')?.textContent||'音色'}`);otherButton.setAttribute('aria-pressed', 'false'); } });
+      if (audio.paused) { audio.play().catch(() => showToast('音频暂时无法播放', 'error')); button.setAttribute('aria-label', `暂停 ${button.closest('.timbre-picker-option')?.querySelector('.timbre-picker-details strong')?.textContent||'音色'}`); button.setAttribute('aria-pressed', 'true'); }
+      else { audio.pause(); button.setAttribute('aria-label', `播放 ${button.closest('.timbre-picker-option')?.querySelector('.timbre-picker-details strong')?.textContent||'音色'}`); button.setAttribute('aria-pressed', 'false'); }
+    });
+    list.addEventListener('timeupdate', event => { const audio = event.target; if (!(audio instanceof HTMLAudioElement)) return; const player = audio.closest('[data-preview-player]'), seek = player?.querySelector('input[type=range]'); if (!seek) return; seek.max = String(audio.duration || 0); seek.value = String(audio.currentTime || 0); player.querySelector('[data-preview-elapsed]').textContent = formatPreviewTime(audio.currentTime); });
+    list.addEventListener('loadedmetadata', event => { const audio = event.target; if (!(audio instanceof HTMLAudioElement)) return; const player = audio.closest('[data-preview-player]'); if (player) { player.querySelector('input[type=range]').max = String(audio.duration || 0); player.querySelector('[data-preview-duration]').textContent = formatPreviewTime(audio.duration); } });
+    list.addEventListener('ended', event => { const audio = event.target; if (!(audio instanceof HTMLAudioElement)) return; const player = audio.closest('[data-preview-player]'); if (player) { const button=player.querySelector('.timbre-picker-play');button.setAttribute('aria-label',`播放 ${button.closest('.timbre-picker-option')?.querySelector('.timbre-picker-details strong')?.textContent||'音色'}`);button.setAttribute('aria-pressed', 'false'); } });
     input.addEventListener('input', event => { if (!event.isComposing) renderList(); });
     input.addEventListener('compositionend', renderList);
     clear.addEventListener('click', () => { input.value = ''; renderList(); input.focus(); });
+    dialog.addEventListener('close', () => { dialog.querySelectorAll('audio').forEach(audio => audio.pause()); createdPreviewUrls.forEach(url => URL.revokeObjectURL(url)); }, { once: true });
     renderList(); input.focus();
     return dialog;
   }

@@ -295,16 +295,38 @@ html[data-theme="light"] .material-add-dialog input:not([type="file"]),html[data
 .timbre-picker-dialog .timbre-picker-none{display:flex;align-items:center;gap:10px;font-size:13px}
 .timbre-picker-count{font-size:12px;color:var(--muted);margin:14px 0 10px}
 .timbre-picker-list{display:grid;gap:10px;max-height:360px;overflow-y:auto;overscroll-behavior:contain;padding:2px;min-width:0}
-.timbre-picker-dialog .timbre-picker-option{display:flex;align-items:center;gap:12px;padding:12px;margin:0;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);cursor:pointer;min-width:0}
+.timbre-picker-dialog .timbre-picker-option{display:grid;grid-template-columns:16px 42px minmax(0,1fr);align-items:center;gap:12px;padding:12px;margin:0;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);cursor:pointer;min-width:0}
+.timbre-picker-option{position:relative}
 .timbre-picker-option:has(input:checked){border-color:#a17ce2;background:#8c60d514}
 .timbre-picker-dialog input[type=radio]{flex:none;width:16px;height:16px;margin:0;accent-color:#9872df}
 .timbre-picker-icon{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:9px;background:#8c60d514;color:#b097d2}
 .timbre-picker-icon svg{width:28px;height:28px}
-.timbre-picker-details{display:grid;gap:5px;flex:1;min-width:0}
+.timbre-picker-details{display:grid;grid-template-columns:minmax(0,1fr);gap:5px;min-width:0;width:100%}
 .timbre-picker-details strong,.timbre-picker-details>span,.timbre-picker-details small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .timbre-picker-details strong{font-size:14px;color:var(--text)}
 .timbre-picker-details>span{font-size:12px;color:var(--muted)}
 .timbre-picker-details small{font-size:11px;color:var(--muted)}
+.timbre-picker-description-row{display:grid!important;grid-template-columns:minmax(55px,.65fr) minmax(0,1.35fr);align-items:center;gap:8px;min-width:0;width:100%;overflow:visible!important;text-overflow:clip;white-space:normal!important}
+.timbre-picker-description{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.timbre-picker-preview{display:grid!important;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:8px;min-width:0;width:100%;margin:0;padding:0;overflow:visible!important;text-overflow:clip;white-space:nowrap}
+.timbre-picker-play{display:grid;place-items:center;flex:none;box-sizing:border-box;width:44px;height:44px;padding:0;border:1px solid #54535c;border-radius:50%;background:#303036;color:#f1f1f3;line-height:1;cursor:pointer;transition:background .16s,border-color .16s,transform .16s}
+.timbre-picker-play:hover{border-color:#77747f;background:#393840}
+.timbre-picker-play:active{transform:scale(.94)}
+.timbre-picker-play[aria-pressed=true]{background:#303036;color:#c5a7ff}
+.timbre-picker-play svg{display:block;width:24px;height:24px}
+.timbre-picker-play .play-icon path{fill:currentColor}
+.timbre-picker-play .pause-icon{display:none}
+.timbre-picker-play .pause-icon path{fill:none;stroke:currentColor;stroke-width:3.2;stroke-linecap:round}
+.timbre-picker-play[aria-pressed=true] .play-icon{display:none}
+.timbre-picker-play[aria-pressed=true] .pause-icon{display:block}
+.timbre-picker-play:focus-visible{outline:2px solid #ac8cf7;outline-offset:2px}
+.timbre-picker-play:disabled{opacity:.45;cursor:not-allowed}
+.timbre-picker-track{display:grid!important;grid-template-columns:28px minmax(0,1fr) 28px;align-items:center;gap:4px;min-width:0;width:100%;overflow:hidden;color:var(--muted);font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.timbre-picker-track>span{overflow:hidden;text-overflow:clip;text-align:center}
+.timbre-picker-track[hidden]{display:none!important}
+.timbre-picker-track input[type=range]{display:block;width:100%;min-width:0;height:3px;margin:0;accent-color:#7b39f5;cursor:pointer}
+.timbre-picker-no-audio{grid-column:2;overflow:hidden;color:var(--muted);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:520px){.timbre-picker-dialog .timbre-picker-option{grid-template-columns:14px 32px minmax(0,1fr);gap:8px;padding:8px}.timbre-picker-icon{width:32px;height:32px}.timbre-picker-icon svg{width:23px;height:23px}.timbre-picker-description-row{grid-template-columns:minmax(36px,.45fr) minmax(0,1.55fr);gap:5px}.timbre-picker-preview{grid-template-columns:36px minmax(0,1fr);gap:5px}.timbre-picker-play{width:36px;height:36px}.timbre-picker-play svg{width:21px;height:21px}.timbre-picker-track{grid-template-columns:25px minmax(0,1fr) 25px;gap:3px;font-size:9px}}
 .timbre-picker-empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
 
 .timbre-generation-status.is-confirming { background: #413224; color: #eec68c; }

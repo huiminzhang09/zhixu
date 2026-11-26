@@ -209,11 +209,20 @@
       status.textContent = progress[operation] || nextStep;
     }
 
-    function playerMarkup(item) {
+    function playerMarkup(item, compact = false) {
       const bars = Array.from({ length: 48 }, (_, i) => {
         const height = 5 + Math.round(Math.abs(Math.sin(i * 1.73) * Math.cos(i * .21)) * 26);
         return `<i style="height:${height}px"></i>`;
       }).join('');
+      if (compact) return `<div class="timbre-compact-player">
+        <audio src="${escapeHtml(item.url)}" preload="metadata" controlslist="nodownload noplaybackrate noremoteplayback" disableremoteplayback hidden></audio>
+        <button type="button" class="timbre-compact-play" aria-label="播放 ${escapeHtml(item.title)}" aria-pressed="false"><span aria-hidden="true">▶</span></button>
+        <div class="timbre-compact-track" hidden>
+          <span class="timbre-compact-time" data-compact-elapsed>0:00</span>
+          <input type="range" min="0" max="0" step="0.1" value="0" data-compact-seek aria-label="播放时间进度">
+          <span class="timbre-compact-time" data-compact-duration>--:--</span>
+        </div>
+      </div>`;
       return `<div class="timbre-wave-player">
         <audio src="${escapeHtml(item.url)}" preload="metadata" controlslist="nodownload noplaybackrate noremoteplayback" disableremoteplayback hidden></audio>
         <button type="button" class="timbre-wave-play" aria-label="播放 ${escapeHtml(item.title)}" aria-pressed="false"><span aria-hidden="true">▶</span></button>
@@ -226,17 +235,28 @@
     function bindPlayers() {
       const time = value => Number.isFinite(value) && value >= 0
         ? `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}` : '--:--';
-      results.querySelectorAll('.timbre-wave-player').forEach(player => {
+      results.querySelectorAll('.timbre-wave-player, .timbre-compact-player').forEach(player => {
         const audio = player.querySelector('audio');
         const button = player.querySelector('button');
         const title = button.getAttribute('aria-label').slice(3);
+        const compact = player.classList.contains('timbre-compact-player');
         const bars = [...player.querySelectorAll('.timbre-wave-bars i')];
+        const seek = player.querySelector('[data-compact-seek]');
         const sync = () => {
           const playing = !audio.paused && !audio.ended;
           button.classList.toggle('is-playing', playing);
           button.querySelector('span').textContent = playing ? 'Ⅱ' : '▶';
           button.setAttribute('aria-label', `${playing ? '暂停' : '播放'} ${title}`);
           button.setAttribute('aria-pressed', String(playing));
+          if (compact) {
+            const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+            player.querySelector('[data-compact-elapsed]').textContent = time(audio.currentTime);
+            player.querySelector('[data-compact-duration]').textContent = time(audio.duration);
+            seek.max = String(duration);
+            seek.value = String(Math.min(audio.currentTime || 0, duration));
+            seek.style.setProperty('--audio-progress', `${duration ? audio.currentTime / duration * 100 : 0}%`);
+            return;
+          }
           player.querySelector('[data-elapsed]').textContent = time(audio.currentTime);
           player.querySelector('[data-duration]').textContent = time(audio.duration);
           const progress = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.currentTime / audio.duration : 0;
@@ -244,9 +264,11 @@
         };
         button.addEventListener('click', async () => {
           if (!audio.paused) { audio.pause(); return; }
+          if (compact) { player.classList.add('is-expanded'); player.querySelector('.timbre-compact-track').hidden = false; }
           try { await audio.play(); songError.textContent = ''; }
           catch { songError.textContent = '音频暂时无法播放，请重试。'; }
         });
+        seek?.addEventListener('input', () => { if (Number.isFinite(audio.duration)) audio.currentTime = Number(seek.value); });
         for (const event of ['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'ended']) audio.addEventListener(event, sync);
         audio.addEventListener('error', () => {
           button.disabled = true;
@@ -270,7 +292,7 @@
           <h4>${heading}</h4>
           <p>${escapeHtml(title)}</p>
           ${playback.url
-            ? playerMarkup({ ...playback, title })
+            ? playerMarkup({ ...playback, title }, example?.details === true)
             : '<p class="material-dialog-hint">音频暂不可用。</p>'}
         </article>`;
         bindPlayers();
